@@ -721,3 +721,70 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
 	suite.True(time.Since(*updatedCustomer.GetUpdatedTime()) < time.Second, "update time is not recent")
 }
+
+func (suite *MainTestSuite) TestCustomerState() {
+	testCustomerGUID := "test-state-customer-guid"
+	customer := &types.Customer{
+		PortalBase: armotypes.PortalBase{
+			Name: "customer-test-state",
+			GUID: testCustomerGUID,
+			Attributes: map[string]interface{}{
+				"customer1-attr1": "customer1-attr1-value",
+				"customer1-attr2": "customer1-attr2-value",
+			},
+		},
+		Description:        "customer1 description",
+		Email:              "customer1@customers.org",
+		LicenseType:        "kubescape",
+		InitialLicenseType: "kubescape",
+	}
+	//create customer is public so - remove auth cookie
+	suite.authCookie = ""
+	//post new customer
+	testCustomer := testPostDoc(suite, "/customer_tenant", customer, customerCompareFilter)
+	suite.Nil(testCustomer.NotificationsConfig)
+	//login as customer
+	suite.login(testCustomerGUID)
+
+	//get customer state - should return the default state (onboarding completed)
+	state := &armotypes.CustomerState{
+		Onboarding: &armotypes.CustomerOnboarding{
+			Completed: true,
+		},
+	}
+	statePath := consts.CustomerStatePath + "/" + testCustomerGUID
+	testGetDoc(suite, statePath, state, nil)
+
+	//get customer state without guid in path - expect 404
+	testBadRequest(suite, http.MethodGet, consts.CustomerStatePath, "404 page not found", nil, http.StatusNotFound)
+	//get state on unknown customer - expect 404
+	testBadRequest(suite, http.MethodGet, consts.CustomerStatePath+"/unknown-customer-guid", errorDocumentNotFound, nil, http.StatusNotFound)
+
+	//Post is not served on state - expect 404
+	testBadRequest(suite, http.MethodPost, consts.CustomerStatePath, "404 page not found", state, http.StatusNotFound)
+
+	//put new state
+	state.Onboarding.CompanySize = "1000"
+	state.Onboarding.Completed = false
+	state.Onboarding.Interests = []string{"a", "b"}
+	state.GettingStartedDismissed = true
+	prevState := &armotypes.CustomerState{
+		Onboarding: &armotypes.CustomerOnboarding{
+			Completed: true,
+		},
+	}
+	testPutDoc(suite, statePath, prevState, state, nil)
+
+	//update state
+	prevState = clone(state)
+	state.Onboarding.Completed = true
+	testPutDoc(suite, statePath, prevState, state, nil)
+
+	//make sure not other customer fields are changed
+	updatedCustomer := clone(testCustomer)
+	updatedCustomer.State = state
+	updatedCustomer = testGetDoc(suite, "/customer", updatedCustomer, customerCompareFilter)
+	//check the the customer update date is updated
+	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
+	suite.True(time.Since(*updatedCustomer.GetUpdatedTime()) < time.Second, "update time is not recent")
+}

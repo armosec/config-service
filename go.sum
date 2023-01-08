@@ -157,8 +157,8 @@ github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
-github.com/armosec/armoapi-go v0.0.141 h1:RIn3m9wPy+mh099TBHXo6CxGzhJYSeK6OYr7sUb7t8o=
-github.com/armosec/armoapi-go v0.0.141/go.mod h1:2zoNzb3Fy9ZByeczJZ47ftDRLRzTykVdTISS3GTc/JU=
+github.com/armosec/armoapi-go v0.0.142-0.20230108135015-422ecce35cb8 h1:4lqOIdYBF5+BhHaRDDiozgY89FvHmbC5X8qw385SFDI=
+github.com/armosec/armoapi-go v0.0.142-0.20230108135015-422ecce35cb8/go.mod h1:2zoNzb3Fy9ZByeczJZ47ftDRLRzTykVdTISS3GTc/JU=
 github.com/armosec/utils-go v0.0.12 h1:NXkG/BhbSVAmTVXr0qqsK02CmxEiXuJyPmdTRcZ4jAo=
 github.com/armosec/utils-go v0.0.12/go.mod h1:F/K1mI/qcj7fNuJl7xktoCeHM83azOF0Zq6eC2WuPyU=
 github.com/armosec/utils-k8s-go v0.0.12 h1:u7kHSUp4PpvPP3hEaRXMbM0Vw23IyLhAzzE+2TW6Jkk=

@@ -52,6 +52,7 @@ type MainTestSuite struct {
 
 func (suite *MainTestSuite) SetupSuite() {
 	//start mongo
+	exec.Command("/bin/sh", "-c", mongoStopCommand).Run()
 	out, err := exec.Command("/bin/sh", "-c", mongoDockerCommand).Output()
 	if err != nil {
 		suite.FailNow("failed to start mongo", err.Error(), string(out))
