@@ -767,7 +767,10 @@ func (suite *MainTestSuite) TestCustomerState() {
 	state.Onboarding.CompanySize = "1000"
 	state.Onboarding.Completed = false
 	state.Onboarding.Interests = []string{"a", "b"}
-	state.GettingStartedDismissed = true
+	state.GettingStarted = &armotypes.GettingStartedChecklist{
+		GettingStartedDismissed: true,
+	}
+	// state.GettingStarted = true
 	prevState := &armotypes.CustomerState{
 		Onboarding: &armotypes.CustomerOnboarding{
 			Completed: true,
