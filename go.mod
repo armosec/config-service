@@ -3,7 +3,7 @@ module config-service
 go 1.18
 
 require (
-	github.com/armosec/armoapi-go v0.0.143-0.20230109150548-23c8ac84e36c
+	github.com/armosec/armoapi-go v0.0.143
 	github.com/dchest/uniuri v1.2.0
 	github.com/gertd/go-pluralize v0.2.1
 	github.com/gin-contrib/zap v0.1.0
