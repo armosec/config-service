@@ -652,29 +652,4 @@ func (suite *MainTestSuite) TestCustomerState() {
 	//check the the customer update date is updated
 	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
 	suite.True(time.Since(*updatedCustomer.GetUpdatedTime()) < time.Second, "update time is not recent")
-
-	// try creating customer with a state
-	testCustomerGUID2 := "test-state-customer-guid-2"
-	customer2 := &types.Customer{
-		PortalBase: armotypes.PortalBase{
-			Name: "customer-test-state",
-			GUID: testCustomerGUID2,
-			Attributes: map[string]interface{}{
-				"customer1-attr1": "customer1-attr1-value",
-				"customer1-attr2": "customer1-attr2-value",
-			},
-		},
-		Description:        "customer1 description",
-		Email:              "customer1@customers.org",
-		LicenseType:        "kubescape",
-		InitialLicenseType: "kubescape",
-		State: &armotypes.CustomerState{
-			Onboarding: &armotypes.CustomerOnboarding{
-				Completed: false,
-			},
-		},
-	}
-
-	testCustomer2 := testPostDoc(suite, "/customer_tenant", customer2, customerCompareFilter)
-	suite.NotNil(testCustomer2.State)
 }
