@@ -14,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-const predefinedQueryExt string = ".txt"
 const MaxAggregationLimit = 10000
 
 type preDefinedQuery string
@@ -23,13 +22,14 @@ const (
 	CustomersWithScansBetweenDates preDefinedQuery = "customersWithScansBetweenDates"
 )
 
-var templates = template.New("root")
+var rootTemplate = template.New("root")
+
+//go:embed predefined_queries/customersWithScansBetweenDates.txt
+var CustomersWithScansBetweenDatesBytes string
 
 func Init() {
-	_, err := templates.ParseGlob("db/predefined_queries/*" + predefinedQueryExt)
-	if err != nil {
-		panic(err)
-	}
+	t := rootTemplate.New(string(CustomersWithScansBetweenDates))
+	template.Must(t.Parse(CustomersWithScansBetweenDatesBytes))
 }
 
 type Metadata struct {
@@ -59,9 +59,8 @@ func AggregateWithTemplate[T any](ctx context.Context, limit, cursor int, collec
 		limit = MaxAggregationLimit
 	}
 	templateArgs["limit"] = limit
-
 	buf := strings.Builder{}
-	if err := templates.ExecuteTemplate(&buf, string(queryTemplateName)+predefinedQueryExt, templateArgs); err != nil {
+	if err := rootTemplate.ExecuteTemplate(&buf, string(queryTemplateName), templateArgs); err != nil {
 		log.LogNTraceError("failed to execute template", err, ctx)
 		return nil, err
 	}
