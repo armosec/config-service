@@ -20,17 +20,40 @@ func addNotificationConfigRoutes(g *gin.Engine) {
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.Customer]().
 		WithDBCollection(consts.CustomersCollection). //same db as customers
 		WithPath(consts.NotificationConfigPath).
-		WithServeGetWithGUIDOnly(true).                                                  //only get single doc by GUID
-		WithPutFields([]string{notificationConfigField, consts.UpdatedTimeField}).       //only update notification-config and UpdatedTime fields in customer document
-		WithServePost(false).                                                            //no post
-		WithServeDelete(false).                                                          //no delete
-		WithBodyDecoder(decodeNotificationConfig).                                       //custom decoder
-		WithResponseSender(notificationConfigResponseSender).                            //custom response sender
-		WithArrayHandler("/unsubscribe/:userId", unsubscribeRequestHandler, true, true). //Add put and delete form unsubscribe array
+		WithServeGetWithGUIDOnly(true).                                                           //only get single doc by GUID
+		WithPutFields([]string{notificationConfigField, consts.UpdatedTimeField}).                //only update notification-config and UpdatedTime fields in customer document
+		WithServePost(false).                                                                     //no post
+		WithServeDelete(false).                                                                   //no delete
+		WithBodyDecoder(decodeNotificationConfig).                                                //custom decoder
+		WithResponseSender(notificationConfigResponseSender).                                     //custom response sender
+		WithArrayHandler("/unsubscribe/:userId", unsubscribeMiddleware, true, true).              //Add put and delete form unsubscribe array
+		WithMapHandler("/latestPushReport/:clusterName", latestPushReportMiddleware, true, true). //Add put and delete in latest report maps
 		Get()...)
 }
 
-func unsubscribeRequestHandler(c *gin.Context) (pathToArray string, valueToAdd interface{}, queryFilter *db.FilterBuilder, valid bool) {
+func latestPushReportMiddleware(c *gin.Context) (pathToArray string, valueToAdd interface{}, queryFilter *db.FilterBuilder, valid bool) {
+	clusterName := c.Param("clusterName")
+	if clusterName == "" {
+		handlers.ResponseMissingKey(c, "clusterName")
+		return "", nil, nil, false
+	}
+	report := &armotypes.PushReport{}
+	if c.Request.Method == http.MethodPut {
+		if err := c.ShouldBindJSON(&report); err != nil {
+			handlers.ResponseFailedToBindJson(c, err)
+			return "", nil, nil, false
+		}
+	}
+	customerGuid := c.GetString(consts.CustomerGUID)
+	if customerGuid == "" {
+		panic("customerGuid is empty")
+	}
+	queryFilter = db.NewFilterBuilder().WithGUID(customerGuid)
+	pathToArray = "notifications_config.latestPushReports." + clusterName
+	return pathToArray, report, queryFilter, true
+}
+
+func unsubscribeMiddleware(c *gin.Context) (pathToArray string, valueToAdd interface{}, queryFilter *db.FilterBuilder, valid bool) {
 	userId := c.Param("userId")
 	if userId == "" {
 		handlers.ResponseMissingKey(c, "userId")
@@ -49,7 +72,7 @@ func unsubscribeRequestHandler(c *gin.Context) (pathToArray string, valueToAdd i
 	if customerGuid == "" {
 		panic("customerGuid is empty")
 	}
-	queryFilter = db.NewFilterBuilder().WithID(customerGuid)
+	queryFilter = db.NewFilterBuilder().WithGUID(customerGuid)
 	pathToArray = "notifications_config.unsubscribedUsers." + userId
 	return pathToArray, notificationId, queryFilter, true
 }

@@ -384,17 +384,16 @@ func MustGetDocContentFromContext[T types.DocContent](c *gin.Context) ([]T, erro
 	return docs, nil
 }
 
-func HandlerAddToArray(requestHandler ArrayRequestHandler) func(c *gin.Context) {
+func HandlerAddToArray(requestHandler EmbeddedDataMiddleware) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		pathToArray, item, filterBuilder, valid := requestHandler(c)
 		if !valid {
 			return
 		}
-		filter := db.NewFilterBuilder()
-		if filterBuilder != nil {
-			filter = filterBuilder
+		if filterBuilder == nil {
+			filterBuilder = db.NewFilterBuilder().WithNotDeleteForCustomer(c)
 		}
-		if modified, err := db.AddToArray(c, filter, pathToArray, item); err != nil {
+		if modified, err := db.AddToArray(c, filterBuilder, pathToArray, item); err != nil {
 			ResponseInternalServerError(c, "failed to add to unsubscribedUsers", err)
 			return
 		} else {
@@ -403,21 +402,44 @@ func HandlerAddToArray(requestHandler ArrayRequestHandler) func(c *gin.Context) 
 	}
 }
 
-func HandlerRemoveFromArray(requestHandler ArrayRequestHandler) func(c *gin.Context) {
+func HandlerRemoveFromArray(requestHandler EmbeddedDataMiddleware) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		pathToArray, item, filterBuilder, valid := requestHandler(c)
 		if !valid {
 			return
 		}
-		filter := db.NewFilterBuilder()
-		if filterBuilder != nil {
-			filter = filterBuilder
+		if filterBuilder == nil {
+			filterBuilder = db.NewFilterBuilder().WithNotDeleteForCustomer(c)
 		}
-		if modified, err := db.PullFromArray(c, filter, pathToArray, item); err != nil {
+		if modified, err := db.PullFromArray(c, filterBuilder, pathToArray, item); err != nil {
 			ResponseInternalServerError(c, "failed to remove from  unsubscribedUsers", err)
 			return
 		} else {
 			c.JSON(http.StatusOK, gin.H{"removed": modified})
+		}
+	}
+}
+
+func HandlerSetField(requestHandler EmbeddedDataMiddleware, set bool) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		pathToField, value, filterBuilder, valid := requestHandler(c)
+		if !valid {
+			return
+		}
+		if filterBuilder == nil {
+			filterBuilder = db.NewFilterBuilder().WithNotDeleteForCustomer(c)
+		}
+		var update interface{}
+		if set {
+			update = db.GetUpdateSetFieldCommand(pathToField, value)
+		} else { //unset
+			update = db.GetUpdateUnsetFieldCommand(pathToField)
+		}
+		if modified, err := db.UpdateOne(c, filterBuilder, update); err != nil {
+			ResponseInternalServerError(c, "failed to add to unsubscribedUsers", err)
+			return
+		} else {
+			c.JSON(http.StatusOK, gin.H{"modified": modified})
 		}
 	}
 }

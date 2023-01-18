@@ -20,9 +20,13 @@ type BodyDecoder[T types.DocContent] func(c *gin.Context) ([]T, error)
 // ResponseSender is used for custom response sending it is called after the request has been processed
 type ResponseSender[T types.DocContent] func(c *gin.Context, doc T, docs []T)
 
-// type ArrayRequestHandler is used to handle request for updating internal arrays in a document
-// it returns the path to the array (e.g. "internalFields.tags"), the value to add or pull and a query filter to find the document
-type ArrayRequestHandler func(c *gin.Context) (pathToArray string, valueToAdd interface{}, queryFilter *db.FilterBuilder, valid bool)
+// type EmbeddedDataMiddleWare is used to handle requests for updating internal arrays and maps in a document
+// this middleware returns:
+// the path to the inner map or array (e.g. "internalFields.tags"),
+// the value to add or pull from the array, or set or unset in the map (e.g. {"clusterName" : "myCluster", "namespace" : "kubescape"})
+// FilterBuilder set with query to filter the document
+// Valid bool that indicates if the request is valid, in the request is not valid the middleware needs to handle it with the correct response code
+type EmbeddedDataMiddleware func(c *gin.Context) (pathToArray string, valueToAdd interface{}, queryFilter *db.FilterBuilder, valid bool)
 
 func GetCustomBodyDecoder[T types.DocContent](c *gin.Context) (BodyDecoder[T], error) {
 	if iDecoder, ok := c.Get(consts.BodyDecoder); ok {

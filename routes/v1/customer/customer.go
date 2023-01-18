@@ -24,10 +24,23 @@ func AddRoutes(g *gin.Engine) {
 	customer.Use(handlers.DBContextMiddleware(consts.CustomersCollection))
 	customer.GET("", getCustomer)
 	customer.DELETE("", deleteCustomer)
-	customer.PUT("", handlers.HandlePutDocWithGUIDValidation[*types.Customer]()...)
+	customer.PUT("", handlers.HandlePutDocWithValidation(customerPutMiddleware)...)
 
 	//add customer's inner files routes
 	addInnerFieldsRoutes(g)
+}
+
+func customerPutMiddleware(c *gin.Context, docs []*types.Customer) (verifiedDocs []*types.Customer, valid bool) {
+	if len(docs) != 1 {
+		handlers.ResponseBulkNotSupported(c)
+		return nil, false
+	}
+	customerGuid := c.GetString(consts.CustomerGUID)
+	if customerGuid == "" {
+		panic("customerGuid is empty")
+	}
+	docs[0].SetGUID(customerGuid)
+	return docs, true
 }
 
 func addInnerFieldsRoutes(g *gin.Engine) {

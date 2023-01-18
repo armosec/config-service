@@ -122,7 +122,20 @@ func AddToArray(c context.Context, filterBuilder *FilterBuilder, arrayPath strin
 		WithFilter(filterBuilder.Get()). //append the original filters
 		Get()
 	update := GetUpdateAddToSetCommand(arrayPath, value)
-	res, err := mongo.GetWriteCollection(collection).UpdateMany(c, filter, update)
+	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filter, update)
+	if res != nil {
+		modified = res.ModifiedCount
+	}
+	return modified, err
+}
+
+func UpdateOne(c context.Context, filterBuilder *FilterBuilder, update interface{}) (modified int64, err error) {
+	defer log.LogNTraceEnterExit("AddToArray", c)()
+	collection, _, err := ReadContext(c)
+	if err != nil {
+		return 0, err
+	}
+	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filterBuilder.Get(), update)
 	if res != nil {
 		modified = res.ModifiedCount
 	}
@@ -130,13 +143,13 @@ func AddToArray(c context.Context, filterBuilder *FilterBuilder, arrayPath strin
 }
 
 func PullFromArray(c context.Context, filterBuilder *FilterBuilder, arrayPath string, value interface{}) (modified int64, err error) {
-	defer log.LogNTraceEnterExit("AddToArray", c)()
+	defer log.LogNTraceEnterExit("PullFromArray", c)()
 	collection, _, err := ReadContext(c)
 	if err != nil {
 		return 0, err
 	}
 	update := GetUpdatePullFromSetCommand(arrayPath, value)
-	res, err := mongo.GetWriteCollection(collection).UpdateMany(c, filterBuilder.Get(), update)
+	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filterBuilder.Get(), update)
 	if res != nil {
 		modified = res.ModifiedCount
 	}

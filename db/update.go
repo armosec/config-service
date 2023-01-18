@@ -14,7 +14,6 @@ import (
 // GetUpdateFieldValueCommand creates update command for a DocContent removing excluded fields
 // if includeFields is not empty, only the fields in the list will be included
 func GetUpdateDocCommand[T types.DocContent](i T, includeFields []string, excludeFields ...string) (bson.D, error) {
-
 	m, err := flatbson.Flatten(i)
 	if err != nil {
 		return nil, err
@@ -49,4 +48,12 @@ func GetUpdateAddToSetCommand(arrayFieldName string, value interface{}) bson.D {
 
 func GetUpdatePullFromSetCommand(arrayFieldName string, value interface{}) bson.D {
 	return bson.D{bson.E{Key: "$pull", Value: bson.D{bson.E{Key: arrayFieldName, Value: value}}}}
+}
+
+func GetUpdateSetFieldCommand(fieldName string, value interface{}) bson.D {
+	return bson.D{bson.E{Key: "$set", Value: bson.D{bson.E{Key: fieldName, Value: value}}}}
+}
+
+func GetUpdateUnsetFieldCommand(fieldName string) bson.D {
+	return bson.D{bson.E{Key: "$unset", Value: bson.D{bson.E{Key: fieldName, Value: ""}}}}
 }

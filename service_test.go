@@ -367,6 +367,11 @@ func (suite *MainTestSuite) TestCustomer() {
 	testCustomerGUID := suite.authCustomerGUID
 	suite.login("new-customer-guid")
 	testGetDoc(suite, "/customer", newCustomer, nil)
+	//test put customer
+	oldCustomer := clone(newCustomer)
+	newCustomer.LicenseType = "$$$$$$"
+	newCustomer.Description = "new description"
+	testPutDoc(suite, "/customer", oldCustomer, newCustomer, customerCompareFilter)
 	//test post with existing guid - expect error 400
 	testBadRequest(suite, http.MethodPost, "/customer_tenant", errorGUIDExists, customer, http.StatusBadRequest)
 	//test post customer without GUID
@@ -647,6 +652,38 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	//check the the customer update date is updated
 	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
 	suite.True(time.Since(*updatedCustomer.GetUpdatedTime()) < time.Second, "update time is not recent")
+
+	//test add push report
+	var ignoreTime = cmp.FilterValues(func(x, y time.Time) bool { return true }, cmp.Ignore())
+	pushTime := time.Now().UTC()
+	pushReport := &armotypes.PushReport{Timestamp: pushTime, ReportGUID: "push-guid", Cluster: "cluster1"}
+	pushReportPath := fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "latestPushReport", "cluster1")
+	w = suite.doRequest(http.MethodPut, pushReportPath, pushReport)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["modified"])
+	notificationConfig.LatestPushReports = map[string]*armotypes.PushReport{}
+	notificationConfig.LatestPushReports["cluster1"] = pushReport
+	testGetDoc(suite, configPath, notificationConfig, ignoreTime)
+	//add one for cluster2
+	pushReportPath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "latestPushReport", "cluster2")
+	w = suite.doRequest(http.MethodPut, pushReportPath, pushReport)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["modified"])
+	notificationConfig.LatestPushReports["cluster2"] = pushReport
+	testGetDoc(suite, configPath, notificationConfig, ignoreTime)
+	//delete cluster1
+	pushReportPath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "latestPushReport", "cluster1")
+	w = suite.doRequest(http.MethodDelete, pushReportPath, nil)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["modified"])
+	delete(notificationConfig.LatestPushReports, "cluster1")
+	testGetDoc(suite, configPath, notificationConfig, ignoreTime)
 }
 
 func (suite *MainTestSuite) TestCustomerState() {
