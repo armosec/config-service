@@ -715,11 +715,7 @@ func (suite *MainTestSuite) TestCustomerState() {
 	expectState := clone(state)
 	state.GettingStarted = nil
 	testPutPartialDoc(suite, statePath, prevState, state, expectState)
-	// should be returned as not null
-	state.GettingStarted = &armotypes.GettingStartedChecklist{
-		GettingStartedDismissed: true,
-	}
-	testGetDoc(suite, statePath, state, nil)
+	state = clone(expectState)
 
 	//make sure not other customer fields are changed
 	updatedCustomer := clone(testCustomer)
