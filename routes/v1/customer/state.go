@@ -3,6 +3,7 @@ package customer
 import (
 	"config-service/handlers"
 	"config-service/types"
+	"config-service/utils"
 	"config-service/utils/consts"
 	"fmt"
 	"net/http"
@@ -56,6 +57,13 @@ func customer2State(customer *types.Customer) *armotypes.CustomerState {
 	if customer.State == nil {
 		return defaultCustomerState()
 	}
+	if customer.State.Onboarding == nil {
+		customer.State.Onboarding = defaultOnboardingState()
+	}
+	if customer.State.GettingStarted == nil {
+		customer.State.GettingStarted = defaultGettingStartedState()
+	}
+
 	return customer.State
 }
 
@@ -79,8 +87,19 @@ func decodeCustomerState(c *gin.Context) ([]*types.Customer, error) {
 
 func defaultCustomerState() *armotypes.CustomerState {
 	return &armotypes.CustomerState{
-		Onboarding: &armotypes.CustomerOnboarding{
-			Completed: true,
-		},
+		Onboarding:     defaultOnboardingState(),
+		GettingStarted: defaultGettingStartedState(),
+	}
+}
+
+func defaultOnboardingState() *armotypes.CustomerOnboarding {
+	return &armotypes.CustomerOnboarding{
+		Completed: utils.BoolPointer(true),
+	}
+}
+
+func defaultGettingStartedState() *armotypes.GettingStartedChecklist {
+	return &armotypes.GettingStartedChecklist{
+		GettingStartedDismissed: utils.BoolPointer(false),
 	}
 }

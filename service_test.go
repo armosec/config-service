@@ -2,6 +2,7 @@ package main
 
 import (
 	"config-service/types"
+	"config-service/utils"
 	"config-service/utils/consts"
 	"fmt"
 	"net/http"
@@ -675,7 +676,10 @@ func (suite *MainTestSuite) TestCustomerState() {
 	//get customer state - should return the default state (onboarding completed)
 	state := &armotypes.CustomerState{
 		Onboarding: &armotypes.CustomerOnboarding{
-			Completed: true,
+			Completed: utils.BoolPointer(true),
+		},
+		GettingStarted: &armotypes.GettingStartedChecklist{
+			GettingStartedDismissed: utils.BoolPointer(false),
 		},
 	}
 	statePath := consts.CustomerStatePath + "/" + testCustomerGUID
@@ -690,16 +694,12 @@ func (suite *MainTestSuite) TestCustomerState() {
 	testBadRequest(suite, http.MethodPost, consts.CustomerStatePath, "404 page not found", state, http.StatusNotFound)
 
 	//put new state
-	state.Onboarding.CompanySize = "1000"
-	state.Onboarding.Completed = false
+	prevState := clone(state)
+	state.Onboarding.CompanySize = utils.StringPointer("1000")
+	state.Onboarding.Completed = utils.BoolPointer(false)
 	state.Onboarding.Interests = []string{"a", "b"}
 	state.GettingStarted = &armotypes.GettingStartedChecklist{
-		GettingStartedDismissed: true,
-	}
-	prevState := &armotypes.CustomerState{
-		Onboarding: &armotypes.CustomerOnboarding{
-			Completed: true,
-		},
+		GettingStartedDismissed: utils.BoolPointer(true),
 	}
 
 	// mongo has a millisecond precision while golang time.Time has nanosecond precision, so we need to wait at least 1 millisecond to reflect the change
@@ -711,7 +711,7 @@ func (suite *MainTestSuite) TestCustomerState() {
 	// update state - "GettingStarted = nil" should not be updated
 	// we skip checking it in testPutDoc because it will returned as a non-null object and comparison will fail
 	prevState = clone(state)
-	state.Onboarding.Completed = true
+	state.Onboarding.Completed = utils.BoolPointer(true)
 	expectState := clone(state)
 	state.GettingStarted = nil
 	testPutPartialDoc(suite, statePath, prevState, state, expectState)
@@ -727,6 +727,6 @@ func (suite *MainTestSuite) TestCustomerState() {
 
 	// try updating state with false value
 	prevState = clone(state)
-	state.Onboarding.Completed = false
+	state.Onboarding.Completed = utils.BoolPointer(false)
 	testPutDoc(suite, statePath, prevState, state, nil)
 }
