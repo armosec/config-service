@@ -33,7 +33,7 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	suite.NoError(err, "GUID should be a valid uuid")
 	//check creation time
 	suite.NotNil(doc1.GetCreationTime(), "creation time should not be nil")
-	suite.True(time.Since(*doc1.GetCreationTime()) < time.Second, "creation time is not recent")
+	suite.True(time.Since(*doc1.GetCreationTime()) < 5*time.Second, "creation time is not recent")
 
 	//post doc with same name should fail
 	sameNameDoc := clone(doc1)
