@@ -111,6 +111,38 @@ func UpdateDocument[T any](c context.Context, id string, update bson.D) ([]T, er
 	return []T{oldDoc, newDoc}, nil
 }
 
+func AddToArray(c context.Context, filterBuilder *FilterBuilder, arrayPath string, value interface{}) (modified int64, err error) {
+	defer log.LogNTraceEnterExit("AddToArray", c)()
+	collection, _, err := ReadContext(c)
+	if err != nil {
+		return 0, err
+	}
+	//filter documents that already have this value in the array
+	filter := NewFilterBuilder().WithElementMatch(value).WarpNot().WarpWithField(arrayPath).
+		WithFilter(filterBuilder.Get()). //append the original filters
+		Get()
+	update := GetUpdateAddToSetCommand(arrayPath, value)
+	res, err := mongo.GetWriteCollection(collection).UpdateMany(c, filter, update)
+	if res != nil {
+		modified = res.ModifiedCount
+	}
+	return modified, err
+}
+
+func PullFromArray(c context.Context, filterBuilder *FilterBuilder, arrayPath string, value interface{}) (modified int64, err error) {
+	defer log.LogNTraceEnterExit("AddToArray", c)()
+	collection, _, err := ReadContext(c)
+	if err != nil {
+		return 0, err
+	}
+	update := GetUpdatePullFromSetCommand(arrayPath, value)
+	res, err := mongo.GetWriteCollection(collection).UpdateMany(c, filterBuilder.Get(), update)
+	if res != nil {
+		modified = res.ModifiedCount
+	}
+	return modified, err
+}
+
 // DocExist returns true if at least one document with given filter exists
 func DocExist(c context.Context, f bson.D) (bool, error) {
 	defer log.LogNTraceEnterExit("DocExist", c)()

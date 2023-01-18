@@ -383,3 +383,41 @@ func MustGetDocContentFromContext[T types.DocContent](c *gin.Context) ([]T, erro
 	}
 	return docs, nil
 }
+
+func HandlerAddToArray(requestHandler ArrayRequestHandler) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		pathToArray, item, filterBuilder, valid := requestHandler(c)
+		if !valid {
+			return
+		}
+		filter := db.NewFilterBuilder()
+		if filterBuilder != nil {
+			filter = filterBuilder
+		}
+		if modified, err := db.AddToArray(c, filter, pathToArray, item); err != nil {
+			ResponseInternalServerError(c, "failed to add to unsubscribedUsers", err)
+			return
+		} else {
+			c.JSON(http.StatusOK, gin.H{"added": modified})
+		}
+	}
+}
+
+func HandlerRemoveFromArray(requestHandler ArrayRequestHandler) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		pathToArray, item, filterBuilder, valid := requestHandler(c)
+		if !valid {
+			return
+		}
+		filter := db.NewFilterBuilder()
+		if filterBuilder != nil {
+			filter = filterBuilder
+		}
+		if modified, err := db.PullFromArray(c, filter, pathToArray, item); err != nil {
+			ResponseInternalServerError(c, "failed to remove from  unsubscribedUsers", err)
+			return
+		} else {
+			c.JSON(http.StatusOK, gin.H{"removed": modified})
+		}
+	}
+}

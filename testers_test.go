@@ -297,6 +297,18 @@ func testPutDoc[T any](suite *MainTestSuite, path string, oldDoc, newDoc T, comp
 	suite.Equal("", diff)
 }
 
+func testPutPartialDoc[T any](suite *MainTestSuite, path string, oldDoc, newPArtialDoc, expectedFullDoc T, compareNewOpts ...cmp.Option) {
+	w := suite.doRequest(http.MethodPut, path, newPArtialDoc)
+	suite.Equal(http.StatusOK, w.Code)
+	response, err := decodeResponseArray[T](w)
+	expectedResponse := []T{oldDoc, expectedFullDoc}
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	diff := cmp.Diff(response, expectedResponse, compareNewOpts...)
+	suite.Equal("", diff)
+}
+
 func testPutDocWGuid[T types.DocContent](suite *MainTestSuite, path string, oldDoc, newDoc T, compareNewOpts ...cmp.Option) {
 	guid := newDoc.GetGUID()
 	path = fmt.Sprintf("%s/%s", path, guid)

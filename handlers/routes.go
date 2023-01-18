@@ -30,6 +30,14 @@ type routerOptions[T types.DocContent] struct {
 	bodyDecoder               BodyDecoder[T]        //default nil, when set, replace the default body decoder
 	responseSender            ResponseSender[T]     //default nil, when set, replace the default response sender
 	putFields                 []string              //default nil, when set, PUT will update only the specified fields
+	arraysHandlers            []arrayHandlerOptions //default nil, list of array handlers to put and delete items from document internal array
+}
+type arrayHandlerOptions struct {
+	path                string              //mandatory, the api path to handle the array
+	arrayRequestHandler ArrayRequestHandler //mandatory, the handler to handle the request and provide the data to update the array
+	servePut            bool                //Serve PUT <path> to push items to array
+	serveDelete         bool                //Serve DELETE <path> to delete items from array
+
 }
 
 func newRouterOptions[T types.DocContent]() *routerOptions[T] {
@@ -100,6 +108,15 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 			routerGroup.DELETE("", HandleDeleteDocByName[T](opts.nameQueryParam))
 		}
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
+	}
+	//add array handlers
+	for _, arrayHandler := range opts.arraysHandlers {
+		if arrayHandler.servePut {
+			routerGroup.PUT(arrayHandler.path, HandlerAddToArray(arrayHandler.arrayRequestHandler))
+		}
+		if arrayHandler.serveDelete {
+			routerGroup.DELETE(arrayHandler.path, HandlerRemoveFromArray(arrayHandler.arrayRequestHandler))
+		}
 	}
 	return routerGroup
 }
@@ -293,6 +310,25 @@ func (b *RouterOptionsBuilder[T]) WithUniqueShortName(baseShortNameValue func(T)
 func (b *RouterOptionsBuilder[T]) WithGetNamesList(serveNameList bool) *RouterOptionsBuilder[T] {
 	b.options = append(b.options, func(opts *routerOptions[T]) {
 		opts.serveGetNamesList = serveNameList
+	})
+	return b
+}
+
+func (b *RouterOptionsBuilder[T]) WithArrayHandler(path string, arrayRequestHandler ArrayRequestHandler, servePut, serveDelete bool) *RouterOptionsBuilder[T] {
+	if path == "" || arrayRequestHandler == nil {
+		panic("path and arrayRequestHandler are mandatory")
+	}
+	if !servePut && !serveDelete {
+		panic("at least one of servePut and serveDelete must be true")
+	}
+	b.options = append(b.options, func(opts *routerOptions[T]) {
+		opts.arraysHandlers = append(opts.arraysHandlers, arrayHandlerOptions{
+			path:                path,
+			arrayRequestHandler: arrayRequestHandler,
+			servePut:            servePut,
+			serveDelete:         serveDelete,
+		})
+
 	})
 	return b
 }

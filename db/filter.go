@@ -113,6 +113,11 @@ func (f *FilterBuilder) AddNotExists(key string) *FilterBuilder {
 	return f
 }
 
+func (f *FilterBuilder) WithElementMatch(element interface{}) *FilterBuilder {
+	f.filter = append(f.filter, bson.E{Key: "$elemMatch", Value: element})
+	return f
+}
+
 func (f *FilterBuilder) WarpElementMatch() *FilterBuilder {
 	f.filter = bson.D{{Key: "$elemMatch", Value: f.filter}}
 	return f
@@ -124,6 +129,11 @@ func (f *FilterBuilder) WarpOr() *FilterBuilder {
 		a = append(a, bson.D{{Key: f.filter[i].Key, Value: f.filter[i].Value}})
 	}
 	f.filter = bson.D{{Key: "$or", Value: a}}
+	return f
+}
+
+func (f *FilterBuilder) WarpNot() *FilterBuilder {
+	f.filter = bson.D{{Key: "$not", Value: f.filter}}
 	return f
 }
 

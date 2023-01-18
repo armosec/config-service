@@ -304,7 +304,7 @@ func (suite *MainTestSuite) TestCustomerConfiguration() {
 	oldCluster2 = clone(cluster2Config)
 	cluster2Config.Settings.PostureControlInputs["allowedContainerRepos"] = []string{"repo1", "repo2"}
 	path = fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ConfigNameParam, cluster2Config.GetName())
-	testPutDoc(suite, path, oldCluster2, cluster2Config)
+	testPutDoc(suite, path, oldCluster2, cluster2Config, compareFilter)
 
 	//put config with wrong name - expect error 400
 	path = fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ConfigNameParam, "notExist")
@@ -564,17 +564,81 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	testBadRequest(suite, http.MethodPost, consts.NotificationConfigPath, "404 page not found", notificationConfig, http.StatusNotFound)
 
 	//put new notification config
-	notificationConfig.UnsubscribedUsers = make(map[string]armotypes.NotificationConfigIdentifier)
-	notificationConfig.UnsubscribedUsers["user1"] = armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypeAll}
-	notificationConfig.UnsubscribedUsers["user2"] = armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypePush}
+	notificationConfig.UnsubscribedUsers = make(map[string][]armotypes.NotificationConfigIdentifier)
+	notificationConfig.UnsubscribedUsers["user1"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeAll}}
+	notificationConfig.UnsubscribedUsers["user2"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypePush}}
 	prevConfig := &armotypes.NotificationsConfig{}
 	testPutDoc(suite, configPath, prevConfig, notificationConfig, nil)
 	//update notification config
 	prevConfig = clone(notificationConfig)
-	notificationConfig.UnsubscribedUsers = make(map[string]armotypes.NotificationConfigIdentifier)
-	notificationConfig.UnsubscribedUsers["user3"] = armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypeWeekly}
+	notificationConfig.UnsubscribedUsers = make(map[string][]armotypes.NotificationConfigIdentifier)
+	notificationConfig.UnsubscribedUsers["user3"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}}
 	testPutDoc(suite, configPath, prevConfig, notificationConfig, nil)
 
+	//test unsubscribe user
+	notify := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypeWeekly}
+	unsubscribePath := fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "unsubscribe", "user5")
+	w := suite.doRequest(http.MethodPut, unsubscribePath, notify)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err := decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["added"])
+	//send the same element should update noting
+	w = suite.doRequest(http.MethodPut, unsubscribePath, notify)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(0, res["added"])
+	//add another one to the same user
+	notifyAll := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypeAll}
+	w = suite.doRequest(http.MethodPut, unsubscribePath, notifyAll)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["added"])
+	//add the same to a different user
+	unsubscribePath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "unsubscribe", "user6")
+	w = suite.doRequest(http.MethodPut, unsubscribePath, notify)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["added"])
+	//add also the 2nd element to the same user
+	w = suite.doRequest(http.MethodPut, unsubscribePath, notifyAll)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["added"])
+	//remove the first element from user6
+	w = suite.doRequest(http.MethodDelete, unsubscribePath, notify)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["removed"])
+	//remove from user3
+	unsubscribePath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "unsubscribe", "user3")
+	w = suite.doRequest(http.MethodDelete, unsubscribePath, notify)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["removed"])
+	//remove the non existing element from user3
+	w = suite.doRequest(http.MethodDelete, unsubscribePath, notifyAll)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(0, res["removed"])
+
+	//updated the expected notification config with the changes
+	notificationConfig.UnsubscribedUsers["user3"] = []armotypes.NotificationConfigIdentifier{}
+	notificationConfig.UnsubscribedUsers["user6"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeAll}}
+	notificationConfig.UnsubscribedUsers["user5"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypeAll}}
+	//update just one field in the configuration
+	notificationConfigWeekly := &armotypes.NotificationsConfig{LatestWeeklyReport: &armotypes.WeeklyReport{ClustersScannedThisWeek: 1}}
+	prevConfig = clone(notificationConfig)
+	notificationConfig.LatestWeeklyReport = &armotypes.WeeklyReport{ClustersScannedThisWeek: 1}
+	//test partial update
+	testPutPartialDoc(suite, configPath, prevConfig, notificationConfigWeekly, notificationConfig, nil)
 	//make sure not other customer fields are changed
 	updatedCustomer := clone(testCustomer)
 	updatedCustomer.NotificationsConfig = notificationConfig
@@ -632,18 +696,30 @@ func (suite *MainTestSuite) TestCustomerState() {
 	state.GettingStarted = &armotypes.GettingStartedChecklist{
 		GettingStartedDismissed: true,
 	}
-	// state.GettingStarted = true
 	prevState := &armotypes.CustomerState{
 		Onboarding: &armotypes.CustomerOnboarding{
 			Completed: true,
 		},
 	}
+
+	// mongo has a millisecond precision while golang time.Time has nanosecond precision, so we need to wait at least 1 millisecond to reflect the change
+	timeBeforeUpdate := time.Now()
+	time.Sleep(1000 * time.Millisecond)
+
 	testPutDoc(suite, statePath, prevState, state, nil)
 
-	//update state
+	// update state - "GettingStarted = nil" should not be updated
+	// we skip checking it in testPutDoc because it will returned as a non-null object and comparison will fail
 	prevState = clone(state)
 	state.Onboarding.Completed = true
-	testPutDoc(suite, statePath, prevState, state, nil)
+	expectState := clone(state)
+	state.GettingStarted = nil
+	testPutPartialDoc(suite, statePath, prevState, state, expectState)
+	// should be returned as not null
+	state.GettingStarted = &armotypes.GettingStartedChecklist{
+		GettingStartedDismissed: true,
+	}
+	testGetDoc(suite, statePath, state, nil)
 
 	//make sure not other customer fields are changed
 	updatedCustomer := clone(testCustomer)
@@ -651,5 +727,6 @@ func (suite *MainTestSuite) TestCustomerState() {
 	updatedCustomer = testGetDoc(suite, "/customer", updatedCustomer, customerCompareFilter)
 	//check the the customer update date is updated
 	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
-	suite.True(time.Since(*updatedCustomer.GetUpdatedTime()) < time.Second, "update time is not recent")
+	suite.Truef(updatedCustomer.GetUpdatedTime().After(timeBeforeUpdate), "update time should be updated")
+
 }
