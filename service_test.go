@@ -372,6 +372,10 @@ func (suite *MainTestSuite) TestCustomer() {
 	newCustomer.LicenseType = "$$$$$$"
 	newCustomer.Description = "new description"
 	testPutDoc(suite, "/customer", oldCustomer, newCustomer, customerCompareFilter)
+	oldCustomer = clone(newCustomer)
+	partialCustomer := &types.Customer{LicenseType: "partial"}
+	newCustomer.LicenseType = "partial"
+	testPutPartialDoc(suite, "/customer", oldCustomer, partialCustomer, newCustomer, customerCompareFilter)
 	//test post with existing guid - expect error 400
 	testBadRequest(suite, http.MethodPost, "/customer_tenant", errorGUIDExists, customer, http.StatusBadRequest)
 	//test post customer without GUID
