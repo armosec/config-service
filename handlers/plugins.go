@@ -26,7 +26,7 @@ type ResponseSender[T types.DocContent] func(c *gin.Context, doc T, docs []T)
 // the value to add or pull from the array, or set or unset in the map (e.g. {"clusterName" : "myCluster", "namespace" : "kubescape"})
 // FilterBuilder set with query to filter the document
 // Valid bool that indicates if the request is valid, in the request is not valid the middleware needs to handle it with the correct response code
-type EmbeddedDataMiddleware func(c *gin.Context) (pathToArray string, valueToAdd interface{}, queryFilter *db.FilterBuilder, valid bool)
+type EmbeddedDataMiddleware func(c *gin.Context) (nestedElementPath string, valueToAdd interface{}, queryFilter *db.FilterBuilder, valid bool)
 
 func GetCustomBodyDecoder[T types.DocContent](c *gin.Context) (BodyDecoder[T], error) {
 	if iDecoder, ok := c.Get(consts.BodyDecoder); ok {
