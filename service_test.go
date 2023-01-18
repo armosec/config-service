@@ -725,4 +725,8 @@ func (suite *MainTestSuite) TestCustomerState() {
 	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
 	suite.Truef(updatedCustomer.GetUpdatedTime().After(timeBeforeUpdate), "update time should be updated")
 
+	// try updating state with false value
+	prevState = clone(state)
+	state.Onboarding.Completed = false
+	testPutDoc(suite, statePath, prevState, state, nil)
 }
