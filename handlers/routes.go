@@ -30,14 +30,23 @@ type routerOptions[T types.DocContent] struct {
 	bodyDecoder               BodyDecoder[T]             //default nil, when set, replace the default body decoder
 	responseSender            ResponseSender[T]          //default nil, when set, replace the default response sender
 	putFields                 []string                   //default nil, when set, PUT will update only the specified fields
-	arraysHandlers            []embeddedDataRouteOptions //default nil, list of array handlers to put and delete items from document internal array
-	mapHandlers               []embeddedDataRouteOptions //default nil, list of map handlers to put and delete items from document internal map
+	containersHandlers        []ContainerHandlersOptions //default nil, list of container handlers to put and remove items from document's containers
+
 }
-type embeddedDataRouteOptions struct {
-	path                   string                 //mandatory, the api path to handle the internal field (map or array)
-	embeddedDataMiddleware EmbeddedDataMiddleware //mandatory, middleware function to validate the request and return the internal field and value
-	servePut               bool                   //Serve PUT <path> to add items
-	serveDelete            bool                   //Serve DELETE <path> to delete items
+
+type ContainerType string
+
+const (
+	ContainerTypeArray ContainerType = "array"
+	ContainerTypeMap   ContainerType = "map"
+)
+
+type ContainerHandlersOptions struct {
+	path             string           //mandatory, the api path to handle the internal field (map or array)
+	ContainerHandler ContainerHandler //mandatory, middleware function to validate the request and return the internal field and value
+	servePut         bool             //Serve PUT <path> to add items
+	serveDelete      bool             //Serve DELETE <path> to delete items
+	containerType    ContainerType    //Type of container = currently map or array are supported
 }
 
 func newRouterOptions[T types.DocContent]() *routerOptions[T] {
@@ -110,20 +119,22 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
 	}
 	//add array handlers
-	for _, arrayHandler := range opts.arraysHandlers {
-		if arrayHandler.servePut {
-			routerGroup.PUT(arrayHandler.path, HandlerAddToArray(arrayHandler.embeddedDataMiddleware))
-		}
-		if arrayHandler.serveDelete {
-			routerGroup.DELETE(arrayHandler.path, HandlerRemoveFromArray(arrayHandler.embeddedDataMiddleware))
-		}
-	}
-	for _, mapHandler := range opts.mapHandlers {
-		if mapHandler.servePut {
-			routerGroup.PUT(mapHandler.path, HandlerSetField(mapHandler.embeddedDataMiddleware, true))
-		}
-		if mapHandler.serveDelete {
-			routerGroup.DELETE(mapHandler.path, HandlerSetField(mapHandler.embeddedDataMiddleware, false))
+	for _, containerHandler := range opts.containersHandlers {
+		switch containerHandler.containerType {
+		case ContainerTypeArray:
+			if containerHandler.servePut {
+				routerGroup.PUT(containerHandler.path, HandlerAddToArray(containerHandler.ContainerHandler))
+			}
+			if containerHandler.serveDelete {
+				routerGroup.DELETE(containerHandler.path, HandlerRemoveFromArray(containerHandler.ContainerHandler))
+			}
+		case ContainerTypeMap:
+			if containerHandler.servePut {
+				routerGroup.PUT(containerHandler.path, HandlerSetField(containerHandler.ContainerHandler, true))
+			}
+			if containerHandler.serveDelete {
+				routerGroup.DELETE(containerHandler.path, HandlerSetField(containerHandler.ContainerHandler, false))
+			}
 		}
 	}
 	return routerGroup
@@ -322,38 +333,20 @@ func (b *RouterOptionsBuilder[T]) WithGetNamesList(serveNameList bool) *RouterOp
 	return b
 }
 
-func (b *RouterOptionsBuilder[T]) WithArrayHandler(path string, embeddedDataMiddleware EmbeddedDataMiddleware, servePut, serveDelete bool) *RouterOptionsBuilder[T] {
-	if path == "" || embeddedDataMiddleware == nil {
-		panic("path and embeddedDataMiddleware are mandatory")
+func (b *RouterOptionsBuilder[T]) WithContainerHandler(path string, containerHandler ContainerHandler, containerType ContainerType, servePut, serveDelete bool) *RouterOptionsBuilder[T] {
+	if path == "" || containerHandler == nil {
+		panic("path and ContainerHandler are mandatory")
 	}
 	if !servePut && !serveDelete {
 		panic("at least one of servePut and serveDelete must be true")
 	}
 	b.options = append(b.options, func(opts *routerOptions[T]) {
-		opts.arraysHandlers = append(opts.arraysHandlers, embeddedDataRouteOptions{
-			path:                   path,
-			embeddedDataMiddleware: embeddedDataMiddleware,
-			servePut:               servePut,
-			serveDelete:            serveDelete,
-		})
-
-	})
-	return b
-}
-
-func (b *RouterOptionsBuilder[T]) WithMapHandler(path string, embeddedDataMiddleware EmbeddedDataMiddleware, servePut, serveDelete bool) *RouterOptionsBuilder[T] {
-	if path == "" || embeddedDataMiddleware == nil {
-		panic("path and embeddedDataMiddleware are mandatory")
-	}
-	if !servePut && !serveDelete {
-		panic("at least one of servePut and serveDelete must be true")
-	}
-	b.options = append(b.options, func(opts *routerOptions[T]) {
-		opts.mapHandlers = append(opts.mapHandlers, embeddedDataRouteOptions{
-			path:                   path,
-			embeddedDataMiddleware: embeddedDataMiddleware,
-			servePut:               servePut,
-			serveDelete:            serveDelete,
+		opts.containersHandlers = append(opts.containersHandlers, ContainerHandlersOptions{
+			path:             path,
+			ContainerHandler: containerHandler,
+			servePut:         servePut,
+			serveDelete:      serveDelete,
+			containerType:    containerType,
 		})
 
 	})

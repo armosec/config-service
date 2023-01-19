@@ -111,16 +111,18 @@ func UpdateDocument[T any](c context.Context, id string, update bson.D) ([]T, er
 	return []T{oldDoc, newDoc}, nil
 }
 
-func AddToArray(c context.Context, filterBuilder *FilterBuilder, arrayPath string, value interface{}) (modified int64, err error) {
+func AddToArray(c context.Context, id string, arrayPath string, value interface{}) (modified int64, err error) {
 	defer log.LogNTraceEnterExit("AddToArray", c)()
 	collection, _, err := ReadContext(c)
 	if err != nil {
 		return 0, err
 	}
 	//filter documents that already have this value in the array
-	filter := NewFilterBuilder().WithElementMatch(value).WarpNot().WarpWithField(arrayPath).
-		WithFilter(filterBuilder.Get()). //append the original filters
+	filter := NewFilterBuilder().
+		WithElementMatch(value).WarpNot().WarpWithField(arrayPath).
+		WithNotDeleteForCustomer(c).WithID(id).
 		Get()
+
 	update := GetUpdateAddToSetCommand(arrayPath, value)
 	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filter, update)
 	if res != nil {
@@ -129,12 +131,13 @@ func AddToArray(c context.Context, filterBuilder *FilterBuilder, arrayPath strin
 	return modified, err
 }
 
-func UpdateOne(c context.Context, filterBuilder *FilterBuilder, update interface{}) (modified int64, err error) {
+func UpdateOne(c context.Context, id string, update interface{}) (modified int64, err error) {
 	defer log.LogNTraceEnterExit("AddToArray", c)()
 	collection, _, err := ReadContext(c)
 	if err != nil {
 		return 0, err
 	}
+	filterBuilder := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id)
 	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filterBuilder.Get(), update)
 	if res != nil {
 		modified = res.ModifiedCount
@@ -142,12 +145,13 @@ func UpdateOne(c context.Context, filterBuilder *FilterBuilder, update interface
 	return modified, err
 }
 
-func PullFromArray(c context.Context, filterBuilder *FilterBuilder, arrayPath string, value interface{}) (modified int64, err error) {
+func PullFromArray(c context.Context, id string, arrayPath string, value interface{}) (modified int64, err error) {
 	defer log.LogNTraceEnterExit("PullFromArray", c)()
 	collection, _, err := ReadContext(c)
 	if err != nil {
 		return 0, err
 	}
+	filterBuilder := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id)
 	update := GetUpdatePullFromSetCommand(arrayPath, value)
 	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filterBuilder.Get(), update)
 	if res != nil {

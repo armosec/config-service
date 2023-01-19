@@ -384,16 +384,18 @@ func MustGetDocContentFromContext[T types.DocContent](c *gin.Context) ([]T, erro
 	return docs, nil
 }
 
-func HandlerAddToArray(requestHandler EmbeddedDataMiddleware) func(c *gin.Context) {
+func HandlerAddToArray(requestHandler ContainerHandler) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		pathToArray, item, filterBuilder, valid := requestHandler(c)
+		pathToArray, item, valid := requestHandler(c)
 		if !valid {
 			return
 		}
-		if filterBuilder == nil {
-			filterBuilder = db.NewFilterBuilder().WithNotDeleteForCustomer(c)
+		guid := c.Param(consts.GUIDField)
+		if guid == "" {
+			ResponseMissingGUID(c)
+			return
 		}
-		if modified, err := db.AddToArray(c, filterBuilder, pathToArray, item); err != nil {
+		if modified, err := db.AddToArray(c, guid, pathToArray, item); err != nil {
 			ResponseInternalServerError(c, "failed to add to unsubscribedUsers", err)
 			return
 		} else {
@@ -402,16 +404,18 @@ func HandlerAddToArray(requestHandler EmbeddedDataMiddleware) func(c *gin.Contex
 	}
 }
 
-func HandlerRemoveFromArray(requestHandler EmbeddedDataMiddleware) func(c *gin.Context) {
+func HandlerRemoveFromArray(requestHandler ContainerHandler) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		pathToArray, item, filterBuilder, valid := requestHandler(c)
+		pathToArray, item, valid := requestHandler(c)
 		if !valid {
 			return
 		}
-		if filterBuilder == nil {
-			filterBuilder = db.NewFilterBuilder().WithNotDeleteForCustomer(c)
+		guid := c.Param(consts.GUIDField)
+		if guid == "" {
+			ResponseMissingGUID(c)
+			return
 		}
-		if modified, err := db.PullFromArray(c, filterBuilder, pathToArray, item); err != nil {
+		if modified, err := db.PullFromArray(c, guid, pathToArray, item); err != nil {
 			ResponseInternalServerError(c, "failed to remove from  unsubscribedUsers", err)
 			return
 		} else {
@@ -420,14 +424,16 @@ func HandlerRemoveFromArray(requestHandler EmbeddedDataMiddleware) func(c *gin.C
 	}
 }
 
-func HandlerSetField(requestHandler EmbeddedDataMiddleware, set bool) func(c *gin.Context) {
+func HandlerSetField(requestHandler ContainerHandler, set bool) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		pathToField, value, filterBuilder, valid := requestHandler(c)
+		pathToField, value, valid := requestHandler(c)
 		if !valid {
 			return
 		}
-		if filterBuilder == nil {
-			filterBuilder = db.NewFilterBuilder().WithNotDeleteForCustomer(c)
+		guid := c.Param(consts.GUIDField)
+		if guid == "" {
+			ResponseMissingGUID(c)
+			return
 		}
 		var update interface{}
 		if set {
@@ -435,7 +441,7 @@ func HandlerSetField(requestHandler EmbeddedDataMiddleware, set bool) func(c *gi
 		} else { //unset
 			update = db.GetUpdateUnsetFieldCommand(pathToField)
 		}
-		if modified, err := db.UpdateOne(c, filterBuilder, update); err != nil {
+		if modified, err := db.UpdateOne(c, guid, update); err != nil {
 			ResponseInternalServerError(c, "failed to add to unsubscribedUsers", err)
 			return
 		} else {

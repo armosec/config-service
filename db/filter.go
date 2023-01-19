@@ -59,10 +59,10 @@ func (f *FilterBuilder) WithName(name string) *FilterBuilder {
 }
 
 func (f *FilterBuilder) WithCustomer(c context.Context) *FilterBuilder {
-	if collection, _ := c.Value(consts.Collection).(string); collection == consts.CustomersCollection {
-		return f
-	}
 	customerGUID, _ := c.Value(consts.CustomerGUID).(string)
+	if collection, _ := c.Value(consts.Collection).(string); collection == consts.CustomersCollection {
+		return f.WithGUID(customerGUID)
+	}
 	return f.WithValue(consts.CustomersField, customerGUID)
 }
 

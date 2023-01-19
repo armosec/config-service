@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"config-service/db"
 	"config-service/types"
 	"config-service/utils/consts"
 	"config-service/utils/log"
@@ -20,13 +19,12 @@ type BodyDecoder[T types.DocContent] func(c *gin.Context) ([]T, error)
 // ResponseSender is used for custom response sending it is called after the request has been processed
 type ResponseSender[T types.DocContent] func(c *gin.Context, doc T, docs []T)
 
-// type EmbeddedDataMiddleWare is used to handle requests for updating internal arrays and maps in a document
+// type ContainerHandler is used as a middleware for containers modification APIs (e.g. add/remove items to/from arrays/maps)
 // this middleware returns:
-// the path to the inner map or array (e.g. "internalFields.tags"),
-// the value to add or pull from the array, or set or unset in the map (e.g. {"clusterName" : "myCluster", "namespace" : "kubescape"})
-// FilterBuilder set with query to filter the document
-// Valid bool that indicates if the request is valid, in the request is not valid the middleware needs to handle it with the correct response code
-type EmbeddedDataMiddleware func(c *gin.Context) (nestedElementPath string, valueToAdd interface{}, queryFilter *db.FilterBuilder, valid bool)
+// containerName: the full path and name of from the root of the document (e.g. "internalFields.tags"),
+// item: the item to add or remove from the container
+// valid: is true if the request is valid, in the request is not valid the middleware needs to handle it and return the error response
+type ContainerHandler func(c *gin.Context) (containerName string, item interface{}, valid bool)
 
 func GetCustomBodyDecoder[T types.DocContent](c *gin.Context) (BodyDecoder[T], error) {
 	if iDecoder, ok := c.Get(consts.BodyDecoder); ok {
