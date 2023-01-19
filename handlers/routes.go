@@ -30,7 +30,7 @@ type routerOptions[T types.DocContent] struct {
 	bodyDecoder               BodyDecoder[T]             //default nil, when set, replace the default body decoder
 	responseSender            ResponseSender[T]          //default nil, when set, replace the default response sender
 	putFields                 []string                   //default nil, when set, PUT will update only the specified fields
-	containersHandlers        []ContainerHandlersOptions //default nil, list of container handlers to put and remove items from document's containers
+	containersHandlers        []containerHandlerOptions //default nil, list of container handlers to put and remove items from document's containers
 
 }
 
@@ -41,7 +41,7 @@ const (
 	ContainerTypeMap   ContainerType = "map"
 )
 
-type ContainerHandlersOptions struct {
+type containerHandlerOptions struct {
 	path             string           //mandatory, the api path to handle the internal field (map or array)
 	ContainerHandler ContainerHandler //mandatory, middleware function to validate the request and return the internal field and value
 	servePut         bool             //Serve PUT <path> to add items
@@ -341,7 +341,7 @@ func (b *RouterOptionsBuilder[T]) WithContainerHandler(path string, containerHan
 		panic("at least one of servePut and serveDelete must be true")
 	}
 	b.options = append(b.options, func(opts *routerOptions[T]) {
-		opts.containersHandlers = append(opts.containersHandlers, ContainerHandlersOptions{
+		opts.containersHandlers = append(opts.containersHandlers, containerHandlerOptions{
 			path:             path,
 			ContainerHandler: containerHandler,
 			servePut:         servePut,

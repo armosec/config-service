@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/go-faker/faker/v4"
 	"github.com/go-faker/faker/v4/pkg/options"
 	uuid "github.com/satori/go.uuid"
@@ -457,8 +456,4 @@ func clone[T any](orig T) T {
 		panic(err)
 	}
 	return clone
-}
-
-type anyDoc struct {
-	armotypes.PortalBase `json:",inline" bson:"inline"`
 }
