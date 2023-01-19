@@ -48,6 +48,8 @@ func (suite *MainTestSuite) TestCluster() {
 
 	commonTest(suite, consts.ClusterPath, clusters, modifyFunc, newClusterCompareFilter)
 
+	testPartialUpdate(suite, consts.ClusterPath, &types.Cluster{}, newClusterCompareFilter)
+
 	//cluster specific tests
 
 	//put doc without alias - expect the alias not to be deleted
@@ -67,6 +69,7 @@ func (suite *MainTestSuite) TestCluster() {
 	cluster.GUID = "wrongGUID"
 	delete(cluster.Attributes, "alias")
 	testBadRequest(suite, http.MethodPut, consts.ClusterPath, errorDocumentNotFound, cluster, http.StatusNotFound)
+
 }
 
 //go:embed test_data/posturePolicies.json
@@ -132,6 +135,8 @@ func (suite *MainTestSuite) TestPostureException() {
 		},
 	}
 	testGetDeleteByNameAndQuery(suite, consts.PostureExceptionPolicyPath, consts.PolicyNameParam, posturePolicies, getQueries)
+
+	//testPartialUpdate(suite, consts.PostureExceptionPolicyPath, &types.PostureExceptionPolicy{}, commonCmpFilter)
 }
 
 //go:embed test_data/vulnerabilityPolicies.json
@@ -181,6 +186,7 @@ func (suite *MainTestSuite) TestVulnerabilityPolicies() {
 		},
 	}
 	testGetDeleteByNameAndQuery(suite, consts.VulnerabilityExceptionPolicyPath, consts.PolicyNameParam, vulnerabilities, getQueries, commonCmpFilter)
+	//testPartialUpdate(suite, consts.VulnerabilityExceptionPolicyPath, &types.VulnerabilityExceptionPolicy{}, commonCmpFilter)
 }
 
 //go:embed test_data/customer_config/customerConfig.json
@@ -409,6 +415,8 @@ func (suite *MainTestSuite) TestFrameworks() {
 	}, cmp.Ignore())
 
 	testGetDeleteByNameAndQuery(suite, consts.FrameworkPath, consts.FrameworkNameParam, frameworks, nil, fwCmpIgnoreControls)
+
+	//testPartialUpdate(suite, consts.FrameworkPath, &types.Framework{}, fwCmpFilter, fwCmpIgnoreControls)
 }
 
 //go:embed test_data/registryCronJob.json
@@ -454,6 +462,8 @@ func (suite *MainTestSuite) TestRegistryCronJobs() {
 	}
 
 	testGetDeleteByNameAndQuery(suite, consts.RegistryCronJobPath, consts.NameField, registryCronJobs, getQueries, rCmpFilter)
+
+	//testPartialUpdate(suite, consts.RegistryCronJobPath, &types.RegistryCronJob{}, rCmpFilter)
 }
 
 func modifyAttribute[T types.DocContent](repo T) T {
@@ -489,6 +499,8 @@ func (suite *MainTestSuite) TestRepository() {
 	repositories, _ := loadJson[*types.Repository](repositoriesJson)
 
 	commonTest(suite, consts.RepositoryPath, repositories, modifyAttribute[*types.Repository], repoCompareFilter)
+
+	testPartialUpdate(suite, consts.RepositoryPath, &types.Repository{}, repoCompareFilter)
 
 	//put doc without alias - expect the alias not to be deleted
 	repo := repositories[0]

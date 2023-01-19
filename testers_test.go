@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/go-faker/faker/v4"
+	"github.com/go-faker/faker/v4/pkg/options"
 	uuid "github.com/satori/go.uuid"
 
 	"net/http"
@@ -113,6 +116,36 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 
 	//test delete doc with wrong guid should fail
 	testBadRequest(suite, http.MethodDelete, fmt.Sprintf("%s/%s", path, "no_exist"), errorDocumentNotFound, nil, http.StatusNotFound)
+
+}
+
+func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, emptyDoc T, compareOpts ...cmp.Option) {
+	fullDoc := clone(emptyDoc)
+	partialDoc := clone(emptyDoc)
+	err := faker.FakeData(fullDoc, options.WithIgnoreInterface(true), options.WithGenerateUniqueValues(false),
+		options.WithRandomMapAndSliceMaxSize(1), options.WithNilIfLenIsZero(true))
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	fullDoc = clone(fullDoc)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	fullAttr := fullDoc.GetAttributes()
+	if fullAttr == nil {
+		fullAttr = map[string]interface{}{}
+	}
+	fullAttr["alias"] = "new_alias"
+	fullDoc.SetAttributes(fullAttr)
+	fullDoc = testPostDoc(suite, path, fullDoc, compareOpts...)
+
+	attr := map[string]interface{}{}
+	attr["alias"] = "new_alias"
+	partialDoc.SetAttributes(attr)
+	partialDoc.SetGUID(fullDoc.GetGUID())
+	newFullDoc := clone(fullDoc)
+	newFullDoc.SetAttributes(attr)
+	testPutPartialDoc(suite, path, fullDoc, partialDoc, newFullDoc, newClusterCompareFilter)
 }
 
 type queryTest[T types.DocContent] struct {
@@ -297,8 +330,8 @@ func testPutDoc[T any](suite *MainTestSuite, path string, oldDoc, newDoc T, comp
 	suite.Equal("", diff)
 }
 
-func testPutPartialDoc[T any](suite *MainTestSuite, path string, oldDoc, newPArtialDoc, expectedFullDoc T, compareNewOpts ...cmp.Option) {
-	w := suite.doRequest(http.MethodPut, path, newPArtialDoc)
+func testPutPartialDoc[T any](suite *MainTestSuite, path string, oldDoc T, newPartialDoc interface{}, expectedFullDoc T, compareNewOpts ...cmp.Option) {
+	w := suite.doRequest(http.MethodPut, path, newPartialDoc)
 	suite.Equal(http.StatusOK, w.Code)
 	response, err := decodeResponseArray[T](w)
 	expectedResponse := []T{oldDoc, expectedFullDoc}
@@ -424,4 +457,8 @@ func clone[T any](orig T) T {
 		panic(err)
 	}
 	return clone
+}
+
+type anyDoc struct {
+	armotypes.PortalBase `json:",inline" bson:"inline"`
 }
