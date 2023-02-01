@@ -47,6 +47,7 @@ func addInnerFieldsRoutes(g *gin.Engine) {
 	//add customer embedded objects routes
 	addNotificationConfigRoutes(g)
 	addCustomerStateRoutes(g)
+	addStripeRoutes(g)
 }
 
 func getCustomer(c *gin.Context) {

@@ -783,3 +783,77 @@ func (suite *MainTestSuite) TestCustomerState() {
 	state.Onboarding.Completed = utils.BoolPointer(false)
 	testPutDoc(suite, statePath, prevState, state, nil)
 }
+
+func (suite *MainTestSuite) TestStripeCustomer() {
+	testCustomerGUID := "test-stripe-customer-guid"
+	customer := &types.Customer{
+		PortalBase: armotypes.PortalBase{
+			Name: "customer-test-stripe-customer",
+			GUID: testCustomerGUID,
+			Attributes: map[string]interface{}{
+				"customer1-attr1": "customer1-attr1-value",
+				"customer1-attr2": "customer1-attr2-value",
+			},
+		},
+		Description:        "customer1 description",
+		Email:              "customer1@customers.org",
+		LicenseType:        "kubescape",
+		InitialLicenseType: "kubescape",
+	}
+	//create customer is public so - remove auth cookie
+	suite.authCookie = ""
+	//post new customer
+	testCustomer := testPostDoc(suite, "/customer_tenant", customer, customerCompareFilter)
+	suite.Nil(testCustomer.StripeCustomer)
+
+	// login as customer
+	suite.login(testCustomerGUID)
+
+	// define empty StripeCustomer
+	stripeCustomer := &armotypes.StripeCustomer{}
+
+	// construct stripe customer api path with customer guid
+	stripeCustomerPath := consts.StripeCustomerPath + "/" + testCustomerGUID
+
+	// test getting doc of the customer.
+	testGetDoc(suite, stripeCustomerPath, customer.StripeCustomer, nil)
+
+	//get stripeCustomer without guid in path - expect 404
+	testBadRequest(suite, http.MethodGet, consts.StripeCustomerPath, "404 page not found", nil, http.StatusNotFound)
+
+	//get stripeCustomer on unknown customer - expect 404
+	testBadRequest(suite, http.MethodGet, consts.StripeCustomerPath+"/unknown-customer-guid", errorDocumentNotFound, nil, http.StatusNotFound)
+
+	//Post is not served on stripeCustomer - expect 404
+	testBadRequest(suite, http.MethodPost, consts.StripeCustomerPath, "404 page not found", stripeCustomer, http.StatusNotFound)
+
+	// define new stripeCustomer values
+	stripeCustomer.CustomerID = "test-customer-id"
+	stripeCustomer.SubscriptionID = "test-subscription-id"
+	stripeCustomer.SubscriptionStatus = "active"
+
+	// mongo has a millisecond precision while golang time.Time has nanosecond precision, so we need to wait at least 1 millisecond to reflect the change
+	timeBeforeUpdate := time.Now()
+	time.Sleep(1000 * time.Millisecond)
+
+	// put new stripeCustomer - oldDoc is nil has we haven't configure it yet.
+	testPutDoc(suite, stripeCustomerPath, nil, stripeCustomer, nil)
+
+	// update stripeCustomer partially
+	// we skip checking it in testPutDoc because it will returned as a non-null object and comparison will fail
+	prevStripeCustomer := clone(stripeCustomer)
+	stripeCustomer.SubscriptionStatus = "canceled"
+	expectStripeCustomer := clone(stripeCustomer)
+	stripeCustomer.SubscriptionID = "test-subscription-id"
+	testPutPartialDoc(suite, stripeCustomerPath, prevStripeCustomer, stripeCustomer, expectStripeCustomer)
+	stripeCustomer = clone(expectStripeCustomer)
+
+	// make sure no other customer fields are changed
+	updatedCustomer := clone(testCustomer)
+	updatedCustomer.StripeCustomer = stripeCustomer
+	updatedCustomer = testGetDoc(suite, "/customer", updatedCustomer, customerCompareFilter)
+
+	// check the the customer update date is updated
+	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
+	suite.Truef(updatedCustomer.GetUpdatedTime().After(timeBeforeUpdate), "update time should be updated")
+}
