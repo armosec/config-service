@@ -25,7 +25,7 @@ const (
 	RegistryCronJobPath              = "/v1_registry_cron_job"
 	NotificationConfigPath           = "/v1_notification_config"
 	CustomerStatePath                = "/v1_customer_state"
-	StripeCustomerPath               = "/v1_stripe_customer"
+	ActiveSubscriptionPath           = "/v1_active_subscription"
 
 	//DB collections
 	ClustersCollection                     = "clusters"

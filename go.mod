@@ -3,7 +3,7 @@ module config-service
 go 1.18
 
 require (
-	github.com/armosec/armoapi-go v0.0.152
+	github.com/armosec/armoapi-go v0.0.154
 	github.com/chidiwilliams/flatbson v0.3.0
 	github.com/dchest/uniuri v1.2.0
 	github.com/gertd/go-pluralize v0.2.1
@@ -157,5 +157,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
-
-replace github.com/armosec/armoapi-go v0.0.148 => ../armoapi-go
