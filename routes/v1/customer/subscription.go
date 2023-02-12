@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	activeSubscription = "active_subscription"
+	activeSubscription = "activeSubscription"
 )
 
 func addPaymentRoutes(g *gin.Engine) {
