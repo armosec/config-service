@@ -119,7 +119,6 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 }
 
 func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, emptyDoc T, compareOpts ...cmp.Option) {
-
 	fullDoc := clone(emptyDoc)
 	partialDoc := clone(emptyDoc)
 	err := faker.FakeData(fullDoc, options.WithIgnoreInterface(true), options.WithGenerateUniqueValues(false),
@@ -146,7 +145,6 @@ func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, em
 	newFullDoc := clone(fullDoc)
 	newFullDoc.SetAttributes(attr)
 	testPutPartialDoc(suite, path, fullDoc, partialDoc, newFullDoc, newClusterCompareFilter)
-	
 }
 
 type queryTest[T types.DocContent] struct {
