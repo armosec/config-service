@@ -58,7 +58,7 @@ func getCustomer(c *gin.Context) {
 		return
 	}
 	//do not filter per customer since old data does not have customer field
-	filter := db.NewFilterBuilder().WithGUID(customerGUID)
+	filter := db.NewFilterBuilder().WithID(customerGUID)
 	if doc, err := db.GetDoc[*types.Customer](c, filter); err != nil {
 		handlers.ResponseInternalServerError(c, "failed to read document", err)
 		return

@@ -41,11 +41,6 @@ func (f *FilterBuilder) WithGlobalNotDelete() *FilterBuilder {
 func (f *FilterBuilder) WithNotDeleteForCustomerAndGlobal(c context.Context) *FilterBuilder {
 	return f.WithCustomerAndGlobal(c).WithNotDeleted()
 }
-
-func (f *FilterBuilder) WithGUID(guid string) *FilterBuilder {
-	return f.WithValue(consts.GUIDField, guid)
-}
-
 func (f *FilterBuilder) WithID(id string) *FilterBuilder {
 	return f.WithValue(consts.IdField, id)
 }
@@ -61,7 +56,7 @@ func (f *FilterBuilder) WithName(name string) *FilterBuilder {
 func (f *FilterBuilder) WithCustomer(c context.Context) *FilterBuilder {
 	customerGUID, _ := c.Value(consts.CustomerGUID).(string)
 	if collection, _ := c.Value(consts.Collection).(string); collection == consts.CustomersCollection {
-		return f.WithGUID(customerGUID)
+		return f.WithID(customerGUID)
 	}
 	return f.WithValue(consts.CustomersField, customerGUID)
 }

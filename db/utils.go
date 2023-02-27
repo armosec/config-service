@@ -196,7 +196,7 @@ func GetDocByGUID[T any](c context.Context, guid string) (*T, error) {
 		FindOne(c,
 			NewFilterBuilder().
 				WithNotDeleteForCustomer(c).
-				WithGUID(guid).
+				WithID(guid).
 				Get()).
 		Decode(&result); err != nil {
 		if err == mongoDB.ErrNoDocuments {
