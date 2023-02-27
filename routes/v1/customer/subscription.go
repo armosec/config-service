@@ -3,6 +3,7 @@ package customer
 import (
 	"config-service/handlers"
 	"config-service/types"
+	"config-service/utils"
 	"config-service/utils/consts"
 	"fmt"
 	"net/http"
@@ -61,6 +62,10 @@ func customer2subscription(customer *types.Customer) *armotypes.Subscription {
 
 	if customer.ActiveSubscription.LicenseType == "" {
 		customer.ActiveSubscription.LicenseType = defaultLicenseTypeActiveSubscription()
+	}
+
+	if customer.ActiveSubscription.CancelAtPeriodEnd == nil {
+		customer.ActiveSubscription.CancelAtPeriodEnd = utils.BoolPointer(false)
 	}
 
 	return customer.ActiveSubscription

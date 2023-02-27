@@ -830,6 +830,7 @@ func (suite *MainTestSuite) TestActiveSubscription() {
 	activeSubscription.StripeCustomerID = "test-customer-id"
 	activeSubscription.StripeSubscriptionID = "test-subscription-id"
 	activeSubscription.SubscriptionStatus = "active"
+	activeSubscription.CancelAtPeriodEnd = utils.BoolPointer(false)
 
 	// mongo has a millisecond precision while golang time.Time has nanosecond precision, so we need to wait at least 1 millisecond to reflect the change
 	timeBeforeUpdate := time.Now()
