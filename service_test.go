@@ -76,7 +76,7 @@ func (suite *MainTestSuite) TestCluster() {
 var posturePoliciesJson []byte
 
 var commonCmpFilter = cmp.FilterPath(func(p cmp.Path) bool {
-	return p.String() == "PortalBase.GUID" || p.String() == "CreationTime" || p.String() == "CreationDate" || p.String() == "PortalBase.UpdatedTime"
+	return p.String() == "ExpirationDate" || p.String() == "PortalBase.GUID" || p.String() == "CreationTime" || p.String() == "CreationDate" || p.String() == "PortalBase.UpdatedTime"
 }, cmp.Ignore())
 
 func (suite *MainTestSuite) TestPostureException() {
