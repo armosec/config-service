@@ -16,7 +16,7 @@
     "$lookup": {
       "from": "customers",
       "localField": "_id",
-      "foreignField": "guid",
+      "foreignField": "_id",
       "as": "customer"
     }
   },
