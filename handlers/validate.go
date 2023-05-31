@@ -113,7 +113,7 @@ func ValidatePutAttributerShortName[T types.DocContent](c *gin.Context, docs []T
 	for i := range docs {
 		attributes := docs[i].GetAttributes()
 		if len(attributes) == 0 {
-			attributes = map[string]interface{}{}
+			continue //the doc does not update attributes
 		}
 		// if request attributes do not include alias add it from the old cluster
 		if _, ok := attributes[consts.ShortNameAttribute]; !ok {

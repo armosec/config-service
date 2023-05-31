@@ -122,7 +122,7 @@ func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, em
 	fullDoc := clone(emptyDoc)
 	partialDoc := clone(emptyDoc)
 	err := faker.FakeData(fullDoc, options.WithIgnoreInterface(true), options.WithGenerateUniqueValues(false),
-		options.WithRandomMapAndSliceMaxSize(1), options.WithNilIfLenIsZero(true))
+		options.WithRandomMapAndSliceMaxSize(3), options.WithRandomMapAndSliceMinSize(2), options.WithNilIfLenIsZero(false), options.WithRecursionMaxDepth(5))
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
@@ -137,14 +137,9 @@ func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, em
 	fullAttr["alias"] = "new_alias"
 	fullDoc.SetAttributes(fullAttr)
 	fullDoc = testPostDoc(suite, path, fullDoc, compareOpts...)
-
-	attr := map[string]interface{}{}
-	attr["alias"] = "new_alias"
-	partialDoc.SetAttributes(attr)
 	partialDoc.SetGUID(fullDoc.GetGUID())
-	newFullDoc := clone(fullDoc)
-	newFullDoc.SetAttributes(attr)
-	testPutPartialDoc(suite, path, fullDoc, partialDoc, newFullDoc, newClusterCompareFilter)
+	expectedFullDoc := clone(fullDoc)
+	testPutPartialDoc(suite, path, fullDoc, partialDoc, expectedFullDoc, newClusterCompareFilter)
 }
 
 type queryTest[T types.DocContent] struct {
