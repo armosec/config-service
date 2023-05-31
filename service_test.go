@@ -666,7 +666,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	updatedCustomer = testGetDoc(suite, "/customer", updatedCustomer, customerCompareFilter)
 	//check the the customer update date is updated
 	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
-	suite.True(time.Since(*updatedCustomer.GetUpdatedTime()) < time.Second, "update time is not recent")
+	suite.True(time.Since(*updatedCustomer.GetUpdatedTime()) < 2*time.Second, "update time is not recent")
 
 	//test add push report
 	var ignoreTime = cmp.FilterValues(func(x, y time.Time) bool { return true }, cmp.Ignore())

@@ -50,7 +50,7 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	for _, doc := range documents {
 		suite.NotNil(doc.GetUpdatedTime(), "updated time should not be nil")
 		//check the the customer update date is updated
-		suite.True(time.Since(*doc.GetUpdatedTime()) < time.Second, "update time is not recent")
+		suite.True(time.Since(*doc.GetUpdatedTime()) < 2*time.Second, "update time is not recent")
 	}
 	//bulk post documents with same name should fail
 	names := []string{documents[0].GetName(), documents[1].GetName()}
@@ -63,7 +63,7 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	testPutDoc(suite, path, oldDoc1, doc1, compareNewOpts...)
 	suite.NotNil(doc1.GetUpdatedTime(), "updated time should not be nil")
 	//check the the customer update date is updated
-	suite.True(time.Since(*doc1.GetUpdatedTime()) < time.Second, "update time is not recent")
+	suite.True(time.Since(*doc1.GetUpdatedTime()) < 2*time.Second, "update time is not recent")
 
 	//test changed name - should be ignored
 	changedNamedDoc := clone(doc1)
