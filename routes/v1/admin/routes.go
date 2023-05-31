@@ -33,11 +33,42 @@ func AddRoutes(g *gin.Engine) {
 		}
 	}
 
-	admin.Use(adminAuthMiddleware)
+	queryParamsConfig = handlers.FlatQueryConfig()
+	queryParamsConfig.Params2Query["state"] = handlers.QueryConfig{
+		FieldName:   "state",
+		PathInArray: "",
+		IsArray:     false,
+	}
+	queryParamsConfig.Params2Query["activeSubscription"] = handlers.QueryConfig{
+		FieldName:   "activeSubscription",
+		PathInArray: "",
+		IsArray:     false,
+	}
 
+	admin.Use(adminAuthMiddleware)
+	//add routes
+	//get active customers (with scans in between dates)
 	admin.GET("/activeCustomers", getActiveCustomers)
+	//get customers with query params
+	admin.GET("/customers", handlers.DBContextMiddleware(consts.CustomersCollection), getCustomers)
 	//add delete customers data route
 	admin.DELETE("/customers", deleteAllCustomerData)
+}
+
+var queryParamsConfig *handlers.QueryParamsConfig
+
+func getCustomers(c *gin.Context) {
+	query := handlers.QueryParams2Filter(c, c.Request.URL.Query(), queryParamsConfig)
+	if query == nil {
+		handlers.ResponseBadRequest(c, "query is empty")
+	}
+	customers, error := db.Find[*types.Customer](c, query, nil)
+	if error != nil {
+		log.LogNTraceError("getCustomers completed with errors", error, c)
+		handlers.ResponseInternalServerError(c, "getCustomers completed with errors", error)
+		return
+	}
+	handlers.DocsResponse(c, customers)
 }
 
 func deleteAllCustomerData(c *gin.Context) {

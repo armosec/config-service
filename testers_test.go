@@ -165,14 +165,7 @@ func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, baseP
 	testBadRequest(suite, http.MethodGet, path, errorDocumentNotFound, nil, http.StatusNotFound)
 
 	//get Docs by query params
-	for _, query := range getQueries {
-		path = fmt.Sprintf("%s?%s", basePath, query.query)
-		var expectedDocs []T
-		for _, index := range query.expectedIndexes {
-			expectedDocs = append(expectedDocs, newDocs[index])
-		}
-		testGetDocs(suite, path, expectedDocs)
-	}
+	testGetWithQuery(suite, basePath, getQueries, newDocs)
 
 	//test delete by name
 	testDeleteDocByName(suite, basePath, nameParam, newDocs[0], compareOpts...)
@@ -189,6 +182,18 @@ func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, baseP
 	testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
 	testBulkDeleteByNameWithBody(suite, basePath, nameParam, docNames)
 
+}
+
+func testGetWithQuery[T types.DocContent](suite *MainTestSuite, basePath string, getQueries []queryTest[T], expected []T) {
+	//get Docs by query params
+	for _, query := range getQueries {
+		path := fmt.Sprintf("%s?%s", basePath, query.query)
+		var expectedDocs []T
+		for _, index := range query.expectedIndexes {
+			expectedDocs = append(expectedDocs, expected[index])
+		}
+		testGetDocs(suite, path, expectedDocs)
+	}
 }
 
 ////////////////////////////////////////// Test helpers //////////////////////////////////////////
