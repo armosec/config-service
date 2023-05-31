@@ -670,8 +670,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	//check the the customer update date is updated
 	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
 	suite.True(updateTime.Before(*updatedCustomer.GetUpdatedTime()) || updateTime.Equal(*updatedCustomer.GetUpdatedTime()), "update time is not recent")
-	//test add push report
-	var ignoreTime = cmp.FilterValues(func(x, y time.Time) bool { return true }, cmp.Ignore())
+	//test add push report	
 	pushTime := time.Now().UTC()
 	pushReport := &armotypes.PushReport{Timestamp: pushTime, ReportGUID: "push-guid", Cluster: "cluster1"}
 	pushReportPath := fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "latestPushReport", "cluster1")

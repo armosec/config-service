@@ -13,6 +13,7 @@ import (
 	_ "embed"
 
 	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/aws/smithy-go/ptr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 )
@@ -262,13 +263,22 @@ func (suite *MainTestSuite) TestAdminGetCustomers() {
 
 	// ===== customers =====
 	//0 freeCustomer
-	addCustomer(&types.Customer{ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeFree}})
+	addCustomer(&types.Customer{
+		ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeFree},
+		State:              &armotypes.CustomerState{NodeUsage: &armotypes.NodeUsage{MaxNodesSumEver: 40}}})
 	//1 teamTrialCustomer
-	addCustomer(&types.Customer{ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeTeam, SubscriptionStatus: "active"}})
+	addCustomer(&types.Customer{
+		State: &armotypes.CustomerState{
+			NodeUsage:      &armotypes.NodeUsage{MaxNodesSumEver: 40},
+			GettingStarted: &armotypes.GettingStartedChecklist{EverConnectedCluster: ptr.Bool(true)}},
+		ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeTeam, SubscriptionStatus: "active"}})
 	//2 teamCustomer
 	addCustomer(&types.Customer{ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeEnterprise, SubscriptionStatus: "trialing"}})
 	//3 enterpriseTrialCustomer
-	addCustomer(&types.Customer{ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeEnterprise, SubscriptionStatus: "active"}})
+	addCustomer(&types.Customer{
+		State: &armotypes.CustomerState{
+			NodeUsage: &armotypes.NodeUsage{MaxNodesSumEver: 40}},
+		ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeEnterprise, SubscriptionStatus: "active"}})
 	//4 PayingCustomerStatusTrialing
 	addCustomer(&types.Customer{ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeEnterprise, SubscriptionStatus: "incomplete"}})
 	//5 PayingCustomerStatusIncomplete
@@ -278,12 +288,20 @@ func (suite *MainTestSuite) TestAdminGetCustomers() {
 
 	query := []queryTest[*types.Customer]{
 		{
-			query:           "activeSubscription.subscriptionStatus=active",
-			expectedIndexes: []int{1, 3},
-		},
-		{
 			query:           "activeSubscription.licenseType=Free",
 			expectedIndexes: []int{0},
+		},
+		{
+			query:           "activeSubscription.licenseType=Team&state.gettingStarted.everConnectedCluster=true",
+			expectedIndexes: []int{1},
+		},
+		{
+			query:           "activeSubscription.licenseType=Enterprise&activeSubscription.licenseType=Free&state.nodeUsage.maxNodesSumEver=40",
+			expectedIndexes: []int{0, 3},
+		},
+		{
+			query:           "activeSubscription.subscriptionStatus=active",
+			expectedIndexes: []int{1, 3},
 		},
 		{
 			query:           "activeSubscription.subscriptionStatus=active&activeSubscription.subscriptionStatus=trialing",
@@ -307,4 +325,17 @@ func (suite *MainTestSuite) TestAdminGetCustomers() {
 		},
 	}
 	testGetWithQuery(suite, consts.AdminPath+"/customers", query, users)
+
+	//repeat the test with projection of just GUID
+	guidUsers := []*types.Customer{}
+	for _, user := range users {
+		guidUser := &types.Customer{}
+		guidUser.GUID = user.GUID
+		guidUsers = append(guidUsers, guidUser)
+	}
+	for i, q := range query {
+		q.query = q.query + "&projection=guid"
+		query[i] = q
+	}
+	testGetWithQuery(suite, consts.AdminPath+"/customers", query, guidUsers, ignoreTime)
 }

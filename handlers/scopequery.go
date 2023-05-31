@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"config-service/db"
+	"config-service/utils/consts"
 	"config-service/utils/log"
 	"context"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"k8s.io/utils/strings/slices"
@@ -19,6 +21,7 @@ type QueryConfig struct {
 	FieldName   string
 	PathInArray string
 	IsArray     bool
+	ParseValue  bool //should parse string to int/bool
 }
 
 func DefaultQueryConfig() *QueryParamsConfig {
@@ -65,6 +68,9 @@ func QueryParams2Filter(c context.Context, qParams url.Values, conf *QueryParams
 	}
 
 	for paramKey, vals := range qParams {
+		if !isSearchParam(paramKey) {
+			continue
+		}
 		keys := strings.Split(paramKey, ".")
 		//clean whitespaces
 		values := slices.Filter([]string{}, vals, func(s string) bool { return s != "" })
@@ -86,25 +92,26 @@ func QueryParams2Filter(c context.Context, qParams url.Values, conf *QueryParams
 		}
 		//calculate field name
 		var field, key = keys[0], keys[1]
-		QueryConfig, ok := conf.Params2Query[field]
+		queryConfig, ok := conf.Params2Query[field]
 		if !ok {
-			continue
-		} else if QueryConfig.IsArray {
-			if QueryConfig.PathInArray != "" {
-				key = QueryConfig.PathInArray + "." + key
+			queryConfig = QueryConfig{FieldName: field, ParseValue: true}
+		}
+		if queryConfig.IsArray {
+			if queryConfig.PathInArray != "" {
+				key = queryConfig.PathInArray + "." + key
 			}
-		} else if QueryConfig.FieldName != "" {
-			key = QueryConfig.FieldName + "." + key
+		} else if queryConfig.FieldName != "" {
+			key = queryConfig.FieldName + "." + key
 		}
 		//get the field filter builder
-		filterBuilder := getFilterBuilder(QueryConfig.FieldName)
+		filterBuilder := getFilterBuilder(queryConfig.FieldName)
 		//case of single value
 		if len(values) == 1 {
-			filterBuilder.WithValue(key, values[0])
+			addValue(filterBuilder, queryConfig, key, values[0])
 		} else { //case of multiple values
 			fb := db.NewFilterBuilder()
 			for _, v := range values {
-				fb.WithValue(key, v)
+				addValue(fb, queryConfig, key, v)
 			}
 			filterBuilder.WithFilter(fb.WarpOr().Get())
 		}
@@ -112,10 +119,10 @@ func QueryParams2Filter(c context.Context, qParams url.Values, conf *QueryParams
 	//aggregate all filters
 	allQueriesFilter := db.NewFilterBuilder()
 	for key, filterBuilder := range filterBuilders {
-		QueryConfig := conf.Params2Query[key]
 		filterBuilder.WrapDupKeysWithOr()
-		if QueryConfig.IsArray {
-			filterBuilder.WarpElementMatch().WarpWithField(QueryConfig.FieldName)
+		queryConfig, ok := conf.Params2Query[key]
+		if ok && queryConfig.IsArray {
+			filterBuilder.WarpElementMatch().WarpWithField(queryConfig.FieldName)
 		}
 		allQueriesFilter.WithFilter(filterBuilder.Get())
 	}
@@ -123,4 +130,30 @@ func QueryParams2Filter(c context.Context, qParams url.Values, conf *QueryParams
 		return nil
 	}
 	return allQueriesFilter
+}
+
+func isSearchParam(param string) bool {
+	switch param {
+	case consts.CustomerGUID, consts.LimitParam, consts.SkipParam,
+		consts.FromDateParam, consts.ToDateParam, consts.ProjectionParam:
+		return false
+	default:
+		return true
+	}
+}
+
+func addValue(filterBuilder *db.FilterBuilder, queryConfig QueryConfig, key, value string) {
+	if !queryConfig.ParseValue {
+		filterBuilder.WithValue(key, value)
+		return
+	}
+	if b, err := strconv.ParseBool(value); err == nil {
+		filterBuilder.WithEqual(key, b)
+		return
+	}
+	if i, err := strconv.Atoi(value); err == nil {
+		filterBuilder.WithEqual(key, i)
+		return
+	}
+	filterBuilder.WithValue(key, value)
 }

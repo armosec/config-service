@@ -186,7 +186,7 @@ func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, baseP
 
 }
 
-func testGetWithQuery[T types.DocContent](suite *MainTestSuite, basePath string, getQueries []queryTest[T], expected []T) {
+func testGetWithQuery[T types.DocContent](suite *MainTestSuite, basePath string, getQueries []queryTest[T], expected []T, compareOpts ...cmp.Option) {
 	//get Docs by query params
 	for _, query := range getQueries {
 		path := fmt.Sprintf("%s?%s", basePath, query.query)

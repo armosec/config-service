@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,18 +34,6 @@ func AddRoutes(g *gin.Engine) {
 		}
 	}
 
-	queryParamsConfig = handlers.FlatQueryConfig()
-	queryParamsConfig.Params2Query["state"] = handlers.QueryConfig{
-		FieldName:   "state",
-		PathInArray: "",
-		IsArray:     false,
-	}
-	queryParamsConfig.Params2Query["activeSubscription"] = handlers.QueryConfig{
-		FieldName:   "activeSubscription",
-		PathInArray: "",
-		IsArray:     false,
-	}
-
 	admin.Use(adminAuthMiddleware)
 	//add routes
 	//get active customers (with scans in between dates)
@@ -55,14 +44,19 @@ func AddRoutes(g *gin.Engine) {
 	admin.DELETE("/customers", deleteAllCustomerData)
 }
 
-var queryParamsConfig *handlers.QueryParamsConfig
-
 func getCustomers(c *gin.Context) {
-	query := handlers.QueryParams2Filter(c, c.Request.URL.Query(), queryParamsConfig)
+	query := handlers.QueryParams2Filter(c, c.Request.URL.Query(), handlers.FlatQueryConfig())
 	if query == nil {
 		handlers.ResponseBadRequest(c, "query is empty")
 	}
-	customers, error := db.Find[*types.Customer](c, query, nil)
+	projection := db.NewProjectionBuilder()
+	if projectionParam := c.Query(consts.ProjectionParam); projectionParam != "" {
+		includeFields := strings.Split(projectionParam, ",")
+		if len(includeFields) > 0 {
+			projection.Include(includeFields...)
+		}
+	}
+	customers, error := db.Find[*types.Customer](c, query, projection.Get())
 	if error != nil {
 		log.LogNTraceError("getCustomers completed with errors", error, c)
 		handlers.ResponseInternalServerError(c, "getCustomers completed with errors", error)
