@@ -47,7 +47,7 @@ func AddRoutes(g *gin.Engine) {
 func getCustomers(c *gin.Context) {
 	query := handlers.QueryParams2Filter(c, c.Request.URL.Query(), handlers.FlatQueryConfig())
 	if query == nil {
-		handlers.ResponseBadRequest(c, "query is empty")
+		handlers.ResponseBadRequest(c, "must provide query params") //TODO: support pagination and return all customers
 	}
 	projection := db.NewProjectionBuilder()
 	if projectionParam := c.Query(consts.ProjectionParam); projectionParam != "" {
