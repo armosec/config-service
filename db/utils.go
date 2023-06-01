@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	mongoDB "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -55,15 +56,24 @@ func GetAllForCustomerWithProjection[T any](c context.Context, projection bson.D
 
 func FindForCustomer[T any](c context.Context, filterBuilder *FilterBuilder, projection bson.D) ([]T, error) {
 	defer log.LogNTraceEnterExit("FindForCustomer", c)()
+	if filterBuilder == nil {
+		filterBuilder = NewFilterBuilder()
+	}
+	filter := filterBuilder.WithNotDeleteForCustomer(c)
+	return Find[T](c, filter, projection)
+}
+
+func Find[T any](c context.Context, filterBuilder *FilterBuilder, projection bson.D) ([]T, error) {
+	defer log.LogNTraceEnterExit("Find", c)()
 	collection, _, err := ReadContext(c)
 	result := []T{}
 	if err != nil {
 		return nil, err
 	}
-	if filterBuilder == nil {
-		filterBuilder = NewFilterBuilder()
+	var filter primitive.D
+	if filterBuilder != nil {
+		filter = filterBuilder.Get()
 	}
-	filter := filterBuilder.WithNotDeleteForCustomer(c).Get()
 	findOpts := options.Find().SetNoCursorTimeout(true)
 	if projection != nil {
 		findOpts.SetProjection(projection)

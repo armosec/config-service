@@ -232,15 +232,16 @@ func (suite *MainTestSuite) TestCustomerConfiguration() {
 	//post new customer config
 	customerConfig = testPostDoc(suite, consts.CustomerConfigPath, customerConfig, compareFilter)
 	//post cluster configs
+	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	cluster1Config.CreationTime = ""
 	cluster2Config.CreationTime = ""
 	clusterConfigs := testBulkPostDocs(suite, consts.CustomerConfigPath, []*types.CustomerConfig{cluster1Config, cluster2Config}, compareFilter)
 	cluster1Config = clusterConfigs[0]
 	cluster2Config = clusterConfigs[1]
 	suite.NotNil(cluster1Config.GetCreationTime(), "creation time should not be nil")
-	suite.True(time.Since(*cluster1Config.GetCreationTime()) < time.Second, "creation time is not recent")
+	suite.True(createTime.Before(*cluster1Config.GetCreationTime()) || createTime.Equal(*cluster1Config.GetCreationTime()), "creation time is not recent")
 	suite.NotNil(cluster2Config.GetCreationTime(), "creation time should not be nil")
-	suite.True(time.Since(*cluster2Config.GetCreationTime()) < time.Second, "creation time is not recent")
+	suite.True(createTime.Before(*cluster2Config.GetCreationTime()) || createTime.Equal(*cluster2Config.GetCreationTime()), "creation time is not recent")
 	//test get names list
 	configNames := []string{defaultCustomerConfig.Name, customerConfig.Name, cluster1Config.Name, cluster2Config.Name}
 	testGetNameList(suite, consts.CustomerConfigPath, configNames)
@@ -359,10 +360,11 @@ func (suite *MainTestSuite) TestCustomer() {
 	//create customer is public so - remove auth cookie
 	suite.authCookie = ""
 	//post new customer
+	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	newCustomer := testPostDoc(suite, "/customer_tenant", customer, customerCompareFilter)
 	//check creation time
 	suite.NotNil(newCustomer.GetCreationTime(), "creation time should not be nil")
-	suite.True(time.Since(*newCustomer.GetCreationTime()) < time.Second, "creation time is not recent")
+	suite.True(createTime.Before(*newCustomer.GetCreationTime()) || createTime.Equal(*newCustomer.GetCreationTime()), "creation time is not recent")
 	//check that the guid stays the same
 	suite.Equal(customer.GUID, newCustomer.GUID, "customer GUID should be preserved")
 	//test get customer with current customer logged in - expect error 404
@@ -659,6 +661,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	prevConfig = clone(notificationConfig)
 	notificationConfig.LatestWeeklyReport = &armotypes.WeeklyReport{ClustersScannedThisWeek: 1}
 	//test partial update
+	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	testPutPartialDoc(suite, configPath, prevConfig, notificationConfigWeekly, notificationConfig, nil)
 	//make sure not other customer fields are changed
 	updatedCustomer := clone(testCustomer)
@@ -666,10 +669,8 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	updatedCustomer = testGetDoc(suite, "/customer", updatedCustomer, customerCompareFilter)
 	//check the the customer update date is updated
 	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
-	suite.True(time.Since(*updatedCustomer.GetUpdatedTime()) < time.Second, "update time is not recent")
-
-	//test add push report
-	var ignoreTime = cmp.FilterValues(func(x, y time.Time) bool { return true }, cmp.Ignore())
+	suite.True(updateTime.Before(*updatedCustomer.GetUpdatedTime()) || updateTime.Equal(*updatedCustomer.GetUpdatedTime()), "update time is not recent")
+	//test add push report	
 	pushTime := time.Now().UTC()
 	pushReport := &armotypes.PushReport{Timestamp: pushTime, ReportGUID: "push-guid", Cluster: "cluster1"}
 	pushReportPath := fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "latestPushReport", "cluster1")

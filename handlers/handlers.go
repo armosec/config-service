@@ -7,8 +7,6 @@ import (
 	"config-service/utils/log"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"k8s.io/utils/strings/slices"
@@ -52,7 +50,7 @@ func HandleGetAll[T types.DocContent](c *gin.Context) {
 		ResponseInternalServerError(c, "failed to read all documents for customer", err)
 		return
 	} else {
-		docsResponse(c, docs)
+		DocsResponse(c, docs)
 	}
 }
 
@@ -63,7 +61,7 @@ func HandleGetAllWithGlobals[T types.DocContent](c *gin.Context) {
 		ResponseInternalServerError(c, "failed to read all documents for customer", err)
 		return
 	} else {
-		docsResponse(c, docs)
+		DocsResponse(c, docs)
 	}
 }
 
@@ -112,84 +110,18 @@ func GetByScopeParamsHandler[T types.DocContent](c *gin.Context, conf *QueryPara
 		return false // not served by this handler
 	}
 	defer log.LogNTraceEnterExit("GetByScopeParamsHandler", c)()
-
-	//keep filter builder per field name
-	filterBuilders := map[string]*db.FilterBuilder{}
-	getFilterBuilder := func(paramName string) *db.FilterBuilder {
-		if filterBuilder, ok := filterBuilders[paramName]; ok {
-			return filterBuilder
-		}
-		filterBuilder := db.NewFilterBuilder()
-		filterBuilders[paramName] = filterBuilder
-		return filterBuilder
+	allQueriesFilter := QueryParams2Filter(c, c.Request.URL.Query(), conf)
+	if allQueriesFilter == nil {
+		return false // not served by this handler
 	}
 
-	qParams := c.Request.URL.Query()
-	for paramKey, vals := range qParams {
-		keys := strings.Split(paramKey, ".")
-		//clean whitespaces
-		values := slices.Filter([]string{}, vals, func(s string) bool { return s != "" })
-		if len(values) == 0 {
-			continue
-		}
-		if len(keys) < 2 {
-			keys = []string{conf.DefaultContext, keys[0]}
-		} else if len(keys) > 2 {
-			keys = []string{keys[0], strings.Join(keys[1:], ".")}
-		}
-		//escape in case of bad formatted query params
-		for i := range values {
-			if v, err := url.QueryUnescape(values[i]); err != nil {
-				log.LogNTraceError("failed to unescape query param", err, c)
-			} else {
-				values[i] = v
-			}
-		}
-		//calculate field name
-		var field, key = keys[0], keys[1]
-		QueryConfig, ok := conf.Params2Query[field]
-		if !ok {
-			continue
-		} else if QueryConfig.IsArray {
-			if QueryConfig.PathInArray != "" {
-				key = QueryConfig.PathInArray + "." + key
-			}
-		} else if QueryConfig.FieldName != "" {
-			key = QueryConfig.FieldName + "." + key
-		}
-		//get the field filter builder
-		filterBuilder := getFilterBuilder(QueryConfig.FieldName)
-		//case of single value
-		if len(values) == 1 {
-			filterBuilder.WithValue(key, values[0])
-		} else { //case of multiple values
-			fb := db.NewFilterBuilder()
-			for _, v := range values {
-				fb.WithValue(key, v)
-			}
-			filterBuilder.WithFilter(fb.WarpOr().Get())
-		}
-	}
-	//aggregate all filters
-	allQueriesFilter := db.NewFilterBuilder()
-	for key, filterBuilder := range filterBuilders {
-		QueryConfig := conf.Params2Query[key]
-		filterBuilder.WrapDupKeysWithOr()
-		if QueryConfig.IsArray {
-			filterBuilder.WarpElementMatch().WarpWithField(QueryConfig.FieldName)
-		}
-		allQueriesFilter.WithFilter(filterBuilder.Get())
-	}
-	if len(allQueriesFilter.Get()) == 0 {
-		return false //not served by this handler
-	}
-	log.LogNTrace(fmt.Sprintf("query params: %v search query %v", qParams, allQueriesFilter.Get()), c)
+	log.LogNTrace(fmt.Sprintf("query params: %v search query %v", c.Request.URL.Query(), allQueriesFilter.Get()), c)
 	if docs, err := db.FindForCustomer[T](c, allQueriesFilter, nil); err != nil {
 		ResponseInternalServerError(c, "failed to read documents", err)
 		return true
 	} else {
 		log.LogNTrace(fmt.Sprintf("scope query found %d documents", len(docs)), c)
-		docsResponse(c, docs)
+		DocsResponse(c, docs)
 		return true
 	}
 }
@@ -288,7 +220,7 @@ func PutDocHandler[T types.DocContent](c *gin.Context, doc T) {
 		ResponseDocumentNotFound(c)
 		return
 	} else {
-		docsResponse(c, res)
+		DocsResponse(c, res)
 	}
 }
 

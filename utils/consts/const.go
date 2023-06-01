@@ -58,6 +58,7 @@ const (
 	SkipParam          = "skip"
 	FromDateParam      = "fromDate"
 	ToDateParam        = "toDate"
+	ProjectionParam    = "projection"
 
 	//Cached documents keys
 	DefaultCustomerConfigKey = "defaultCustomerConfig"

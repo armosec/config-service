@@ -88,6 +88,11 @@ func (f *FilterBuilder) WithNotEqual(key string, value interface{}) *FilterBuild
 	return f
 }
 
+func (f *FilterBuilder) WithEqual(key string, value interface{}) *FilterBuilder {
+	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$eq", Value: value}}})
+	return f
+}
+
 func (f *FilterBuilder) WithIn(key string, value interface{}) *FilterBuilder {
 	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$in", Value: value}}})
 	return f

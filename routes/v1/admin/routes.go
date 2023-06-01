@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -34,10 +35,34 @@ func AddRoutes(g *gin.Engine) {
 	}
 
 	admin.Use(adminAuthMiddleware)
-
+	//add routes
+	//get active customers (with scans in between dates)
 	admin.GET("/activeCustomers", getActiveCustomers)
+	//get customers with query params
+	admin.GET("/customers", handlers.DBContextMiddleware(consts.CustomersCollection), getCustomers)
 	//add delete customers data route
 	admin.DELETE("/customers", deleteAllCustomerData)
+}
+
+func getCustomers(c *gin.Context) {
+	query := handlers.QueryParams2Filter(c, c.Request.URL.Query(), handlers.FlatQueryConfig())
+	if query == nil {
+		handlers.ResponseBadRequest(c, "must provide query params") //TODO: support pagination and return all customers
+	}
+	projection := db.NewProjectionBuilder()
+	if projectionParam := c.Query(consts.ProjectionParam); projectionParam != "" {
+		includeFields := strings.Split(projectionParam, ",")
+		if len(includeFields) > 0 {
+			projection.Include(includeFields...)
+		}
+	}
+	customers, error := db.Find[*types.Customer](c, query, projection.Get())
+	if error != nil {
+		log.LogNTraceError("getCustomers completed with errors", error, c)
+		handlers.ResponseInternalServerError(c, "getCustomers completed with errors", error)
+		return
+	}
+	handlers.DocsResponse(c, customers)
 }
 
 func deleteAllCustomerData(c *gin.Context) {
