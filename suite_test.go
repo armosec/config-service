@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -177,3 +178,5 @@ func retry(attempt int, delay time.Duration, f func() error) error {
 	}
 	return err
 }
+
+var ignoreTime = cmp.FilterValues(func(x, y time.Time) bool { return true }, cmp.Ignore())

@@ -13,7 +13,9 @@ import (
 	_ "embed"
 
 	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/aws/smithy-go/ptr"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/uuid"
 )
 
 func (suite *MainTestSuite) TestAdminAndUsers() {
@@ -244,4 +246,96 @@ func (suite *MainTestSuite) TestAdminActiveUsers() {
 	testBadRequest(suite, http.MethodGet, badParamTypeUrl, errorParamType(consts.LimitParam, "number"), nil, http.StatusBadRequest)
 	badParamTypeUrl = fmt.Sprintf("%s/activeCustomers?%s=%s&%s=%s&%s=%s", consts.AdminPath, consts.FromDateParam, "2024-01-01T20:00:00Z", consts.ToDateParam, "2024-01-01T20:00:00Z", consts.SkipParam, "some-bad-limit")
 	testBadRequest(suite, http.MethodGet, badParamTypeUrl, errorParamType(consts.SkipParam, "number"), nil, http.StatusBadRequest)
+}
+
+func (suite *MainTestSuite) TestAdminGetCustomers() {
+	//remove all existing customers
+	_, err := mongo.GetWriteCollection(consts.CustomersCollection).DeleteMany(context.Background(), struct{}{})
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	users := []*types.Customer{}
+	addCustomer := func(customer *types.Customer) {
+		customer.GUID = uuid.New().String()
+		users = append(users, testPostDoc(suite, consts.TenantPath, customer, customerCompareFilter))
+
+	}
+
+	// ===== customers =====
+	//0 freeCustomer
+	addCustomer(&types.Customer{
+		ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeFree},
+		State:              &armotypes.CustomerState{NodeUsage: &armotypes.NodeUsage{MaxNodesSumEver: 40}}})
+	//1 teamTrialCustomer
+	addCustomer(&types.Customer{
+		State: &armotypes.CustomerState{
+			NodeUsage:      &armotypes.NodeUsage{MaxNodesSumEver: 40},
+			GettingStarted: &armotypes.GettingStartedChecklist{EverConnectedCluster: ptr.Bool(true)}},
+		ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeTeam, SubscriptionStatus: "active"}})
+	//2 teamCustomer
+	addCustomer(&types.Customer{ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeEnterprise, SubscriptionStatus: "trialing"}})
+	//3 enterpriseTrialCustomer
+	addCustomer(&types.Customer{
+		State: &armotypes.CustomerState{
+			NodeUsage: &armotypes.NodeUsage{MaxNodesSumEver: 40}},
+		ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeEnterprise, SubscriptionStatus: "active"}})
+	//4 PayingCustomerStatusTrialing
+	addCustomer(&types.Customer{ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeEnterprise, SubscriptionStatus: "incomplete"}})
+	//5 PayingCustomerStatusIncomplete
+	addCustomer(&types.Customer{ActiveSubscription: &armotypes.Subscription{LicenseType: armotypes.LicenseTypeEnterprise, SubscriptionStatus: "incomplete"}})
+
+	suite.loginAsAdmin("admin-guid")
+
+	query := []queryTest[*types.Customer]{
+		{
+			query:           "activeSubscription.licenseType=Free",
+			expectedIndexes: []int{0},
+		},
+		{
+			query:           "activeSubscription.licenseType=Team&state.gettingStarted.everConnectedCluster=true",
+			expectedIndexes: []int{1},
+		},
+		{
+			query:           "activeSubscription.licenseType=Enterprise&activeSubscription.licenseType=Free&state.nodeUsage.maxNodesSumEver=40",
+			expectedIndexes: []int{0, 3},
+		},
+		{
+			query:           "activeSubscription.subscriptionStatus=active",
+			expectedIndexes: []int{1, 3},
+		},
+		{
+			query:           "activeSubscription.subscriptionStatus=active&activeSubscription.subscriptionStatus=trialing",
+			expectedIndexes: []int{1, 2, 3},
+		},
+		{
+			query:           "activeSubscription.subscriptionStatus=active&activeSubscription.subscriptionStatus=trialing&activeSubscription.subscriptionStatus=incomplete",
+			expectedIndexes: []int{1, 2, 3, 4, 5},
+		},
+		{
+			query:           "activeSubscription.subscriptionStatus=active&activeSubscription.licenseType=Enterprise",
+			expectedIndexes: []int{3},
+		},
+		{
+			query:           "activeSubscription.subscriptionStatus=active&activeSubscription.licenseType=Enterprise",
+			expectedIndexes: []int{3},
+		},
+		{
+			query:           "activeSubscription.subscriptionStatus=active&activeSubscription.subscriptionStatus=trialing&activeSubscription.licenseType=Enterprise",
+			expectedIndexes: []int{2, 3},
+		},
+	}
+	testGetWithQuery(suite, consts.AdminPath+"/customers", query, users)
+
+	//repeat the test with projection of just GUID
+	guidUsers := []*types.Customer{}
+	for _, user := range users {
+		guidUser := &types.Customer{}
+		guidUser.GUID = user.GUID
+		guidUsers = append(guidUsers, guidUser)
+	}
+	for i, q := range query {
+		q.query = q.query + "&projection=guid"
+		query[i] = q
+	}
+	testGetWithQuery(suite, consts.AdminPath+"/customers", query, guidUsers, ignoreTime)
 }

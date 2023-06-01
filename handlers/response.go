@@ -128,7 +128,7 @@ func docResponse[T types.DocContent](c *gin.Context, doc *T) {
 
 }
 
-func docsResponse[T types.DocContent](c *gin.Context, docs []T) {
+func DocsResponse[T types.DocContent](c *gin.Context, docs []T) {
 	if docs == nil {
 		ResponseDocumentNotFound(c)
 		return

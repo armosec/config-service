@@ -30,13 +30,13 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	//POST
 	//create doc
 	doc1.SetGUID("some bad value")
+	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	doc1 = testPostDoc(suite, path, doc1, compareNewOpts...)
 	_, err := uuid.FromString(doc1.GetGUID())
 	suite.NoError(err, "GUID should be a valid uuid")
 	//check creation time
 	suite.NotNil(doc1.GetCreationTime(), "creation time should not be nil")
-	suite.True(time.Since(*doc1.GetCreationTime()) < 5*time.Second, "creation time is not recent")
-
+	suite.True(createTime.Before(*doc1.GetCreationTime()) || createTime.Equal(*doc1.GetCreationTime()), "creation time is not recent")
 	//post doc with same name should fail
 	sameNameDoc := clone(doc1)
 	testBadRequest(suite, http.MethodPost, path, errorNameExist(sameNameDoc.GetName()), sameNameDoc, http.StatusBadRequest)
@@ -45,12 +45,13 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	noNameDoc.SetName("")
 	testBadRequest(suite, http.MethodPost, path, errorMissingName, &noNameDoc, http.StatusBadRequest)
 	//bulk post documents
+	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	documents = testBulkPostDocs(suite, path, documents, compareNewOpts...)
 	//check updated time
 	for _, doc := range documents {
 		suite.NotNil(doc.GetUpdatedTime(), "updated time should not be nil")
 		//check the the customer update date is updated
-		suite.True(time.Since(*doc.GetUpdatedTime()) < time.Second, "update time is not recent")
+		suite.True(updateTime.Before(*doc.GetUpdatedTime()) || updateTime.Equal(*doc.GetUpdatedTime()), "update time is not recent")
 	}
 	//bulk post documents with same name should fail
 	names := []string{documents[0].GetName(), documents[1].GetName()}
@@ -60,10 +61,11 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	//PUT
 	oldDoc1 := clone(doc1)
 	doc1 = modifyFunc(doc1)
+	updateTime, _ = time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	testPutDoc(suite, path, oldDoc1, doc1, compareNewOpts...)
 	suite.NotNil(doc1.GetUpdatedTime(), "updated time should not be nil")
 	//check the the customer update date is updated
-	suite.True(time.Since(*doc1.GetUpdatedTime()) < time.Second, "update time is not recent")
+	suite.True(updateTime.Before(*doc1.GetUpdatedTime()) || updateTime.Equal(*doc1.GetUpdatedTime()), "update time is not recent")
 
 	//test changed name - should be ignored
 	changedNamedDoc := clone(doc1)
@@ -165,14 +167,7 @@ func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, baseP
 	testBadRequest(suite, http.MethodGet, path, errorDocumentNotFound, nil, http.StatusNotFound)
 
 	//get Docs by query params
-	for _, query := range getQueries {
-		path = fmt.Sprintf("%s?%s", basePath, query.query)
-		var expectedDocs []T
-		for _, index := range query.expectedIndexes {
-			expectedDocs = append(expectedDocs, newDocs[index])
-		}
-		testGetDocs(suite, path, expectedDocs)
-	}
+	testGetWithQuery(suite, basePath, getQueries, newDocs)
 
 	//test delete by name
 	testDeleteDocByName(suite, basePath, nameParam, newDocs[0], compareOpts...)
@@ -189,6 +184,18 @@ func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, baseP
 	testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
 	testBulkDeleteByNameWithBody(suite, basePath, nameParam, docNames)
 
+}
+
+func testGetWithQuery[T types.DocContent](suite *MainTestSuite, basePath string, getQueries []queryTest[T], expected []T, compareOpts ...cmp.Option) {
+	//get Docs by query params
+	for _, query := range getQueries {
+		path := fmt.Sprintf("%s?%s", basePath, query.query)
+		var expectedDocs []T
+		for _, index := range query.expectedIndexes {
+			expectedDocs = append(expectedDocs, expected[index])
+		}
+		testGetDocs(suite, path, expectedDocs)
+	}
 }
 
 ////////////////////////////////////////// Test helpers //////////////////////////////////////////
