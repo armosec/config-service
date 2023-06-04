@@ -4,11 +4,15 @@ import (
 	"config-service/db"
 	"config-service/handlers"
 	"config-service/types"
+	"config-service/utils"
 	"config-service/utils/consts"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+// Holds the default customer config if it was loaded from config file
+var defaultCustomerConfig *types.CustomerConfig
 
 func AddRoutes(g *gin.Engine) {
 	customerConfigRouter := handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.CustomerConfig]().
@@ -23,9 +27,20 @@ func AddRoutes(g *gin.Engine) {
 	customerConfigRouter.GET("", getCustomerConfigHandler)
 	customerConfigRouter.DELETE("", deleteCustomerConfig)
 
+	// load default customer config from config file
+	if defaultConfigs := utils.GetConfig().DefaultConfigs; defaultConfigs != nil {
+		defaultCustomerConfig = defaultConfigs.CustomerConfig
+	}
+
 	// add lazy cache to default customer config
-	db.AddCachedDocument[*types.CustomerConfig](consts.DefaultCustomerConfigKey,
-		consts.CustomerConfigCollection,
-		db.NewFilterBuilder().WithGlobalNotDelete().WithName(consts.GlobalConfigName).Get(),
-		time.Minute*5)
+	if defaultCustomerConfig == nil {
+		db.AddCachedDocument[*types.CustomerConfig](consts.DefaultCustomerConfigKey,
+			consts.CustomerConfigCollection,
+			db.NewFilterBuilder().WithGlobalNotDelete().WithName(consts.GlobalConfigName).Get(),
+			time.Minute*5)
+	}
+}
+
+func SetDefaultConfigForTest(c *types.CustomerConfig) {
+	defaultCustomerConfig = c
 }

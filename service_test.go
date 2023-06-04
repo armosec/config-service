@@ -1,6 +1,7 @@
 package main
 
 import (
+	"config-service/routes/v1/customer_config"
 	"config-service/types"
 	"config-service/utils"
 	"config-service/utils/consts"
@@ -210,8 +211,10 @@ var cluster2ConfigJson []byte
 var cluster2ConfigMergedJson []byte
 
 func (suite *MainTestSuite) TestCustomerConfiguration() {
+
 	//load test data
 	defaultCustomerConfig := decode[*types.CustomerConfig](suite, defaultCustomerConfigJson)
+	defaultCustomerConfig2 := decode[*types.CustomerConfig](suite, defaultCustomerConfigJson)
 	customerConfig := decode[*types.CustomerConfig](suite, customerConfigJson)
 	customerConfigMerged := decode[*types.CustomerConfig](suite, customerConfigMergedJson)
 	cluster1Config := decode[*types.CustomerConfig](suite, cluster1ConfigJson)
@@ -246,9 +249,22 @@ func (suite *MainTestSuite) TestCustomerConfiguration() {
 	configNames := []string{defaultCustomerConfig.Name, customerConfig.Name, cluster1Config.Name, cluster2Config.Name}
 	testGetNameList(suite, consts.CustomerConfigPath, configNames)
 
-	//test get default config
+	// test get default config (from var)
+	// set default config variable
+	customer_config.SetDefaultConfigForTest(defaultCustomerConfig2)
+	defaultCustomerConfig2.CustomerConfig.Settings.PostureScanConfig.ScanFrequency = "12345h"
 	//by name
 	path := fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ConfigNameParam, consts.GlobalConfigName)
+	testGetDoc(suite, path, defaultCustomerConfig2, compareFilter)
+	//by scope
+	path = fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ScopeParam, consts.DefaultScope)
+	testGetDoc(suite, path, defaultCustomerConfig2, compareFilter)
+	// unset default config var
+	customer_config.SetDefaultConfigForTest(nil)
+
+	//test get default config (from cached db doc)
+	//by name
+	path = fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ConfigNameParam, consts.GlobalConfigName)
 	testGetDoc(suite, path, defaultCustomerConfig, compareFilter)
 	//by scope
 	path = fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ScopeParam, consts.DefaultScope)
