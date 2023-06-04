@@ -29,11 +29,20 @@ func getCustomerConfigByNameHandler(c *gin.Context) bool {
 	if configName == "" {
 		return false
 	}
+
 	//get the default config
-	defaultConfig, err := db.GetCachedDocument[*types.CustomerConfig](consts.DefaultCustomerConfigKey)
-	if err != nil {
-		handlers.ResponseInternalServerError(c, "failed to get default config", err)
-		return true
+	var defaultConfig *types.CustomerConfig
+	var err error
+	if DefaultCustomerConfig != nil {
+		// get the default config from config file if provided
+		defaultConfig = DefaultCustomerConfig
+	} else {
+		// get the default config from db if not provided by config file
+		defaultConfig, err = db.GetCachedDocument[*types.CustomerConfig](consts.DefaultCustomerConfigKey)
+		if err != nil {
+			handlers.ResponseInternalServerError(c, "failed to get default config", err)
+			return true
+		}
 	}
 
 	//case default config is requested - return it

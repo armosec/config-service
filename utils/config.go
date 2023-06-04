@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"config-service/types"
 	"fmt"
 	"os"
 	"sync"
@@ -8,12 +9,17 @@ import (
 	"github.com/tkanos/gonfig"
 )
 
+type DefaultConfigs struct {
+	CustomerConfig *types.CustomerConfig `json:"customerConfig"`
+}
+
 type Configuration struct {
-	Port         string          `json:"port"`
-	Telemetry    TelemetryConfig `json:"telemetry"`
-	Mongo        MongoConfig     `json:"mongo"`
-	LoggerConfig LoggerConfig    `json:"logger"`
-	AdminUsers   []string        `json:"admins"`
+	Port           string          `json:"port"`
+	Telemetry      TelemetryConfig `json:"telemetry"`
+	Mongo          MongoConfig     `json:"mongo"`
+	LoggerConfig   LoggerConfig    `json:"logger"`
+	AdminUsers     []string        `json:"admins"`
+	DefaultConfigs *DefaultConfigs `json:"defaultConfigs"`
 }
 
 type TelemetryConfig struct {
