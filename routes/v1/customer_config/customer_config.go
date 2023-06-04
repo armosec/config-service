@@ -33,9 +33,9 @@ func getCustomerConfigByNameHandler(c *gin.Context) bool {
 	//get the default config
 	var defaultConfig *types.CustomerConfig
 	var err error
-	if DefaultCustomerConfig != nil {
+	if defaultCustomerConfig != nil {
 		// get the default config from config file if provided
-		defaultConfig = DefaultCustomerConfig
+		defaultConfig = defaultCustomerConfig
 	} else {
 		// get the default config from db if not provided by config file
 		defaultConfig, err = db.GetCachedDocument[*types.CustomerConfig](consts.DefaultCustomerConfigKey)

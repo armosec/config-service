@@ -12,7 +12,7 @@ import (
 )
 
 // Holds the default customer config if it was loaded from config file
-var DefaultCustomerConfig *types.CustomerConfig
+var defaultCustomerConfig *types.CustomerConfig
 
 func AddRoutes(g *gin.Engine) {
 	customerConfigRouter := handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.CustomerConfig]().
@@ -29,14 +29,18 @@ func AddRoutes(g *gin.Engine) {
 
 	// load default customer config from config file
 	if defaultConfigs := utils.GetConfig().DefaultConfigs; defaultConfigs != nil {
-		DefaultCustomerConfig = defaultConfigs.CustomerConfig
+		defaultCustomerConfig = defaultConfigs.CustomerConfig
 	}
 
 	// add lazy cache to default customer config
-	if DefaultCustomerConfig == nil {
+	if defaultCustomerConfig == nil {
 		db.AddCachedDocument[*types.CustomerConfig](consts.DefaultCustomerConfigKey,
 			consts.CustomerConfigCollection,
 			db.NewFilterBuilder().WithGlobalNotDelete().WithName(consts.GlobalConfigName).Get(),
 			time.Minute*5)
 	}
+}
+
+func SetDefaultConfigForTest(c *types.CustomerConfig) {
+	defaultCustomerConfig = c
 }

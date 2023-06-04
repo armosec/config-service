@@ -250,7 +250,7 @@ func (suite *MainTestSuite) TestCustomerConfiguration() {
 
 	// test get default config (from var)
 	// set default config variable
-	customer_config.DefaultCustomerConfig = defaultCustomerConfig2
+	customer_config.SetDefaultConfigForTest(defaultCustomerConfig2)
 	defaultCustomerConfig2.CustomerConfig.Settings.PostureScanConfig.ScanFrequency = "12345h"
 	//by name
 	path := fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ConfigNameParam, consts.GlobalConfigName)
@@ -259,7 +259,7 @@ func (suite *MainTestSuite) TestCustomerConfiguration() {
 	path = fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ScopeParam, consts.DefaultScope)
 	testGetDoc(suite, path, defaultCustomerConfig2, compareFilter)
 	// unset default config var
-	customer_config.DefaultCustomerConfig = nil
+	customer_config.SetDefaultConfigForTest(nil)
 
 	//test get default config (from cached db doc)
 	//by name
