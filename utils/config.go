@@ -9,6 +9,12 @@ import (
 	"github.com/tkanos/gonfig"
 )
 
+const (
+	ConfigPathEnvVar      = "CONFIG_PATH"
+	MongoDbPasswordEnvVar = "MONGODB_PASSWORD"
+	MongoDbUserEnvVar     = "MONGODB_USER"
+)
+
 type DefaultConfigs struct {
 	CustomerConfig *types.CustomerConfig `json:"customerConfig"`
 }
@@ -54,14 +60,28 @@ var initOnce sync.Once
 func GetConfig() Configuration {
 	initOnce.Do(func() {
 		configFileName := "config.json"
-		if cfgPath := os.Getenv("CONFIG_PATH"); cfgPath != "" {
-			fmt.Printf("<----- Config file from environment variable: %s ----->", cfgPath)
+		if cfgPath := os.Getenv(ConfigPathEnvVar); cfgPath != "" {
+			fmt.Printf("<----- Config file from environment variable: %s ----->\n", cfgPath)
 			configFileName = cfgPath
 		}
 		if err := gonfig.GetConf(configFileName, &globalConfig); err != nil {
 			errMsg := fmt.Sprintf("Cannot open config file: %s, Error: %s", "config.json", err.Error())
 			panic(errMsg)
 		}
+
+		OverrideConfigFromEnvVars(&globalConfig)
 	})
 	return globalConfig
+}
+
+func OverrideConfigFromEnvVars(config *Configuration) {
+	if user := os.Getenv(MongoDbUserEnvVar); user != "" {
+		fmt.Println("overriding mongo db user from env var")
+		config.Mongo.User = user
+	}
+
+	if password := os.Getenv(MongoDbPasswordEnvVar); password != "" {
+		fmt.Println("overriding mongo db password from env var")
+		config.Mongo.Password = password
+	}
 }

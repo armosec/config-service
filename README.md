@@ -13,6 +13,7 @@
 6. [Log & trace](#log--trace)
 7. [Testing](#testing)
 8. [Running](#running)
+9. [Configuration](#configuration)
 
 
 
@@ -235,4 +236,86 @@ go run .
 {"level":"info","ts":"2022-12-21T15:59:17.579589138+02:00","msg":"checking mongo connectivity"}
 {"level":"info","ts":"2022-12-21T15:59:17.594646374+02:00","msg":"mongo connection verified"}
 {"level":"info","ts":"2022-12-21T15:59:17.594796442+02:00","msg":"Starting server on port 8080"}
+```
+
+Sure, here's a sample `README.md` section detailing each part of your `config.json` file:
+
+## Configuration
+
+The application's settings are usually stored in a `config.json` file, located in the root directory. However, you can specify a different location for the configuration file using the `CONFIG_PATH` environment variable.
+
+Here's a brief description of each setting:
+
+```json
+{
+    "port": 8080,
+    "mongo": {
+        "host": "localhost",
+        "port": 27017,
+        "db": "dbname",
+        "user": "username",
+        "password": "password",
+        "replicaSet": ""
+    },
+    "logger": {
+        "level": "debug"
+    },
+    "telemetry": {
+        "jaegerAgentHost": "localhost",
+        "jaegerAgentPort": "32033"
+    }
+}
+```
+
+### Settings Description
+
+- `port` : The port number on which the service runs.
+
+- `mongo` : MongoDB connection settings:
+    - `host` : The hostname or IP address of the MongoDB server.
+    - `port` : The port number on which the MongoDB server is listening.
+    - `db` : The name of the database to use in MongoDB.
+    - `user` : The username for MongoDB authentication. Leave it as an empty string if authentication is not enabled.
+    - `password` : The password for MongoDB authentication. Leave it as an empty string if authentication is not enabled.
+    - `replicaSet` : The name of the MongoDB replica set. Leave it as an empty string if a replica set is not used.
+
+- `logger` : Logger settings:
+    - `level` : The level of logs to be emitted by the service. Can be set to "debug", "info", "warn", "error", etc.
+
+- `telemetry` : Telemetry settings:
+    - `jaegerAgentHost` : The hostname or IP address of the Jaeger agent for tracing.
+    - `jaegerAgentPort` : The port number on which the Jaeger agent is listening.
+
+
+### Configuring with `config.json`
+
+By default, the service reads its settings from `config.json` in the root directory.
+
+### Configuring with `CONFIG_PATH`
+
+You can specify a different location for the configuration file using the `CONFIG_PATH` environment variable. This is useful if you want to keep configuration files in a separate directory, or if you have different configuration files for different environments.
+
+To use `CONFIG_PATH`, set it to the path of your configuration file. For example:
+
+```bash
+export CONFIG_PATH=/path/to/your/config.json
+```
+
+_Note_: Sensitive data like usernames, passwords or any kind of secrets should not be stored directly in the `config.json` file for security reasons. Consider using environment variables or secure secret management systems for such data.
+
+### Overriding settings using Environment Variables
+
+Some settings can be overridden using environment variables. 
+This is useful if you want to change a specific setting without modifying the `config.json` file, or if you want to provide sensitive data like passwords.
+
+Currently, the service supports the following environment variables:
+
+- `MONGODB_USER` : Overrides the MongoDB username.
+- `MONGODB_PASSWORD` : Overrides the MongoDB password.
+
+For example:
+
+```bash
+export MONGODB_USER=myuser
+export MONGODB_PASSWORD=mypassword
 ```
