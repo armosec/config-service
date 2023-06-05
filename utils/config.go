@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/tkanos/gonfig"
-	"go.uber.org/zap"
 )
 
 const (
@@ -62,7 +61,7 @@ func GetConfig() Configuration {
 	initOnce.Do(func() {
 		configFileName := "config.json"
 		if cfgPath := os.Getenv(ConfigPathEnvVar); cfgPath != "" {
-			fmt.Printf("<----- Config file from environment variable: %s ----->", cfgPath)
+			fmt.Printf("<----- Config file from environment variable: %s ----->\n", cfgPath)
 			configFileName = cfgPath
 		}
 		if err := gonfig.GetConf(configFileName, &globalConfig); err != nil {
@@ -77,12 +76,12 @@ func GetConfig() Configuration {
 
 func OverrideConfigFromEnvVars(config *Configuration) {
 	if user := os.Getenv(MongoDbUserEnvVar); user != "" {
-		zap.L().Info("overriding mongo db user from env var")
+		fmt.Println("overriding mongo db user from env var")
 		config.Mongo.User = user
 	}
 
 	if password := os.Getenv(MongoDbPasswordEnvVar); password != "" {
-		zap.L().Info("overriding mongo db password from env var")
+		fmt.Println("overriding mongo db password from env var")
 		config.Mongo.Password = password
 	}
 }
