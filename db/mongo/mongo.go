@@ -4,6 +4,7 @@ import (
 	"config-service/utils"
 	"context"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
@@ -16,6 +17,11 @@ import (
 )
 
 var mongoDB, mongoDBprimary *mongo.Database
+
+const (
+	MongoDbPasswordEnvVar = "MONGODB_PASSWORD"
+	MongoDbUserEnvVar     = "MONGODB_USER"
+)
 
 func MustConnect(config utils.MongoConfig) {
 	if err := Connect(config); err != nil {
@@ -65,6 +71,8 @@ func Connect(config utils.MongoConfig) error {
 
 	dbOptionsWriteConcern := options.Database().
 		SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+
+	OverrideConfigFromEnvVars(&config)
 
 	dbClientOpts := defaultOpts
 	url := generateMongoUrl(config.Host, config.Port, config.User, config.Password)
@@ -184,4 +192,16 @@ func parseUrlFromReplicaSetStatusCommand(config utils.MongoConfig, result primit
 	}
 	zap.L().Warn("cannot find primary in replSetGetStatus result")
 	return ""
+}
+
+func OverrideConfigFromEnvVars(config *utils.MongoConfig) {
+	if user := os.Getenv(MongoDbUserEnvVar); user != "" {
+		zap.L().Info("overriding mongo db user from env var")
+		config.User = user
+	}
+
+	if password := os.Getenv(MongoDbPasswordEnvVar); password != "" {
+		zap.L().Info("overriding mongo db password from env var")
+		config.Password = password
+	}
 }
