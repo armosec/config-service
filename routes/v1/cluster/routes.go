@@ -16,5 +16,6 @@ func AddRoutes(g *gin.Engine) {
 		WithValidatePutGUID(true).
 		WithDeleteByName(false).
 		WithUniqueShortName(handlers.NameValueGetter[*types.Cluster]).
+		WithNameQuery(consts.NameField).
 		Get()...)
 }
