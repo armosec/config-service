@@ -141,7 +141,8 @@ func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, em
 	fullDoc = testPostDoc(suite, path, fullDoc, compareOpts...)
 	partialDoc.SetGUID(fullDoc.GetGUID())
 	expectedFullDoc := clone(fullDoc)
-	testPutPartialDoc(suite, path, fullDoc, partialDoc, expectedFullDoc, newClusterCompareFilter)
+	updatedDoc := testPutPartialDoc(suite, path, fullDoc, partialDoc, expectedFullDoc, newClusterCompareFilter)
+	testDeleteDocByGUID(suite, path, updatedDoc, compareOpts...)
 }
 
 type queryTest[T types.DocContent] struct {
@@ -149,8 +150,13 @@ type queryTest[T types.DocContent] struct {
 	expectedIndexes []int
 }
 
-func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, getQueries []queryTest[T], compareOpts ...cmp.Option) {
-	newDocs := testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
+func testGetByName[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, compareOpts ...cmp.Option) {
+	w := suite.doRequest(http.MethodPost, basePath, testDocs)
+	suite.Equal(http.StatusCreated, w.Code)
+	newDocs, err := decodeResponseArray[T](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
 	suite.Equal(len(testDocs), len(newDocs))
 	docNames := []string{}
 	for i := range newDocs {
@@ -166,16 +172,26 @@ func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, baseP
 	path = fmt.Sprintf("%s?%s=%s", basePath, nameParam, "notExistingName")
 	testBadRequest(suite, http.MethodGet, path, errorDocumentNotFound, nil, http.StatusNotFound)
 
-	//get Docs by query params
-	testGetWithQuery(suite, basePath, getQueries, newDocs)
+	for _, doc := range newDocs {
+		testDeleteDocByGUID(suite, basePath, doc, compareOpts...)
+	}
 
+}
+
+func testDeleteByName[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, compareOpts ...cmp.Option) {
+	newDocs := testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
+	suite.Equal(len(testDocs), len(newDocs))
+	docNames := []string{}
+	for i := range newDocs {
+		docNames = append(docNames, testDocs[i].GetName())
+	}
 	//test delete by name
 	testDeleteDocByName(suite, basePath, nameParam, newDocs[0], compareOpts...)
 	//test bulk delete by name
 	docNames2 := docNames[1:]
 	testBulkDeleteByName(suite, basePath, nameParam, docNames2)
 	//test delete by name with not existing name
-	path = fmt.Sprintf("%s?%s=%s", basePath, nameParam, "notExistingName")
+	path := fmt.Sprintf("%s?%s=%s", basePath, nameParam, "notExistingName")
 	testBadRequest(suite, http.MethodDelete, path, errorDocumentNotFound, nil, http.StatusNotFound)
 	//deleteDoc by name with empty name
 	path = fmt.Sprintf("%s?%s", basePath, nameParam)
@@ -183,6 +199,30 @@ func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, baseP
 	//test bulk delete with body
 	testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
 	testBulkDeleteByNameWithBody(suite, basePath, nameParam, docNames)
+
+}
+
+func testGetByQuery[T types.DocContent](suite *MainTestSuite, basePath string, testDocs []T, getQueries []queryTest[T], compareOpts ...cmp.Option) {
+	newDocs := testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
+	suite.Equal(len(testDocs), len(newDocs))
+	docNames := []string{}
+	for i := range newDocs {
+		docNames = append(docNames, testDocs[i].GetName())
+	}
+	//get Docs by query params
+	testGetWithQuery(suite, basePath, getQueries, newDocs)
+	for _, doc := range newDocs {
+		testDeleteDocByGUID(suite, basePath, doc, compareOpts...)
+	}
+
+}
+
+func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, getQueries []queryTest[T], compareOpts ...cmp.Option) {
+	testGetByName(suite, basePath, nameParam, testDocs, compareOpts...)
+
+	testGetByQuery(suite, basePath, testDocs, getQueries, compareOpts...)
+
+	testDeleteByName(suite, basePath, nameParam, testDocs, compareOpts...)
 
 }
 
@@ -331,7 +371,7 @@ func testPutDoc[T any](suite *MainTestSuite, path string, oldDoc, newDoc T, comp
 	suite.Equal("", diff)
 }
 
-func testPutPartialDoc[T any](suite *MainTestSuite, path string, oldDoc T, newPartialDoc interface{}, expectedFullDoc T, compareNewOpts ...cmp.Option) {
+func testPutPartialDoc[T any](suite *MainTestSuite, path string, oldDoc T, newPartialDoc interface{}, expectedFullDoc T, compareNewOpts ...cmp.Option) T {
 	w := suite.doRequest(http.MethodPut, path, newPartialDoc)
 	suite.Equal(http.StatusOK, w.Code)
 	response, err := decodeResponseArray[T](w)
@@ -341,6 +381,7 @@ func testPutPartialDoc[T any](suite *MainTestSuite, path string, oldDoc T, newPa
 	}
 	diff := cmp.Diff(response, expectedResponse, compareNewOpts...)
 	suite.Equal("", diff)
+	return response[1]
 }
 
 func testPutDocWGuid[T types.DocContent](suite *MainTestSuite, path string, oldDoc, newDoc T, compareNewOpts ...cmp.Option) {

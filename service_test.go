@@ -51,6 +51,8 @@ func (suite *MainTestSuite) TestCluster() {
 
 	testPartialUpdate(suite, consts.ClusterPath, &types.Cluster{}, newClusterCompareFilter)
 
+	testGetByName(suite, consts.ClusterPath, "name", clusters, newClusterCompareFilter, ignoreTime)
+
 	//cluster specific tests
 
 	//put doc without alias - expect the alias not to be deleted
@@ -686,7 +688,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	//check the the customer update date is updated
 	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
 	suite.True(updateTime.Before(*updatedCustomer.GetUpdatedTime()) || updateTime.Equal(*updatedCustomer.GetUpdatedTime()), "update time is not recent")
-	//test add push report	
+	//test add push report
 	pushTime := time.Now().UTC()
 	pushReport := &armotypes.PushReport{Timestamp: pushTime, ReportGUID: "push-guid", Cluster: "cluster1"}
 	pushReportPath := fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "latestPushReport", "cluster1")
