@@ -21,18 +21,18 @@
     }
   },
   {
+    "$sort": {
+      "_id": 1
+    }
+  },
+  {
     "$unwind": "$customer"
   },
   {
     "$replaceRoot": {
       "newRoot": "$customer"
     }
-  },
-  {
-    "$sort": {
-      "guid": 1
-    }
-  },
+  },  
   {
     "$facet": {
       "metadata": [
