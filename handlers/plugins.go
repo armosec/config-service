@@ -24,7 +24,7 @@ type ResponseSender[T types.DocContent] func(c *gin.Context, doc T, docs []T)
 // containerName: the full path and name of from the root of the document (e.g. "internalFields.tags"),
 // item: the item to add or remove from the container
 // valid: is true if the request is valid, in the request is not valid the middleware needs to handle it and return the error response
-type ContainerHandler func(c *gin.Context) (containerName string, item interface{}, valid bool)
+type ContainerHandler func(c *gin.Context) (containerName string, items []interface{}, valid bool)
 
 func GetCustomBodyDecoder[T types.DocContent](c *gin.Context) (BodyDecoder[T], error) {
 	if iDecoder, ok := c.Get(consts.BodyDecoder); ok {

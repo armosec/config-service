@@ -42,12 +42,20 @@ func GetUpdateDocCommand[T types.DocContent](i T, includeFields []string, exclud
 	return bson.D{bson.E{Key: "$set", Value: m}}, nil
 }
 
-func GetUpdateAddToSetCommand(arrayFieldName string, value interface{}) bson.D {
-	return bson.D{bson.E{Key: "$addToSet", Value: bson.D{bson.E{Key: arrayFieldName, Value: value}}}}
+func GetUpdateAddToSetCommand(arrayFieldName string, values ...interface{}) bson.D {
+	if len(values) == 1 {
+		return bson.D{bson.E{Key: "$addToSet", Value: bson.D{bson.E{Key: arrayFieldName, Value: values[0]}}}}
+	} else {
+		return bson.D{bson.E{Key: "$addToSet", Value: bson.D{bson.E{Key: arrayFieldName, Value: bson.M{"$each": values}}}}}
+	}
 }
 
-func GetUpdatePullFromSetCommand(arrayFieldName string, value interface{}) bson.D {
-	return bson.D{bson.E{Key: "$pull", Value: bson.D{bson.E{Key: arrayFieldName, Value: value}}}}
+func GetUpdatePullFromSetCommand(arrayFieldName string, values ...interface{}) bson.D {
+	pullConditions := bson.A{}
+	for _, val := range values {
+		pullConditions = append(pullConditions, val)
+	}
+	return bson.D{bson.E{Key: "$pull", Value: bson.D{bson.E{Key: arrayFieldName, Value: bson.D{bson.E{Key: "$in", Value: pullConditions}}}}}}
 }
 
 func GetUpdateSetFieldCommand(fieldName string, value interface{}) bson.D {
