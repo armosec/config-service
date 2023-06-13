@@ -54,6 +54,8 @@ func latestPushReportMiddleware(c *gin.Context) (latestPushPath string, valuesTo
 	return latestPushPath, []interface{}{report}, true
 }
 
+const unsubscribePathPrefix = "notifications_config.unsubscribedUsers."
+
 func unsubscribeMiddleware(c *gin.Context) (unsubscribePath string, valuesToAdd []interface{}, valid bool) {
 	userId := c.Param("userId")
 	if userId == "" {
@@ -65,7 +67,9 @@ func unsubscribeMiddleware(c *gin.Context) (unsubscribePath string, valuesToAdd 
 		log.LogNTraceError("failed to get notificationsIds from body", err, c)
 		return "", nil, false
 	}
-
+	if len(notificationsIds) == 0 {
+		return "", nil, false
+	}
 	for _, notificationId := range notificationsIds {
 		if notificationId == nil || notificationId.NotificationType == "" {
 			handlers.ResponseMissingKey(c, "notificationId")
@@ -78,7 +82,7 @@ func unsubscribeMiddleware(c *gin.Context) (unsubscribePath string, valuesToAdd 
 	}
 	c.Params = append(c.Params, gin.Param{Key: consts.GUIDField, Value: customerGuid})
 
-	unsubscribePath = "notifications_config.unsubscribedUsers." + userId
+	unsubscribePath = unsubscribePathPrefix + userId
 	resp := []interface{}{}
 	for _, notificationId := range notificationsIds {
 		resp = append(resp, notificationId)
