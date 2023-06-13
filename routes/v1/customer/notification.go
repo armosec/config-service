@@ -83,7 +83,7 @@ func unsubscribeMiddleware(c *gin.Context) (unsubscribePath string, valuesToAdd 
 	c.Params = append(c.Params, gin.Param{Key: consts.GUIDField, Value: customerGuid})
 
 	unsubscribePath = unsubscribePathPrefix + userId
-	resp := []interface{}{}
+	resp := make([]interface{}, 0, len(notificationsIds))
 	for _, notificationId := range notificationsIds {
 		resp = append(resp, notificationId)
 	}

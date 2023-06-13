@@ -51,7 +51,7 @@ func GetUpdateAddToSetCommand(arrayFieldName string, values ...interface{}) bson
 }
 
 func GetUpdatePullFromSetCommand(arrayFieldName string, values ...interface{}) bson.D {
-	pullConditions := bson.A{}
+	pullConditions := make(bson.A, 0, len(values))
 	for _, val := range values {
 		pullConditions = append(pullConditions, val)
 	}
