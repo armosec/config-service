@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"k8s.io/utils/strings/slices"
 )
 
@@ -318,7 +319,7 @@ func MustGetDocContentFromContext[T types.DocContent](c *gin.Context) ([]T, erro
 
 func HandlerAddToArray(requestHandler ContainerHandler) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		pathToArray, item, valid := requestHandler(c)
+		pathToArray, items, valid := requestHandler(c)
 		if !valid {
 			return
 		}
@@ -327,18 +328,19 @@ func HandlerAddToArray(requestHandler ContainerHandler) func(c *gin.Context) {
 			ResponseMissingGUID(c)
 			return
 		}
-		if modified, err := db.AddToArray(c, guid, pathToArray, item); err != nil {
+		if modified, err := db.AddToArray(c, guid, pathToArray, items...); err != nil {
 			ResponseInternalServerError(c, "failed to add to unsubscribedUsers", err)
 			return
 		} else {
 			c.JSON(http.StatusOK, gin.H{"added": modified})
 		}
 	}
+
 }
 
 func HandlerRemoveFromArray(requestHandler ContainerHandler) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		pathToArray, item, valid := requestHandler(c)
+		pathToArray, items, valid := requestHandler(c)
 		if !valid {
 			return
 		}
@@ -347,7 +349,7 @@ func HandlerRemoveFromArray(requestHandler ContainerHandler) func(c *gin.Context
 			ResponseMissingGUID(c)
 			return
 		}
-		if modified, err := db.PullFromArray(c, guid, pathToArray, item); err != nil {
+		if modified, err := db.PullFromArray(c, guid, pathToArray, items...); err != nil {
 			ResponseInternalServerError(c, "failed to remove from  unsubscribedUsers", err)
 			return
 		} else {
@@ -358,7 +360,7 @@ func HandlerRemoveFromArray(requestHandler ContainerHandler) func(c *gin.Context
 
 func HandlerSetField(requestHandler ContainerHandler, set bool) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		pathToField, value, valid := requestHandler(c)
+		pathToField, values, valid := requestHandler(c)
 		if !valid {
 			return
 		}
@@ -369,7 +371,7 @@ func HandlerSetField(requestHandler ContainerHandler, set bool) func(c *gin.Cont
 		}
 		var update interface{}
 		if set {
-			update = db.GetUpdateSetFieldCommand(pathToField, value)
+			update = db.GetUpdateSetFieldCommand(pathToField, values[0])
 		} else { //unset
 			update = db.GetUpdateUnsetFieldCommand(pathToField)
 		}
@@ -380,4 +382,18 @@ func HandlerSetField(requestHandler ContainerHandler, set bool) func(c *gin.Cont
 			c.JSON(http.StatusOK, gin.H{"modified": modified})
 		}
 	}
+}
+
+func GetBulkOrSingleBody[T any](c *gin.Context) ([]T, error) {
+	var doc T
+	var docs []T
+	if err := c.ShouldBindBodyWith(&doc, binding.JSON); err != nil {
+		//check if bulk request
+		if err := c.ShouldBindBodyWith(&docs, binding.JSON); err != nil || docs == nil {
+			return nil, err
+		}
+	} else {
+		docs = append(docs, doc)
+	}
+	return docs, nil
 }

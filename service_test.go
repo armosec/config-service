@@ -674,6 +674,39 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	notificationConfig.UnsubscribedUsers["user3"] = []armotypes.NotificationConfigIdentifier{}
 	notificationConfig.UnsubscribedUsers["user6"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeAll}}
 	notificationConfig.UnsubscribedUsers["user5"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypeAll}}
+
+	//test put delete multiple elements
+	notifyPush := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypePush}
+	//add 2 elements to user10
+	unsubscribePath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "unsubscribe", "user10")
+	w = suite.doRequest(http.MethodPut, unsubscribePath, []armotypes.NotificationConfigIdentifier{notify, notifyPush})
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["added"])
+	//remove non existing element from user10
+	w = suite.doRequest(http.MethodDelete, unsubscribePath, []armotypes.NotificationConfigIdentifier{notifyAll})
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(0, res["removed"])
+	// add 3 elements to user11
+	unsubscribePath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "unsubscribe", "user11")
+	w = suite.doRequest(http.MethodPut, unsubscribePath, []armotypes.NotificationConfigIdentifier{notify, notifyPush, notifyAll})
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["added"])
+	// remove 2 elements from user11
+	w = suite.doRequest(http.MethodDelete, unsubscribePath, []armotypes.NotificationConfigIdentifier{notifyPush, notifyAll})
+	suite.Equal(http.StatusOK, w.Code)
+	res, err = decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(1, res["removed"])
+	//set expected state for the notification config
+	notificationConfig.UnsubscribedUsers["user10"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypePush}}
+	notificationConfig.UnsubscribedUsers["user11"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}}
+
 	//update just one field in the configuration
 	notificationConfigWeekly := &armotypes.NotificationsConfig{LatestWeeklyReport: &armotypes.WeeklyReport{ClustersScannedThisWeek: 1}}
 	prevConfig = clone(notificationConfig)

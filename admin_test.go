@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sort"
 
 	_ "embed"
 
@@ -207,9 +206,6 @@ func (suite *MainTestSuite) TestAdminActiveUsers() {
 		} else {
 			suite.Equal(1000, response.Metadata.Limit)
 		}
-		sort.Slice(response.Results, func(i, j int) bool {
-			return response.Results[i].GUID < response.Results[j].GUID
-		})
 		if expectedUsers == nil {
 			expectedUsers = []*types.Customer{}
 		}
@@ -221,6 +217,7 @@ func (suite *MainTestSuite) TestAdminActiveUsers() {
 	testActive("2022-01-01T20:00:00Z", "2024-01-01T20:00:00Z", 0, 0, users...)
 	testActive("2022-11-15T11:13:30Z", "2022-11-15T11:13:32Z", 0, 0, users[2])
 	testActive("2023-01-01T11:13:32Z", "2023-01-16T11:13:32Z", 0, 0, users[0], users[2])
+	testActive("2023-01-01T11:13:32Z", "2023-02-01T11:13:32Z", 0, 0, users[0], users[1], users[2])
 	testActive("2023-01-25T11:13:32Z", "2023-02-01T11:13:32Z", 0, 0, users[1])
 	testActive("2026-01-25T11:13:32Z", "2027-02-01T11:13:32Z", 0, 0)
 

@@ -4,6 +4,7 @@ import (
 	"config-service/handlers"
 	"config-service/types"
 	"config-service/utils/consts"
+	"config-service/utils/log"
 	"fmt"
 	"net/http"
 
@@ -30,7 +31,7 @@ func addNotificationConfigRoutes(g *gin.Engine) {
 		Get()...)
 }
 
-func latestPushReportMiddleware(c *gin.Context) (latestPushPath string, valueToAdd interface{}, valid bool) {
+func latestPushReportMiddleware(c *gin.Context) (latestPushPath string, valuesToAdd []interface{}, valid bool) {
 	clusterName := c.Param("clusterName")
 	if clusterName == "" {
 		handlers.ResponseMissingKey(c, "clusterName")
@@ -50,23 +51,30 @@ func latestPushReportMiddleware(c *gin.Context) (latestPushPath string, valueToA
 	c.Params = append(c.Params, gin.Param{Key: consts.GUIDField, Value: customerGuid})
 
 	latestPushPath = "notifications_config.latestPushReports." + clusterName
-	return latestPushPath, report, true
+	return latestPushPath, []interface{}{report}, true
 }
 
-func unsubscribeMiddleware(c *gin.Context) (unsubscribePath string, valueToAdd interface{}, valid bool) {
+const unsubscribePathPrefix = "notifications_config.unsubscribedUsers."
+
+func unsubscribeMiddleware(c *gin.Context) (unsubscribePath string, valuesToAdd []interface{}, valid bool) {
 	userId := c.Param("userId")
 	if userId == "" {
 		handlers.ResponseMissingKey(c, "userId")
 		return "", nil, false
 	}
-	var notificationId *armotypes.NotificationConfigIdentifier
-	if err := c.ShouldBindJSON(&notificationId); err != nil {
-		handlers.ResponseFailedToBindJson(c, err)
+	notificationsIds, err := handlers.GetBulkOrSingleBody[*armotypes.NotificationConfigIdentifier](c)
+	if err != nil {
+		log.LogNTraceError("failed to get notificationsIds from body", err, c)
 		return "", nil, false
 	}
-	if notificationId == nil || notificationId.NotificationType == "" {
-		handlers.ResponseMissingKey(c, "notificationId")
+	if len(notificationsIds) == 0 {
 		return "", nil, false
+	}
+	for _, notificationId := range notificationsIds {
+		if notificationId == nil || notificationId.NotificationType == "" {
+			handlers.ResponseMissingKey(c, "notificationId")
+			return "", nil, false
+		}
 	}
 	customerGuid := c.GetString(consts.CustomerGUID)
 	if customerGuid == "" {
@@ -74,8 +82,12 @@ func unsubscribeMiddleware(c *gin.Context) (unsubscribePath string, valueToAdd i
 	}
 	c.Params = append(c.Params, gin.Param{Key: consts.GUIDField, Value: customerGuid})
 
-	unsubscribePath = "notifications_config.unsubscribedUsers." + userId
-	return unsubscribePath, notificationId, true
+	unsubscribePath = unsubscribePathPrefix + userId
+	resp := make([]interface{}, 0, len(notificationsIds))
+	for _, notificationId := range notificationsIds {
+		resp = append(resp, notificationId)
+	}
+	return unsubscribePath, resp, true
 }
 
 func notificationConfigResponseSender(c *gin.Context, customer *types.Customer, customers []*types.Customer) {

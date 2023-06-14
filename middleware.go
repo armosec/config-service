@@ -26,7 +26,7 @@ func authenticate(c *gin.Context) {
 	customerGuid := customerValues[0]
 	if err != nil || customerGuid == "" {
 
-		customerGuid := c.Query(consts.CustomerGUID)
+		customerGuid = c.Query(consts.CustomerGUID)
 		if customerGuid == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			return
