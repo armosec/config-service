@@ -34,7 +34,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob
+		*Framework | *Repository | *RegistryCronJob | *User
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -273,9 +273,77 @@ func (r *RegistryCronJob) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
+type User struct {
+	armotypes.User `json:",inline" bson:"inline"`
+	GUID           string `json:"guid" bson:"guid"`
+	CreationTime   string `json:"creationTime" bson:"creationTime"`
+	UpdatedTime    string `json:"updatedTime" bson:"updatedTime"`
+}
+
+func (u *User) GetGUID() string {
+	return u.GUID
+}
+
+func (u *User) SetGUID(guid string) {
+}
+
+func (u *User) GetName() string {
+	return ""
+}
+
+func (u *User) SetName(name string) {
+
+}
+
+func (u *User) GetReadOnlyFields() []string {
+	return userReadOnlyFields
+}
+
+func (u *User) InitNew() {
+	u.CreationTime = time.Now().UTC().Format(time.RFC3339)
+}
+
+func (u *User) GetAttributes() map[string]interface{} {
+	return nil
+}
+
+func (u *User) SetAttributes(attributes map[string]interface{}) {
+}
+
+func (u *User) SetUpdatedTime(updatedTime *time.Time) {
+	if updatedTime == nil {
+		u.UpdatedTime = time.Now().UTC().Format(time.RFC3339)
+		return
+	}
+	u.UpdatedTime = updatedTime.UTC().Format(time.RFC3339)
+}
+
+func (u *User) GetUpdatedTime() *time.Time {
+	if u.UpdatedTime == "" {
+		return nil
+	}
+	updatedTime, err := time.Parse(time.RFC3339, u.UpdatedTime)
+	if err != nil {
+		return nil
+	}
+	return &updatedTime
+}
+
+func (u *User) GetCreationTime() *time.Time {
+	if u.CreationTime == "" {
+		return nil
+	}
+	creationTime, err := time.Parse(time.RFC3339, u.CreationTime)
+	if err != nil {
+		return nil
+	}
+	return &creationTime
+}
+
 var commonReadOnlyFields = []string{consts.IdField, consts.NameField, consts.GUIDField}
 var clusterReadOnlyFields = append([]string{"subscription_date"}, commonReadOnlyFields...)
 var exceptionPolicyReadOnlyFields = append([]string{"creationTime"}, commonReadOnlyFields...)
 var customerConfigReadOnlyFields = append([]string{"creationTime"}, commonReadOnlyFields...)
 var repositoryReadOnlyFields = append([]string{"creationDate", "provider", "owner", "repoName", "branchName"}, commonReadOnlyFields...)
 var croneJobReadOnlyFields = append([]string{"creationTime", "clusterName", "registryName"}, commonReadOnlyFields...)
+var userReadOnlyFields = append([]string{"creationTime", "guid"}, commonReadOnlyFields...)

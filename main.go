@@ -11,6 +11,7 @@ import (
 	"config-service/routes/v1/posture_exception"
 	"config-service/routes/v1/registry_cron_job"
 	"config-service/routes/v1/repository"
+	"config-service/routes/v1/user"
 	"config-service/routes/v1/vulnerability_exception"
 	"config-service/utils"
 	"context"
@@ -75,6 +76,7 @@ func setupRouter() *gin.Engine {
 	framework.AddRoutes(router)
 	repository.AddRoutes(router)
 	registry_cron_job.AddRoutes(router)
+	user.AddRoutes(router)
 
 	return router
 }

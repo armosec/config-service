@@ -1,0 +1,71 @@
+[
+    {
+        "dismissedBanners": [
+            {
+                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
+                "bannerKind": "detailed_relevancy_install",
+                "count": 3,
+                "lastTime": "2023-06-15T11:47:19Z"
+            },
+            {
+                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
+                "bannerKind": "summary_relevancy_install",
+                "count": 1,
+                "lastTime": "2023-06-15T11:47:19Z"
+            },
+            {
+                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808177",
+                "bannerKind": "summary_relevancy_install2",
+                "count": 1,
+                "lastTime": "2023-06-15T11:47:19Z"
+            }
+        ],
+        "guid": "3f70100a-b69c-445a-9e50-66d80912217e"
+    },
+    {
+        "dismissedBanners": [
+            {
+                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
+                "bannerKind": "detailed_relevancy_install",
+                "count": 3,
+                "lastTime": "2023-06-15T11:47:19Z"
+            },
+            {
+                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
+                "bannerKind": "summary_relevancy_install",
+                "count": 1,
+                "lastTime": "2023-06-15T11:47:19Z"
+            },
+            {
+                "customerGUID": "780421e3b-a449-43dc-9313-cb8b7b808177",
+                "bannerKind": "summary_relevancy_install2",
+                "count": 1,
+                "lastTime": "2023-06-15T11:47:19Z"
+            }
+        ],
+        "guid": "20421e3b-a449-43dc-9313-cb8b7b808176"
+    },
+    {
+        "dismissedBanners": [
+            {
+                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
+                "bannerKind": "detailed_relevancy_install",
+                "count": 3,
+                "lastTime": "2023-06-15T11:47:19Z"
+            },
+            {
+                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
+                "bannerKind": "summary_relevancy_install",
+                "count": 1,
+                "lastTime": "2023-06-15T11:47:19Z"
+            },
+            {
+                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808177",
+                "bannerKind": "summary_relevancy_install2",
+                "count": 1,
+                "lastTime": "2023-06-15T11:47:19Z"
+            }
+        ],
+        "guid": "1c73d160-84fe-4f41-a89b-d7d54bb1b685"
+    }
+]

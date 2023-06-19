@@ -18,54 +18,21 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-////////////////////////////////////////// Test scenarios //////////////////////////////////////////
-
-// common test for (almost) all documents
-func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs []T, modifyFunc func(T) T, compareNewOpts ...cmp.Option) {
-	if len(testDocs) < 3 {
-		suite.FailNow("commonTest: need at least 3 documents")
-	}
-	doc1 := testDocs[0]
-	documents := testDocs[1:]
-	//POST
-	//create doc
-	doc1.SetGUID("some bad value")
-	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	doc1 = testPostDoc(suite, path, doc1, compareNewOpts...)
-	_, err := uuid.FromString(doc1.GetGUID())
-	suite.NoError(err, "GUID should be a valid uuid")
-	//check creation time
-	suite.NotNil(doc1.GetCreationTime(), "creation time should not be nil")
-	suite.True(createTime.Before(*doc1.GetCreationTime()) || createTime.Equal(*doc1.GetCreationTime()), "creation time is not recent")
+// //////////////////////////////////////// Test scenarios //////////////////////////////////////////
+// tests for documents which have name as unique
+func testDocNameUnique[T types.DocContent](suite *MainTestSuite, doc1 T, path string, documents []T, compareNewOpts ...cmp.Option) {
 	//post doc with same name should fail
 	sameNameDoc := clone(doc1)
 	testBadRequest(suite, http.MethodPost, path, errorNameExist(sameNameDoc.GetName()), sameNameDoc, http.StatusBadRequest)
+
 	//post doc with no name should fail
 	noNameDoc := clone(doc1)
 	noNameDoc.SetName("")
 	testBadRequest(suite, http.MethodPost, path, errorMissingName, &noNameDoc, http.StatusBadRequest)
-	//bulk post documents
-	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	documents = testBulkPostDocs(suite, path, documents, compareNewOpts...)
-	//check updated time
-	for _, doc := range documents {
-		suite.NotNil(doc.GetUpdatedTime(), "updated time should not be nil")
-		//check the the customer update date is updated
-		suite.True(updateTime.Before(*doc.GetUpdatedTime()) || updateTime.Equal(*doc.GetUpdatedTime()), "update time is not recent")
-	}
-	//bulk post documents with same name should fail
+
 	names := []string{documents[0].GetName(), documents[1].GetName()}
 	sort.Strings(names)
 	testBadRequest(suite, http.MethodPost, path, errorNameExist(names...), documents, http.StatusBadRequest)
-
-	//PUT
-	oldDoc1 := clone(doc1)
-	doc1 = modifyFunc(doc1)
-	updateTime, _ = time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	testPutDoc(suite, path, oldDoc1, doc1, compareNewOpts...)
-	suite.NotNil(doc1.GetUpdatedTime(), "updated time should not be nil")
-	//check the the customer update date is updated
-	suite.True(updateTime.Before(*doc1.GetUpdatedTime()) || updateTime.Equal(*doc1.GetUpdatedTime()), "update time is not recent")
 
 	//test changed name - should be ignored
 	changedNamedDoc := clone(doc1)
@@ -80,30 +47,92 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	diff := cmp.Diff(response, expectedResponse, compareNewOpts...)
 	suite.Equal("", diff)
 
+}
+
+// common test for (almost) all documents
+func commonTest[T types.DocContent](suite *MainTestSuite, path string, doc1 T, documents []T, modifyFunc func(T) T, createTime, updateTime time.Time, compareNewOpts ...cmp.Option) {
+	//check creation time
+	suite.NotNil(doc1.GetCreationTime(), "creation time should not be nil")
+	suite.True(createTime.Before(*doc1.GetCreationTime()) || createTime.Equal(*doc1.GetCreationTime()), "creation time is not recent")
+
+	//check updated time
+	for _, doc := range documents {
+		suite.NotNil(doc.GetUpdatedTime(), "updated time should not be nil")
+		//check the the customer update date is updated
+		suite.True(updateTime.Before(*doc.GetUpdatedTime()) || updateTime.Equal(*doc.GetUpdatedTime()), "update time is not recent")
+	}
+
+	//PUT
+	oldDoc1 := clone(doc1)
+	doc1 = modifyFunc(doc1)
+	updateTime, _ = time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	testPutDoc(suite, path, oldDoc1, doc1, compareNewOpts...)
+	suite.NotNil(doc1.GetUpdatedTime(), "updated time should not be nil")
+
+	//check the the customer update date is updated
+	suite.True(updateTime.Before(*doc1.GetUpdatedTime()) || updateTime.Equal(*doc1.GetUpdatedTime()), "update time is not recent")
+
 	//test put with guid in path
 	oldDoc1 = clone(doc1)
 	doc1 = modifyFunc(doc1)
 	testPutDocWGuid(suite, path, oldDoc1, doc1, compareNewOpts...)
-	//test put with no guid should fail
-	noGuidDoc := clone(doc1)
-	noGuidDoc.SetGUID("")
-	testBadRequest(suite, http.MethodPut, path, errorMissingGUID, &noGuidDoc, http.StatusBadRequest)
-	//not existing doc should fail
-	noneExistingDoc := clone(doc1)
-	noneExistingDoc.SetGUID("no_exist")
-	testBadRequest(suite, http.MethodPut, path, errorDocumentNotFound, &noneExistingDoc, http.StatusNotFound)
 
 	//GET
 	//test get by guid
 	pathWGuid := fmt.Sprintf("%s/%s", path, doc1.GetGUID())
 	testGetDoc(suite, pathWGuid, doc1, compareNewOpts...)
+
+	//test get with wrong guid should fail
+	testBadRequest(suite, http.MethodGet, fmt.Sprintf("%s/%s", path, "no_exist"), errorDocumentNotFound, nil, http.StatusNotFound)
+
+	//test delete doc with wrong guid should fail
+	testBadRequest(suite, http.MethodDelete, fmt.Sprintf("%s/%s", path, "no_exist"), errorDocumentNotFound, nil, http.StatusNotFound)
+}
+
+// tests for documents which have a non-empty set guid implementation
+func testWithSetGUID[T types.DocContent](suite *MainTestSuite, doc1 T, path string, compareNewOpts ...cmp.Option) {
+	//create doc
+	newDoc := clone(doc1)
+	newDoc.SetGUID("some bad value")
+	newDoc = testPostDoc(suite, path, doc1, compareNewOpts...)
+	_, err := uuid.FromString(newDoc.GetGUID())
+	suite.NoError(err, "GUID should be a valid uuid")
+	testDeleteDocByGUID(suite, path, newDoc, compareNewOpts...)
+
+	// test put with no guid should fail
+	noGuidDoc := clone(newDoc)
+	noGuidDoc.SetGUID("")
+	testBadRequest(suite, http.MethodPut, path, errorMissingGUID, &noGuidDoc, http.StatusBadRequest)
+
+	// not existing doc should fail
+	noneExistingDoc := clone(newDoc)
+	noneExistingDoc.SetGUID("no_exist")
+	testBadRequest(suite, http.MethodPut, path, errorDocumentNotFound, &noneExistingDoc, http.StatusNotFound)
+}
+
+func testGetAndDeleteAll[T types.DocContent](suite *MainTestSuite, doc1 T, path string, documents []T, compareNewOpts ...cmp.Option) {
 	//test get all
 	docs := []T{doc1}
 	docs = append(docs, documents...)
 	testGetDocs(suite, path, docs, compareNewOpts...)
-	//test get with wrong guid should fail
-	testBadRequest(suite, http.MethodGet, fmt.Sprintf("%s/%s", path, "no_exist"), errorDocumentNotFound, nil, http.StatusNotFound)
 
+	//test delete by guid
+	testDeleteDocByGUID(suite, path, doc1, compareNewOpts...)
+
+	//test get all after delete
+	testGetDocs(suite, path, documents, compareNewOpts...)
+
+	//delete the rest of the docs
+	for _, doc := range documents {
+		testDeleteDocByGUID(suite, path, doc, compareNewOpts...)
+	}
+
+	//test get all after delete all
+	testGetDocs(suite, path, []T{}, compareNewOpts...)
+
+}
+
+func testDeleteDocs[T types.DocContent](suite *MainTestSuite, path string, doc1 T, documents []T, compareNewOpts ...cmp.Option) {
 	//test delete by guid
 	testDeleteDocByGUID(suite, path, doc1, compareNewOpts...)
 	//test get all after delete
@@ -112,12 +141,6 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	for _, doc := range documents {
 		testDeleteDocByGUID(suite, path, doc, compareNewOpts...)
 	}
-	//test get all after delete all
-	testGetDocs(suite, path, []T{}, compareNewOpts...)
-
-	//test delete doc with wrong guid should fail
-	testBadRequest(suite, http.MethodDelete, fmt.Sprintf("%s/%s", path, "no_exist"), errorDocumentNotFound, nil, http.StatusNotFound)
-
 }
 
 func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, emptyDoc T, compareOpts ...cmp.Option) {

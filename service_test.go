@@ -17,6 +17,51 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+//go:embed test_data/users.json
+var usersJson []byte
+
+var newUsersCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
+	switch p.String() {
+	case "CreationTime", "UpdatedTime":
+		return true
+	}
+	return false
+}, cmp.Ignore())
+
+func (suite *MainTestSuite) TestUsers() {
+	users, _ := loadJson[*types.User](usersJson)
+
+	modifyFunc := func(user *types.User) *types.User {
+		if user.DismissedBanners == nil {
+			user.DismissedBanners = []armotypes.Banner{
+				{
+					BannerID:     "test",
+					BannerKind:   "testKind",
+					CustomerGUID: "testCustomerGUID",
+					Count:        1,
+				},
+			}
+		} else {
+			user.DismissedBanners[0].Count++
+		}
+
+		return user
+	}
+
+	doc1 := users[0]
+	documents := users[1:]
+
+	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	doc1 = testPostDoc(suite, consts.UserPath, doc1, newUsersCompareFilter)
+
+	//bulk post documents
+	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	documents = testBulkPostDocs(suite, consts.UserPath, documents, newUsersCompareFilter)
+
+	commonTest(suite, consts.UserPath, doc1, documents, modifyFunc, createTime, updateTime, newUsersCompareFilter)
+	testGetAndDeleteAll(suite, doc1, consts.ClusterPath, documents, newClusterCompareFilter)
+}
+
 //go:embed test_data/clusters.json
 var clustersJson []byte
 
@@ -47,9 +92,21 @@ func (suite *MainTestSuite) TestCluster() {
 		return cluster
 	}
 
-	commonTest(suite, consts.ClusterPath, clusters, modifyFunc, newClusterCompareFilter)
+	doc1 := clusters[0]
+	documents := clusters[1:]
 
+	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	doc1 = testPostDoc(suite, consts.ClusterPath, doc1, newClusterCompareFilter)
+
+	//bulk post documents
+	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	documents = testBulkPostDocs(suite, consts.ClusterPath, documents, newClusterCompareFilter)
+
+	commonTest(suite, consts.ClusterPath, doc1, documents, modifyFunc, createTime, updateTime, newClusterCompareFilter)
+	testDocNameUnique(suite, doc1, consts.ClusterPath, documents, newClusterCompareFilter)
 	testPartialUpdate(suite, consts.ClusterPath, &types.Cluster{}, newClusterCompareFilter)
+	testGetAndDeleteAll(suite, doc1, consts.ClusterPath, documents, newClusterCompareFilter)
+	testWithSetGUID(suite, doc1, consts.ClusterPath, newClusterCompareFilter)
 
 	testGetByName(suite, consts.ClusterPath, "name", clusters, newClusterCompareFilter, ignoreTime)
 
@@ -97,7 +154,20 @@ func (suite *MainTestSuite) TestPostureException() {
 		return policy
 	}
 
-	commonTest(suite, consts.PostureExceptionPolicyPath, posturePolicies, modifyFunc, commonCmpFilter)
+	doc1 := posturePolicies[0]
+	documents := posturePolicies[1:]
+	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	doc1 = testPostDoc(suite, consts.PostureExceptionPolicyPath, doc1, commonCmpFilter)
+
+	//bulk post documents
+	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	documents = testBulkPostDocs(suite, consts.PostureExceptionPolicyPath, documents, commonCmpFilter)
+
+	commonTest(suite, consts.PostureExceptionPolicyPath, doc1, documents, modifyFunc, createTime, updateTime, commonCmpFilter)
+	testDocNameUnique(suite, doc1, consts.PostureExceptionPolicyPath, documents, commonCmpFilter)
+	testPartialUpdate(suite, consts.PostureExceptionPolicyPath, &types.PostureExceptionPolicy{}, commonCmpFilter)
+	testGetAndDeleteAll(suite, doc1, consts.PostureExceptionPolicyPath, documents, commonCmpFilter)
+	testWithSetGUID(suite, doc1, consts.PostureExceptionPolicyPath, commonCmpFilter)
 
 	getQueries := []queryTest[*types.PostureExceptionPolicy]{
 		{
@@ -138,7 +208,7 @@ func (suite *MainTestSuite) TestPostureException() {
 		},
 	}
 	testGetDeleteByNameAndQuery(suite, consts.PostureExceptionPolicyPath, consts.PolicyNameParam, posturePolicies, getQueries)
-	testPartialUpdate(suite, consts.PostureExceptionPolicyPath, &types.PostureExceptionPolicy{}, commonCmpFilter)
+
 }
 
 //go:embed test_data/vulnerabilityPolicies.json
@@ -159,7 +229,20 @@ func (suite *MainTestSuite) TestVulnerabilityPolicies() {
 		return policy
 	}
 
-	commonTest(suite, consts.VulnerabilityExceptionPolicyPath, vulnerabilities, modifyFunc, commonCmpFilter)
+	doc1 := vulnerabilities[0]
+	documents := vulnerabilities[1:]
+	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	doc1 = testPostDoc(suite, consts.VulnerabilityExceptionPolicyPath, doc1, commonCmpFilter)
+
+	//bulk post documents
+	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	documents = testBulkPostDocs(suite, consts.VulnerabilityExceptionPolicyPath, documents, commonCmpFilter)
+
+	commonTest(suite, consts.VulnerabilityExceptionPolicyPath, doc1, documents, modifyFunc, createTime, updateTime, commonCmpFilter)
+	testDocNameUnique(suite, doc1, consts.VulnerabilityExceptionPolicyPath, documents, commonCmpFilter)
+	testPartialUpdate(suite, consts.VulnerabilityExceptionPolicyPath, &types.VulnerabilityExceptionPolicy{}, commonCmpFilter)
+	testGetAndDeleteAll(suite, doc1, consts.VulnerabilityExceptionPolicyPath, documents, commonCmpFilter)
+	testWithSetGUID(suite, doc1, consts.VulnerabilityExceptionPolicyPath, commonCmpFilter)
 
 	getQueries := []queryTest[*types.VulnerabilityExceptionPolicy]{
 		{
@@ -188,7 +271,6 @@ func (suite *MainTestSuite) TestVulnerabilityPolicies() {
 		},
 	}
 	testGetDeleteByNameAndQuery(suite, consts.VulnerabilityExceptionPolicyPath, consts.PolicyNameParam, vulnerabilities, getQueries, commonCmpFilter)
-	testPartialUpdate(suite, consts.VulnerabilityExceptionPolicyPath, &types.VulnerabilityExceptionPolicy{}, commonCmpFilter)
 }
 
 //go:embed test_data/customer_config/customerConfig.json
@@ -427,7 +509,19 @@ func (suite *MainTestSuite) TestFrameworks() {
 		return fw
 	}
 
-	commonTest(suite, consts.FrameworkPath, frameworks, modifyFunc, fwCmpFilter)
+	doc1 := frameworks[0]
+	documents := frameworks[1:]
+	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	doc1 = testPostDoc(suite, consts.FrameworkPath, doc1, fwCmpFilter)
+
+	//bulk post documents
+	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	documents = testBulkPostDocs(suite, consts.FrameworkPath, documents, fwCmpFilter)
+
+	commonTest(suite, consts.FrameworkPath, doc1, documents, modifyFunc, createTime, updateTime, fwCmpFilter)
+	testDocNameUnique(suite, doc1, consts.FrameworkPath, documents, fwCmpFilter)
+	testGetAndDeleteAll(suite, doc1, consts.FrameworkPath, documents, fwCmpFilter)
+	testWithSetGUID(suite, doc1, consts.FrameworkPath, fwCmpFilter)
 
 	fwCmpIgnoreControls := cmp.FilterPath(func(p cmp.Path) bool {
 		return p.String() == "Controls"
@@ -455,7 +549,20 @@ func (suite *MainTestSuite) TestRegistryCronJobs() {
 		r.Include = append(r.Include, "new-registry"+rndStr.NewLen(5))
 		return r
 	}
-	commonTest(suite, consts.RegistryCronJobPath, registryCronJobs, modifyFunc, rCmpFilter)
+
+	doc1 := registryCronJobs[0]
+	documents := registryCronJobs[1:]
+	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	doc1 = testPostDoc(suite, consts.RegistryCronJobPath, doc1, rCmpFilter)
+
+	//bulk post documents
+	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	documents = testBulkPostDocs(suite, consts.RegistryCronJobPath, documents, rCmpFilter)
+
+	commonTest(suite, consts.RegistryCronJobPath, doc1, documents, modifyFunc, createTime, updateTime, rCmpFilter)
+	testDocNameUnique(suite, doc1, consts.RegistryCronJobPath, documents, rCmpFilter)
+	testGetAndDeleteAll(suite, doc1, consts.RegistryCronJobPath, documents, rCmpFilter)
+	testWithSetGUID(suite, doc1, consts.RegistryCronJobPath, rCmpFilter)
 
 	getQueries := []queryTest[*types.RegistryCronJob]{
 		{
@@ -517,9 +624,20 @@ var repoCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 func (suite *MainTestSuite) TestRepository() {
 	repositories, _ := loadJson[*types.Repository](repositoriesJson)
 
-	commonTest(suite, consts.RepositoryPath, repositories, modifyAttribute[*types.Repository], repoCompareFilter)
+	doc1 := repositories[0]
+	documents := repositories[1:]
+	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	doc1 = testPostDoc(suite, consts.RepositoryPath, doc1, repoCompareFilter)
 
+	//bulk post documents
+	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+	documents = testBulkPostDocs(suite, consts.RepositoryPath, documents, repoCompareFilter)
+
+	commonTest(suite, consts.RepositoryPath, doc1, documents, modifyAttribute[*types.Repository], createTime, updateTime, repoCompareFilter)
+	testDocNameUnique(suite, doc1, consts.RepositoryPath, documents, repoCompareFilter)
 	testPartialUpdate(suite, consts.RepositoryPath, &types.Repository{}, repoCompareFilter)
+	testGetAndDeleteAll(suite, doc1, consts.RepositoryPath, documents, repoCompareFilter)
+	testWithSetGUID(suite, doc1, consts.RepositoryPath, repoCompareFilter)
 
 	//put doc without alias - expect the alias not to be deleted
 	repo := repositories[0]
