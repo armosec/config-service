@@ -51,6 +51,10 @@ func testDocNameUnique[T types.DocContent](suite *MainTestSuite, doc1 T, path st
 
 // common test for (almost) all documents
 func commonTest[T types.DocContent](suite *MainTestSuite, path string, doc1 T, documents []T, modifyFunc func(T) T, createTime, updateTime time.Time, compareNewOpts ...cmp.Option) {
+	if len(documents) < 2 {
+		suite.FailNow("documents should have at least 2 elements")
+	}
+
 	//check creation time
 	suite.NotNil(doc1.GetCreationTime(), "creation time should not be nil")
 	suite.True(createTime.Before(*doc1.GetCreationTime()) || createTime.Equal(*doc1.GetCreationTime()), "creation time is not recent")
@@ -110,6 +114,7 @@ func testWithSetGUID[T types.DocContent](suite *MainTestSuite, doc1 T, path stri
 	testBadRequest(suite, http.MethodPut, path, errorDocumentNotFound, &noneExistingDoc, http.StatusNotFound)
 }
 
+// tests for documents which have a get all option
 func testGetAndDeleteAll[T types.DocContent](suite *MainTestSuite, doc1 T, path string, documents []T, compareNewOpts ...cmp.Option) {
 	//test get all
 	docs := []T{doc1}

@@ -48,18 +48,14 @@ func (suite *MainTestSuite) TestUsers() {
 		return user
 	}
 
-	doc1 := users[0]
-	documents := users[1:]
-
 	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	doc1 = testPostDoc(suite, consts.UserPath, doc1, newUsersCompareFilter)
+	doc1 := testPostDoc(suite, consts.UserPath, users[0], newUsersCompareFilter)
 
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	documents = testBulkPostDocs(suite, consts.UserPath, documents, newUsersCompareFilter)
+	documents := testBulkPostDocs(suite, consts.UserPath, users[1:], newUsersCompareFilter)
 
 	commonTest(suite, consts.UserPath, doc1, documents, modifyFunc, createTime, updateTime, newUsersCompareFilter)
-	testGetAndDeleteAll(suite, doc1, consts.ClusterPath, documents, newClusterCompareFilter)
 }
 
 //go:embed test_data/clusters.json
@@ -92,15 +88,12 @@ func (suite *MainTestSuite) TestCluster() {
 		return cluster
 	}
 
-	doc1 := clusters[0]
-	documents := clusters[1:]
-
 	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	doc1 = testPostDoc(suite, consts.ClusterPath, doc1, newClusterCompareFilter)
+	doc1 := testPostDoc(suite, consts.ClusterPath, clusters[0], newClusterCompareFilter)
 
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	documents = testBulkPostDocs(suite, consts.ClusterPath, documents, newClusterCompareFilter)
+	documents := testBulkPostDocs(suite, consts.ClusterPath, clusters[1:], newClusterCompareFilter)
 
 	commonTest(suite, consts.ClusterPath, doc1, documents, modifyFunc, createTime, updateTime, newClusterCompareFilter)
 	testDocNameUnique(suite, doc1, consts.ClusterPath, documents, newClusterCompareFilter)
@@ -154,14 +147,12 @@ func (suite *MainTestSuite) TestPostureException() {
 		return policy
 	}
 
-	doc1 := posturePolicies[0]
-	documents := posturePolicies[1:]
 	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	doc1 = testPostDoc(suite, consts.PostureExceptionPolicyPath, doc1, commonCmpFilter)
+	doc1 := testPostDoc(suite, consts.PostureExceptionPolicyPath, posturePolicies[0], commonCmpFilter)
 
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	documents = testBulkPostDocs(suite, consts.PostureExceptionPolicyPath, documents, commonCmpFilter)
+	documents := testBulkPostDocs(suite, consts.PostureExceptionPolicyPath, posturePolicies[1:], commonCmpFilter)
 
 	commonTest(suite, consts.PostureExceptionPolicyPath, doc1, documents, modifyFunc, createTime, updateTime, commonCmpFilter)
 	testDocNameUnique(suite, doc1, consts.PostureExceptionPolicyPath, documents, commonCmpFilter)
@@ -229,14 +220,12 @@ func (suite *MainTestSuite) TestVulnerabilityPolicies() {
 		return policy
 	}
 
-	doc1 := vulnerabilities[0]
-	documents := vulnerabilities[1:]
 	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	doc1 = testPostDoc(suite, consts.VulnerabilityExceptionPolicyPath, doc1, commonCmpFilter)
+	doc1 := testPostDoc(suite, consts.VulnerabilityExceptionPolicyPath, vulnerabilities[0], commonCmpFilter)
 
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	documents = testBulkPostDocs(suite, consts.VulnerabilityExceptionPolicyPath, documents, commonCmpFilter)
+	documents := testBulkPostDocs(suite, consts.VulnerabilityExceptionPolicyPath, vulnerabilities[1:], commonCmpFilter)
 
 	commonTest(suite, consts.VulnerabilityExceptionPolicyPath, doc1, documents, modifyFunc, createTime, updateTime, commonCmpFilter)
 	testDocNameUnique(suite, doc1, consts.VulnerabilityExceptionPolicyPath, documents, commonCmpFilter)
@@ -509,14 +498,12 @@ func (suite *MainTestSuite) TestFrameworks() {
 		return fw
 	}
 
-	doc1 := frameworks[0]
-	documents := frameworks[1:]
 	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	doc1 = testPostDoc(suite, consts.FrameworkPath, doc1, fwCmpFilter)
+	doc1 := testPostDoc(suite, consts.FrameworkPath, frameworks[0], fwCmpFilter)
 
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	documents = testBulkPostDocs(suite, consts.FrameworkPath, documents, fwCmpFilter)
+	documents := testBulkPostDocs(suite, consts.FrameworkPath, frameworks[1:], fwCmpFilter)
 
 	commonTest(suite, consts.FrameworkPath, doc1, documents, modifyFunc, createTime, updateTime, fwCmpFilter)
 	testDocNameUnique(suite, doc1, consts.FrameworkPath, documents, fwCmpFilter)
@@ -550,14 +537,12 @@ func (suite *MainTestSuite) TestRegistryCronJobs() {
 		return r
 	}
 
-	doc1 := registryCronJobs[0]
-	documents := registryCronJobs[1:]
 	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	doc1 = testPostDoc(suite, consts.RegistryCronJobPath, doc1, rCmpFilter)
+	doc1 := testPostDoc(suite, consts.RegistryCronJobPath, registryCronJobs[0], rCmpFilter)
 
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	documents = testBulkPostDocs(suite, consts.RegistryCronJobPath, documents, rCmpFilter)
+	documents := testBulkPostDocs(suite, consts.RegistryCronJobPath, registryCronJobs[1:], rCmpFilter)
 
 	commonTest(suite, consts.RegistryCronJobPath, doc1, documents, modifyFunc, createTime, updateTime, rCmpFilter)
 	testDocNameUnique(suite, doc1, consts.RegistryCronJobPath, documents, rCmpFilter)
@@ -624,14 +609,12 @@ var repoCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 func (suite *MainTestSuite) TestRepository() {
 	repositories, _ := loadJson[*types.Repository](repositoriesJson)
 
-	doc1 := repositories[0]
-	documents := repositories[1:]
 	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	doc1 = testPostDoc(suite, consts.RepositoryPath, doc1, repoCompareFilter)
+	doc1 := testPostDoc(suite, consts.RepositoryPath, repositories[0], repoCompareFilter)
 
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-	documents = testBulkPostDocs(suite, consts.RepositoryPath, documents, repoCompareFilter)
+	documents := testBulkPostDocs(suite, consts.RepositoryPath, repositories[1:], repoCompareFilter)
 
 	commonTest(suite, consts.RepositoryPath, doc1, documents, modifyAttribute[*types.Repository], createTime, updateTime, repoCompareFilter)
 	testDocNameUnique(suite, doc1, consts.RepositoryPath, documents, repoCompareFilter)
