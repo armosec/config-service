@@ -3,7 +3,7 @@ module config-service
 go 1.18
 
 require (
-	github.com/armosec/armoapi-go v0.0.192
+	github.com/armosec/armoapi-go v0.0.195
 	github.com/aws/smithy-go v1.13.5
 	github.com/chidiwilliams/flatbson v0.3.0
 	github.com/dchest/uniuri v1.2.0
