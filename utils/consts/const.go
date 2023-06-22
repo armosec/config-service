@@ -11,6 +11,7 @@ const (
 	BodyDecoder    = "customBodyDecoder"    //key for custom body decoder
 	ResponseSender = "customResponseSender" //key for custom response sender
 	PutDocFields   = "customPutDocFields"   //key for string list of fields name to update in PUT requests, only these fields will be updated
+	ProjectionKey  = "projection"           //key for projection filter
 
 	//PATHS
 	ClusterPath                      = "/cluster"
@@ -58,7 +59,7 @@ const (
 	SkipParam          = "skip"
 	FromDateParam      = "fromDate"
 	ToDateParam        = "toDate"
-	ProjectionParam    = "projection"
+	ProjectionParam    = ProjectionKey
 
 	//Cached documents keys
 	DefaultCustomerConfigKey = "defaultCustomerConfig"

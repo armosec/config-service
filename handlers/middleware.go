@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"config-service/db"
 	"config-service/types"
 	"config-service/utils/consts"
 	"config-service/utils/log"
@@ -106,4 +107,17 @@ func PutValidationMiddleware[T types.DocContent](validators ...MutatorValidator[
 		c.Set(consts.DocContentKey, doc)
 		c.Next()
 	}
+}
+
+// ProjectionMiddleware build projection command from query params and set it in context for next handler
+func ProjectionMiddleware(c *gin.Context) {
+	defer log.LogNTraceEnterExit("HandleGetProjection", c)()
+	projection := db.NewProjectionBuilder()
+	if projectionParam := c.QueryArray(consts.ProjectionParam); len(projectionParam) > 0 {
+		for _, field := range projectionParam {
+			projection.Include(field)
+		}
+		c.Set(consts.ProjectionKey, projection.Get())
+	}
+	c.Next()
 }

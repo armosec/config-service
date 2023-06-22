@@ -23,10 +23,11 @@ import (
 
 // GetAllForCustomer returns all docs for customer
 func GetAllForCustomer[T any](c context.Context, includeGlobals bool) ([]T, error) {
-	return GetAllForCustomerWithProjection[T](c, nil, includeGlobals)
+	return GetAllForCustomerWithProjection[T](c, readProjection(c), includeGlobals)
 }
 
-// GetAllForCustomerWithProjection returns all docs for customer with projection
+// GetAllForCustomerWithProjection returns all docs for customer with projection explicit projection
+// unlike other methods this one does not use context to get projection
 func GetAllForCustomerWithProjection[T any](c context.Context, projection bson.D, includeGlobals bool) ([]T, error) {
 	defer log.LogNTraceEnterExit("GetAllForCustomerWithProjection", c)()
 	collection, _, err := ReadContext(c)
@@ -79,7 +80,7 @@ func Find[T any](c context.Context, filterBuilder *FilterBuilder, projection bso
 		findOpts.SetProjection(projection)
 	}
 	if cur, err := mongo.GetReadCollection(collection).
-		Find(c, filter, findOpts); err != nil {
+		Find(c, filter, findOpts, findOptionsWithProjection(c)); err != nil {
 		return nil, err
 	} else {
 
@@ -103,7 +104,8 @@ func UpdateDocument[T any](c context.Context, id string, update bson.D) ([]T, er
 			NewFilterBuilder().
 				WithNotDeleteForCustomer(c).
 				WithID(id).
-				Get()).
+				Get(),
+			findOneOptionsWithProjection(c)).
 		Decode(&oldDoc); err != nil {
 		if err == mongoDB.ErrNoDocuments {
 			return nil, nil
@@ -204,7 +206,8 @@ func GetDocByGUID[T any](c context.Context, guid string) (*T, error) {
 			NewFilterBuilder().
 				WithNotDeleteForCustomer(c).
 				WithID(guid).
-				Get()).
+				Get(),
+			findOneOptionsWithProjection(c)).
 		Decode(&result); err != nil {
 		if err == mongoDB.ErrNoDocuments {
 			return nil, nil
@@ -228,7 +231,7 @@ func GetDoc[T any](c context.Context, filter *FilterBuilder) (*T, error) {
 		bfilter = filter.Get()
 	}
 	if err := mongo.GetReadCollection(collection).
-		FindOne(c, bfilter).
+		FindOne(c, bfilter, findOneOptionsWithProjection(c)).
 		Decode(&result); err != nil {
 		if err == mongoDB.ErrNoDocuments {
 			return nil, nil
@@ -252,7 +255,8 @@ func GetDocByName[T any](c context.Context, name string) (*T, error) {
 			NewFilterBuilder().
 				WithNotDeleteForCustomer(c).
 				WithName(name).
-				Get()).
+				Get(),
+			findOneOptionsWithProjection(c)).
 		Decode(&result); err != nil {
 		if err == mongoDB.ErrNoDocuments {
 			return nil, nil
@@ -478,6 +482,15 @@ func readCollection(c context.Context) (collection string, err error) {
 	return collection, err
 }
 
+func readProjection(c context.Context) bson.D {
+	if val := c.Value(consts.ProjectionKey); val != nil {
+		if projection, ok := val.(bson.D); ok {
+			return projection
+		}
+	}
+	return nil
+}
+
 func IsDuplicateKeyError(err error) bool {
 	return mongoDB.IsDuplicateKeyError(err)
 }
@@ -491,4 +504,20 @@ type NoFieldsToUpdateError struct {
 
 func (e NoFieldsToUpdateError) Error() string {
 	return "no fields to update"
+}
+
+func findOneOptionsWithProjection(c context.Context) *options.FindOneOptions {
+	findOpt := options.FindOne()
+	if projection := readProjection(c); projection != nil {
+		findOpt.SetProjection(projection)
+	}
+	return findOpt
+}
+
+func findOptionsWithProjection(c context.Context) *options.FindOptions {
+	findOpt := options.Find()
+	if projection := readProjection(c); projection != nil {
+		findOpt.SetProjection(projection)
+	}
+	return findOpt
 }

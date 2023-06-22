@@ -742,6 +742,16 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	suite.Equal(1, res["modified"])
 	notificationConfig.LatestPushReports["cluster2"] = pushReport
 	testGetDoc(suite, configPath, notificationConfig, ignoreTime)
+
+	//test get with projection
+	getProjectionPath := fmt.Sprintf("%s?projection=%s&projection=%s", configPath, "notifications_config.latestPushReports.cluster1", "notifications_config.unsubscribedUsers.user6")
+	projectedConfig := armotypes.NotificationsConfig{LatestPushReports: map[string]*armotypes.PushReport{
+		"cluster1": notificationConfig.LatestPushReports["cluster1"],
+	}, UnsubscribedUsers: map[string][]armotypes.NotificationConfigIdentifier{
+		"user6": notificationConfig.UnsubscribedUsers["user6"],
+	}}
+	testGetDoc(suite, getProjectionPath, projectedConfig, ignoreTime)
+
 	//delete cluster1
 	pushReportPath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "latestPushReport", "cluster1")
 	w = suite.doRequest(http.MethodDelete, pushReportPath, nil)
