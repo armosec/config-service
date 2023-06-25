@@ -181,6 +181,26 @@ func PostDBDocumentHandler[T types.DocContent](c *gin.Context, dbDoc types.Docum
 	}
 }
 
+func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
+
+	//TODO decode v2 list from body
+
+	//TODO validate v2 list
+	filterBuilder := db.NewFilterBuilder()
+	//To do check for guid in inner filter and add to filterBuilder
+
+	//for each inner filter
+	//check guid
+	//filterBuilder.WithID(guid)
+	//then filterBuilder.WarpOr()
+
+	projectionBuilder := db.NewProjectionBuilder()
+	//for each Field in Fields
+	// projectionBuilder.Include(field)
+
+	db.FindForCustomer[T](c, filterBuilder, projectionBuilder.Get())
+}
+
 // ////////////////////////////////////////PUT///////////////////////////////////////////////
 
 // HandlePutDocWithValidation - chains validation and put document handlers
