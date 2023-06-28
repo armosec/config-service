@@ -97,6 +97,10 @@ func ResponseMissingKey(c *gin.Context, key string) {
 	ResponseBadRequest(c, fmt.Sprintf(MissingKey, key))
 }
 
+func ResponseBadInnerFilter(c *gin.Context, innerFilter map[string]string) {
+	ResponseBadRequest(c, fmt.Sprintf("bad inner filter: %s", innerFilter))
+}
+
 func ResponseMissingQueryParam(c *gin.Context, paramNem string) {
 	ResponseBadRequest(c, fmt.Sprintf(MissingKey, paramNem+" query param"))
 }

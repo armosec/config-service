@@ -15,5 +15,7 @@ func AddRoutes(g *gin.Engine) {
 		WithGetNamesList(false).
 		WithServeGetWithGUIDOnly(true).
 		WithValidatePostUniqueName(false).
+		WithContainerHandler("/banners/:bannerID", bannerMiddleware, handlers.ContainerTypeMap, true, true).
+		WithPostV2ListQuery(true).
 		Get()...)
 }

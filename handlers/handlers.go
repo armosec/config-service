@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"k8s.io/utils/strings/slices"
@@ -179,6 +180,52 @@ func PostDBDocumentHandler[T types.DocContent](c *gin.Context, dbDoc types.Docum
 	} else {
 		c.JSON(http.StatusCreated, dbDoc.Content)
 	}
+}
+
+// HandlePostV2ListRequest handles getting document with objects of type V2ListRequest
+func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
+	var req armotypes.V2ListRequest
+
+	err := c.BindJSON(&req)
+	if err != nil {
+		ResponseFailedToBindJson(c, err)
+		return
+	}
+
+	projectionBuilder := db.NewProjectionBuilder()
+	if len(req.FieldsList) > 0 {
+		for _, field := range req.FieldsList {
+			projectionBuilder.Include(field)
+		}
+	}
+
+	filterBuilder := db.NewFilterBuilder()
+	if len(req.InnerFilters) > 0 {
+		elemFilterBuilders := make([]*db.FilterBuilder, len(req.InnerFilters))
+		for i := range req.InnerFilters {
+			elemFilterBuilder := db.NewFilterBuilder()
+			for filter, value := range req.InnerFilters[i] {
+				err = ParseInnerFilter(filter, value, elemFilterBuilder)
+				if err != nil {
+					ResponseBadInnerFilter(c, req.InnerFilters[i])
+					return
+				}
+			}
+			elemFilterBuilders[i] = elemFilterBuilder
+		}
+
+		filterBuilder.AddOr(elemFilterBuilders...)
+	}
+
+	docs, err := db.FindForCustomer[T](c, filterBuilder, projectionBuilder.Get())
+	if err != nil {
+		ResponseInternalServerError(c, "failed to read documents", err)
+		return
+	}
+
+	log.LogNTrace(fmt.Sprintf("scope query found %d documents", len(docs)), c)
+	DocsResponse(c, docs)
+
 }
 
 // ////////////////////////////////////////PUT///////////////////////////////////////////////

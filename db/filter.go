@@ -132,6 +132,26 @@ func (f *FilterBuilder) WarpOr() *FilterBuilder {
 	return f
 }
 
+func (f *FilterBuilder) AddToOr(filtersBuilders ...*FilterBuilder) *FilterBuilder {
+	for _, filterBuilder := range filtersBuilders {
+		f.filter = bson.D{{Key: "$or", Value: bson.A{f.filter, filterBuilder.filter}}}
+	}
+	return f
+}
+
+func (f *FilterBuilder) AddOr(filters ...*FilterBuilder) *FilterBuilder {
+	orM := []bson.M{}
+	for _, filter := range filters {
+		m := bson.M{}
+		for i := range filter.filter {
+			m[filter.filter[i].Key] = filter.filter[i].Value
+		}
+		orM = append(orM, m)
+	}
+	f.filter = bson.D{{Key: "$or", Value: orM}}
+	return f
+}
+
 func (f *FilterBuilder) WarpNot() *FilterBuilder {
 	f.filter = bson.D{{Key: "$not", Value: f.filter}}
 	return f

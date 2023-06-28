@@ -40,13 +40,14 @@ const (
 	RegistryCronJobCollection              = "v1_registry_cron_jobs"
 
 	//Common document fields
-	IdField          = "_id"
-	GUIDField        = "guid"
-	NameField        = "name"
-	DeletedField     = "is_deleted"
-	AttributesField  = "attributes"
-	CustomersField   = "customers"
-	UpdatedTimeField = "updatedTime"
+	IdField               = "_id"
+	GUIDField             = "guid"
+	DismissedBannersField = "dismissedBanners"
+	NameField             = "name"
+	DeletedField          = "is_deleted"
+	AttributesField       = "attributes"
+	CustomersField        = "customers"
+	UpdatedTimeField      = "updatedTime"
 	//cluster fields
 	ShortNameAttribute = "alias"
 	ShortNameField     = AttributesField + "." + ShortNameAttribute

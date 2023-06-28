@@ -275,9 +275,9 @@ func (r *RegistryCronJob) GetCreationTime() *time.Time {
 
 type User struct {
 	armotypes.User `json:",inline" bson:"inline"`
-	GUID           string `json:"guid" bson:"guid"`
-	CreationTime   string `json:"creationTime" bson:"creationTime"`
-	UpdatedTime    string `json:"updatedTime" bson:"updatedTime"`
+	GUID           string `json:"guid,omitempty" bson:"guid"`
+	CreationTime   string `json:"creationTime,omitempty" bson:"creationTime"`
+	UpdatedTime    string `json:"updatedTime,omitempty" bson:"updatedTime"`
 }
 
 func (u *User) GetGUID() string {

@@ -5,6 +5,7 @@ import (
 	"config-service/utils/consts"
 	"config-service/utils/log"
 	"context"
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -156,4 +157,29 @@ func addValue(filterBuilder *db.FilterBuilder, queryConfig QueryConfig, key, val
 		return
 	}
 	filterBuilder.WithValue(key, value)
+}
+
+// ParseInnerFilter parses inner filter and add it to the filter builder
+func ParseInnerFilter(key, value string, filterBuilder *db.FilterBuilder) error {
+	if strings.Contains(value, ",|") {
+		if keyword, ok := ValidateKeyword(value); ok {
+			switch keyword {
+			case ExistsKeyword:
+				filterBuilder.WithExists(key, true)
+			case NotExistsKeyword:
+				filterBuilder.WithExists(key, false)
+			}
+			return nil
+		} else {
+			return fmt.Errorf("invalid keyword")
+		}
+	}
+
+	if key == "guid" {
+		filterBuilder.WithID(value)
+	} else {
+		filterBuilder.WithValue(key, value)
+	}
+
+	return nil
 }

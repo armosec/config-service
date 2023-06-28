@@ -1,71 +1,44 @@
 [
     {
-        "dismissedBanners": [
-            {
+        "dismissedBanners": {
+            "detailed_relevancy_install": {
                 "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
-                "bannerKind": "detailed_relevancy_install",
-                "count": 3,
-                "lastTime": "2023-06-15T11:47:19Z"
+                "scanID": "241251"
             },
-            {
+            "summary_relevancy_install": {
                 "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
-                "bannerKind": "summary_relevancy_install",
-                "count": 1,
-                "lastTime": "2023-06-15T11:47:19Z"
+                "scanID": ""
             },
-            {
-                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808177",
-                "bannerKind": "summary_relevancy_install2",
-                "count": 1,
-                "lastTime": "2023-06-15T11:47:19Z"
+            "summary_relevancy_install2": {
+                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
+                "scanID": ""
             }
-        ],
+        },
         "guid": "3f70100a-b69c-445a-9e50-66d80912217e"
     },
     {
-        "dismissedBanners": [
-            {
+        "dismissedBanners": {
+            "detailed_relevancy_install": {
                 "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
-                "bannerKind": "detailed_relevancy_install",
-                "count": 3,
-                "lastTime": "2023-06-15T11:47:19Z"
+                "scanID": "241251"
             },
-            {
-                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
-                "bannerKind": "summary_relevancy_install",
-                "count": 1,
-                "lastTime": "2023-06-15T11:47:19Z"
-            },
-            {
-                "customerGUID": "780421e3b-a449-43dc-9313-cb8b7b808177",
-                "bannerKind": "summary_relevancy_install2",
-                "count": 1,
-                "lastTime": "2023-06-15T11:47:19Z"
+            "summary_pop_up": {
+                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176"
             }
-        ],
+        },
         "guid": "20421e3b-a449-43dc-9313-cb8b7b808176"
     },
     {
-        "dismissedBanners": [
-            {
-                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
-                "bannerKind": "detailed_relevancy_install",
-                "count": 3,
-                "lastTime": "2023-06-15T11:47:19Z"
+        "dismissedBanners": {
+            "detailed_relevancy_install": {
+                "customerGUID": "70421e3b-a449-43dc-9313-cb8b7b808176",
+                "scanID": "241253"
             },
-            {
-                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
-                "bannerKind": "summary_relevancy_install",
-                "count": 1,
-                "lastTime": "2023-06-15T11:47:19Z"
-            },
-            {
-                "customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808177",
-                "bannerKind": "summary_relevancy_install2",
-                "count": 1,
-                "lastTime": "2023-06-15T11:47:19Z"
+            "detailed_relevancy_install2": {
+                "customerGUID": "70421e3b-a449-43dc-9313-cb8b7b808176",
+                "scanID": "241253"
             }
-        ],
-        "guid": "1c73d160-84fe-4f41-a89b-d7d54bb1b685"
+        },
+        "guid": "50421e3b-a449-43dc-9313-cb8b7b808176"
     }
 ]

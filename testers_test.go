@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/go-faker/faker/v4"
 	"github.com/go-faker/faker/v4/pkg/options"
 	uuid "github.com/satori/go.uuid"
@@ -173,9 +174,26 @@ func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, em
 	testDeleteDocByGUID(suite, path, updatedDoc, compareOpts...)
 }
 
+type V2ListRequestTest[T types.DocContent] struct {
+	expected []T
+	request  armotypes.V2ListRequest
+}
+
+type innerFiltersTest[T types.DocContent] struct {
+	innerFilters    []map[string]string
+	expectedIndexes []int
+}
+
 type queryTest[T types.DocContent] struct {
 	query           string
 	expectedIndexes []int
+}
+
+func testGetV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath string, expected []T, v2ListReq []V2ListRequestTest[T], compareOpts ...cmp.Option) {
+	for _, req := range v2ListReq {
+		path := fmt.Sprintf("%s/v2listrequest", basePath)
+		testGetWithV2ListRequest[T](suite, path, req.expected, req.request, compareOpts...)
+	}
 }
 
 func testGetByName[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, compareOpts ...cmp.Option) {
@@ -252,6 +270,27 @@ func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, baseP
 
 	testDeleteByName(suite, basePath, nameParam, testDocs, compareOpts...)
 
+}
+
+func testGetWithV2ListRequest[T types.DocContent](suite *MainTestSuite, path string, expectedDocs []T, request armotypes.V2ListRequest, compareOpts ...cmp.Option) {
+	w := suite.doRequest(http.MethodPost, path, request)
+	suite.Equal(http.StatusOK, w.Code)
+	docs, err := decodeResponseArray[T](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	suite.Equal(len(expectedDocs), len(docs))
+	sort.Slice(docs, func(i, j int) bool {
+		return docs[i].GetGUID() < docs[j].GetGUID()
+	})
+
+	sort.Slice(expectedDocs, func(i, j int) bool {
+		return expectedDocs[i].GetGUID() < expectedDocs[j].GetGUID()
+	})
+
+	diff := cmp.Diff(docs, expectedDocs, compareOpts...)
+	suite.Equal("", diff)
 }
 
 func testGetWithQuery[T types.DocContent](suite *MainTestSuite, basePath string, getQueries []queryTest[T], expected []T, compareOpts ...cmp.Option) {

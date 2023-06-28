@@ -5,9 +5,17 @@ import (
 	"config-service/types"
 	"config-service/utils/consts"
 	"config-service/utils/log"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slices"
+)
+
+type InnerFilterKeyword string
+
+const (
+	ExistsKeyword    InnerFilterKeyword = "exists"
+	NotExistsKeyword InnerFilterKeyword = "notexists"
 )
 
 func ValidateGUIDExistence[T types.DocContent](c *gin.Context, docs []T) ([]T, bool) {
@@ -130,4 +138,14 @@ func ValidatePutAttributerShortName[T types.DocContent](c *gin.Context, docs []T
 		}
 	}
 	return docs, true
+}
+
+// ValidateKeyword validates that the keyword is supported by server
+func ValidateKeyword(keyword string) (InnerFilterKeyword, bool) {
+	parts := strings.Split(keyword, ",|")
+	if len(parts) != 2 {
+		return "", false
+	}
+	keyword = parts[1]
+	return InnerFilterKeyword(keyword), keyword == string(ExistsKeyword) || keyword == string(NotExistsKeyword)
 }

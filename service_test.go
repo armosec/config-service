@@ -33,16 +33,14 @@ func (suite *MainTestSuite) TestUsers() {
 
 	modifyFunc := func(user *types.User) *types.User {
 		if user.DismissedBanners == nil {
-			user.DismissedBanners = []armotypes.Banner{
-				{
-					BannerID:     "test",
-					BannerKind:   "testKind",
-					CustomerGUID: "testCustomerGUID",
-					Count:        1,
-				},
+			user.DismissedBanners = make(map[string]armotypes.Banner, 1)
+			user.DismissedBanners["test"] = armotypes.Banner{
+				CustomerGUID: rndStr.NewLen(16),
 			}
 		} else {
-			user.DismissedBanners[0].Count++
+			user.DismissedBanners[rndStr.NewLen(16)] = armotypes.Banner{
+				CustomerGUID: rndStr.NewLen(16),
+			}
 		}
 
 		return user
@@ -54,6 +52,120 @@ func (suite *MainTestSuite) TestUsers() {
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	documents := testBulkPostDocs(suite, consts.UserPath, users[1:], newUsersCompareFilter)
+
+	v2ListReqs := []V2ListRequestTest[*types.User]{
+		{
+			expected: []*types.User{
+				{
+					User: armotypes.User{
+						DismissedBanners: map[string]armotypes.Banner{
+							"detailed_relevancy_install": {
+								CustomerGUID: "90421e3b-a449-43dc-9313-cb8b7b808176",
+								ScanID:       "241251",
+							},
+							"summary_pop_up": {
+								CustomerGUID: "90421e3b-a449-43dc-9313-cb8b7b808176",
+							},
+						},
+					},
+					GUID: "20421e3b-a449-43dc-9313-cb8b7b808176",
+				},
+			},
+			request: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"dismissedBanners.summary_pop_up": ",|exists",
+					},
+				},
+			},
+		},
+		{
+			expected: []*types.User{
+				{
+					User: armotypes.User{
+						DismissedBanners: map[string]armotypes.Banner{
+							"detailed_relevancy_install": {
+								CustomerGUID: "70421e3b-a449-43dc-9313-cb8b7b808176",
+								ScanID:       "241253",
+							},
+							"detailed_relevancy_install2": {
+								CustomerGUID: "70421e3b-a449-43dc-9313-cb8b7b808176",
+								ScanID:       "241253",
+							},
+						},
+					},
+					GUID: "50421e3b-a449-43dc-9313-cb8b7b808176",
+				},
+			},
+			request: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"dismissedBanners.detailed_relevancy_install2":              ",|exists",
+						"dismissedBanners.detailed_relevancy_install2.customerGUID": "70421e3b-a449-43dc-9313-cb8b7b808176",
+					},
+				},
+			},
+		},
+		{
+			expected: []*types.User{
+				{
+					User: armotypes.User{
+						DismissedBanners: map[string]armotypes.Banner{
+							"detailed_relevancy_install2": {
+								CustomerGUID: "70421e3b-a449-43dc-9313-cb8b7b808176",
+								ScanID:       "241253",
+							},
+						},
+					},
+				},
+			},
+			request: armotypes.V2ListRequest{
+				FieldsList: []string{
+					"dismissedBanners.detailed_relevancy_install2",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"dismissedBanners.detailed_relevancy_install2":              ",|exists",
+						"dismissedBanners.detailed_relevancy_install2.customerGUID": "70421e3b-a449-43dc-9313-cb8b7b808176",
+					},
+				},
+			},
+		},
+		{
+			expected: []*types.User{
+				{
+					User: armotypes.User{
+						DismissedBanners: map[string]armotypes.Banner{
+							"summary_relevancy_install2": {
+								CustomerGUID: "90421e3b-a449-43dc-9313-cb8b7b808176",
+							},
+							"summary_relevancy_install": {
+								CustomerGUID: "90421e3b-a449-43dc-9313-cb8b7b808176",
+							},
+						},
+					},
+				},
+			},
+			request: armotypes.V2ListRequest{
+				FieldsList: []string{
+					"dismissedBanners.summary_relevancy_install",
+					"dismissedBanners.summary_relevancy_install2",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"dismissedBanners.summary_relevancy_install2":              ",|exists",
+						"dismissedBanners.summary_relevancy_install2.customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
+					},
+					{
+						"dismissedBanners.summary_relevancy_install":              ",|exists",
+						"dismissedBanners.summary_relevancy_install.customerGUID": "90421e3b-a449-43dc-9313-cb8b7b808176",
+					},
+				},
+			},
+		},
+	}
+
+	testGetV2ListRequest[*types.User](suite, consts.UserPath, users, v2ListReqs, newUsersCompareFilter)
 
 	commonTest(suite, consts.UserPath, doc1, documents, modifyFunc, createTime, updateTime, newUsersCompareFilter)
 }
