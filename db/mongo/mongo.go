@@ -95,6 +95,10 @@ func Connect(config utils.MongoConfig) error {
 		mongoDBprimary = mongoDB
 	}
 
+	if err := createIndexes(); err != nil {
+		return err
+	}
+
 	return EnsureConnected()
 }
 
