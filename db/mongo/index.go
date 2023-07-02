@@ -12,9 +12,7 @@ import (
 // collectionIndexes is a map of collection name to index models for collections that need custom indexes
 // if a collection is not in this map, it will use the default index
 var collectionIndexes = map[string][]mongo.IndexModel{
-	consts.CustomersCollection: {
-		//no need to index customers collection
-	},
+	consts.CustomersCollection: nil,
 }
 
 // defaultIndex is the default index for all collections unless overridden in collectionIndexes
@@ -39,6 +37,9 @@ func createIndexes() error {
 	}
 	for _, collection := range collections {
 		if indexModels, ok := collectionIndexes[collection]; ok {
+			if indexModels == nil {
+				continue
+			}
 			// if collection has custom indexes, create them
 			zap.L().Info("creating custom indexes", zap.String("collection", collection), zap.Any("indexes", indexModels))
 			res, err := GetReadCollection(collection).Indexes().CreateMany(context.Background(), indexModels)
