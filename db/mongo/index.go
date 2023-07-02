@@ -13,11 +13,7 @@ import (
 // if a collection is not in this map, it will use the default index
 var collectionIndexes = map[string][]mongo.IndexModel{
 	consts.CustomersCollection: {
-		{
-			Keys: bson.D{
-				{Key: "guid", Value: 1},
-			},
-		},
+		//no need to index customers collection
 	},
 }
 
@@ -26,11 +22,6 @@ var defaultIndex = []mongo.IndexModel{
 	{
 		Keys: bson.D{
 			{Key: "name", Value: 1},
-		},
-	},
-	{
-		Keys: bson.D{
-			{Key: "guid", Value: 1},
 		},
 	},
 	{
