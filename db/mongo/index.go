@@ -13,7 +13,14 @@ import (
 // collectionIndexes is a map of collection name to index models for collections that need custom indexes
 // if a collection is not in this map, it will use the default index
 var collectionIndexes = map[string][]mongo.IndexModel{
-	consts.CustomersCollection: nil,
+	consts.CustomersCollection: {
+		{
+			Keys: bson.D{
+				{Key: "guid", Value: 1},
+			},
+			Options: options.Index().SetBackground(true),
+		},
+	},
 }
 
 // defaultIndex is the default index for all collections unless overridden in collectionIndexes
