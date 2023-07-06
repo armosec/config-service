@@ -1,0 +1,69 @@
+[
+    {
+        "guid": "aba018ee-4ca4-4d49-b6b0-89e272c1cd87",
+        "name": "collab0",
+        "provider": "slack",
+        "context": {
+            "channel": {
+                "type": {
+                    "name": "channel",
+                    "required": true,
+                    "customInput": false
+                },
+                "name": "example",
+                "id": "C035UD9B03C"
+            }
+        }
+    },
+    {
+        "guid": "628492f3-30df-49d4-bf59-4ae6a01a21e5",
+        "name": "collab1",
+        "provider": "jira",
+        "context": {
+            "cloud": {
+                "type": {
+                    "name": "cloud",
+                    "required": true,
+                    "customInput": false
+                },
+                "name": "cyberarmor-io",
+                "id": "8313c5a0-bee1-4a3c-8f4f-71ce6982506e",
+                "iconURL": "https://site-admin-avatar-cdn.prod.public.atl-paas.net/avatars/240/triangle.png"
+            }
+        },
+        "iconURL": "https://site-admin-avatar-cdn.prod.public.atl-paas.net/avatars/240/triangle.png"
+    },
+    {
+        "guid": "843c754c-a51c-4d56-90a2-73a1ade0b165",
+        "name": "collab2",
+        "provider": "jira",
+        "context": {
+            "cloud": {
+                "type": {
+                    "name": "cloud",
+                    "required": true,
+                    "customInput": false
+                },
+                "name": "example-io",
+                "id": "1234567890",
+                "iconURL": "https://site-admin-avatar-cdn.prod.public.atl-paas.net/avatars/240/triangle.png"
+            }
+        },
+        "iconURL": "https://site-admin-avatar-cdn.prod.public.atl-paas.net/avatars/240/triangle.png"
+    },
+    {
+        "guid": "843c754c-a51c-4d56-90a2-73a1ade0b165",
+        "name": "collab3",
+        "provider": "ms-teams",
+        "context": {
+            "webhookUrl": {
+                "type": {
+                    "name": "webhookUrl",
+                    "required": true,
+                    "customInput": true
+                },
+                "name": "https://ms-teams.com/my-team/my-webhook"
+            }
+        }
+    }
+]

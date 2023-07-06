@@ -5,6 +5,7 @@ import (
 	"config-service/routes/prob"
 	"config-service/routes/v1/admin"
 	"config-service/routes/v1/cluster"
+	"config-service/routes/v1/collaboration_config"
 	"config-service/routes/v1/customer"
 	"config-service/routes/v1/customer_config"
 	"config-service/routes/v1/framework"
@@ -75,6 +76,7 @@ func setupRouter() *gin.Engine {
 	framework.AddRoutes(router)
 	repository.AddRoutes(router)
 	registry_cron_job.AddRoutes(router)
+	collaboration_config.AddRoutes(router)
 
 	return router
 }

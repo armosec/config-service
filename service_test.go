@@ -141,6 +141,44 @@ func (suite *MainTestSuite) TestPostureException() {
 	testPartialUpdate(suite, consts.PostureExceptionPolicyPath, &types.PostureExceptionPolicy{}, commonCmpFilter)
 }
 
+//go:embed test_data/collaborationConfigs.json
+var collaborationConfigsJson []byte
+
+func (suite *MainTestSuite) TestCollaborationConfigs() {
+	collaborations, _ := loadJson[*types.CollaborationConfig](collaborationConfigsJson)
+
+	modifyFunc := func(policy *types.CollaborationConfig) *types.CollaborationConfig {
+		if policy.Attributes == nil {
+			policy.Attributes = make(map[string]interface{})
+		}
+		if _, ok := policy.Attributes["test"]; ok {
+			policy.Attributes["test"] = policy.Attributes["test"].(string) + "-modified"
+		} else {
+			policy.Attributes["test"] = "test"
+		}
+		return policy
+	}
+
+	commonTest(suite, consts.CollaborationConfigPath, collaborations, modifyFunc, commonCmpFilter)
+
+	getQueries := []queryTest[*types.CollaborationConfig]{
+		{
+			query:           "provider=slack&provider=ms-teams",
+			expectedIndexes: []int{0, 3},
+		},
+		{
+			query:           "context.cloud.name=example-io&context.cloud.name=cyberarmor-io",
+			expectedIndexes: []int{1, 2},
+		},
+		{
+			query:           "name=collab2",
+			expectedIndexes: []int{2},
+		},
+	}
+	testGetDeleteByNameAndQuery(suite, consts.CollaborationConfigPath, consts.PolicyNameParam, collaborations, getQueries, commonCmpFilter)
+	testPartialUpdate(suite, consts.CollaborationConfigPath, &types.CollaborationConfig{}, commonCmpFilter)
+}
+
 //go:embed test_data/vulnerabilityPolicies.json
 var vulnerabilityPoliciesJson []byte
 

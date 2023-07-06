@@ -359,18 +359,23 @@ func DeleteByGUID[T types.DocContent](c context.Context, guid string) (deletedDo
 
 func BulkDeleteByName[T types.DocContent](c context.Context, names []string) (deletedCount int64, err error) {
 	defer log.LogNTraceEnterExit("BulkDeleteByName", c)()
+	filter := NewFilterBuilder().WithIn("name", names).WithNotDeleteForCustomer(c)
+	return BulkDelete[T](c, *filter)
+}
+
+func BulkDelete[T types.DocContent](c context.Context, filter FilterBuilder) (deletedCount int64, err error) {
+	defer log.LogNTraceEnterExit("BulkDeleteByName", c)()
 	collection, err := readCollection(c)
 	if err != nil {
 		return 0, err
 	}
-	filter := NewFilterBuilder().WithIn("name", names).WithNotDeleteForCustomer(c)
+	filter.WithNotDeleteForCustomer(c)
 	if res, err := mongo.GetWriteCollection(collection).DeleteMany(c, filter.Get()); err != nil {
 		return 0, err
 	} else {
 		return res.DeletedCount, nil
 	}
 }
-
 func DeleteCustomerDocs(c context.Context) (deletedCount int64, err error) {
 	defer log.LogNTraceEnterExit("DeleteAllCustomerDocs", c)()
 	customerGUID, err := readCustomerGUID(c)

@@ -34,7 +34,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob
+		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -52,6 +52,28 @@ type DocContent interface {
 // redefine types for Doc Content implementations
 
 // DocContent implementations
+
+type CollaborationConfig armotypes.CollaborationConfig
+
+func (p *CollaborationConfig) GetReadOnlyFields() []string {
+	return exceptionPolicyReadOnlyFields
+}
+func (p *CollaborationConfig) InitNew() {
+	p.CreationTime = time.Now().UTC().Format(time.RFC3339)
+}
+
+func (p *CollaborationConfig) GetCreationTime() *time.Time {
+	if p.CreationTime == "" {
+		return nil
+	}
+	creationTime, err := time.Parse(time.RFC3339, p.CreationTime)
+	if err != nil {
+		return nil
+	}
+	return &creationTime
+
+}
+
 type CustomerConfig struct {
 	armotypes.CustomerConfig `json:",inline" bson:"inline"`
 	GUID                     string `json:"guid" bson:"guid"`

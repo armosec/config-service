@@ -237,6 +237,32 @@ func HandleDeleteDoc[T types.DocContent](c *gin.Context) {
 	DeleteDocByGUIDHandler[T](c, guid)
 }
 
+// HandleBulkDeleteWithGUIDs  - delete by guids array in query or body
+func HandleBulkDeleteWithGUIDs[T types.DocContent](c *gin.Context) {
+	defer log.LogNTraceEnterExit("HandleBulkDeleteWithGUIDs", c)()
+	guids, ok := c.GetQueryArray(consts.GUIDField)
+	if !ok {
+		//try to load from body
+		if err := c.BindJSON(&guids); err == nil {
+			ok = true
+		}
+	}
+	guids = slices.Filter([]string{}, guids, func(s string) bool {
+		return s != ""
+	})
+	if !ok || len(guids) == 0 {
+		ResponseBadRequest(c, "missing guids in query or body")
+		return
+	}
+	filter := db.NewFilterBuilder().WithIDs(guids)
+	if deletedCount, err := db.BulkDelete[T](c, *filter); err != nil {
+	} else if deletedCount == 0 {
+		ResponseDocumentNotFound(c)
+	} else {
+		c.JSON(http.StatusOK, gin.H{"deletedCount": deletedCount})
+	}
+}
+
 // HandleDeleteDocByName  - delete document(s) by name in path
 func HandleDeleteDocByName[T types.DocContent](nameParam string) gin.HandlerFunc {
 	return func(c *gin.Context) {
