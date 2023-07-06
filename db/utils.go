@@ -359,7 +359,7 @@ func DeleteByGUID[T types.DocContent](c context.Context, guid string) (deletedDo
 
 func BulkDeleteByName[T types.DocContent](c context.Context, names []string) (deletedCount int64, err error) {
 	defer log.LogNTraceEnterExit("BulkDeleteByName", c)()
-	filter := NewFilterBuilder().WithIn("name", names).WithNotDeleteForCustomer(c)
+	filter := NewFilterBuilder().WithIn("name", names)
 	return BulkDelete[T](c, *filter)
 }
 
