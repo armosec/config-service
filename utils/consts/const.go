@@ -26,6 +26,7 @@ const (
 	NotificationConfigPath           = "/v1_notification_config"
 	CustomerStatePath                = "/v1_customer_state"
 	ActiveSubscriptionPath           = "/v1_active_subscription"
+	CollaborationConfigPath          = "/v1_collaboration_configuration"
 
 	//DB collections
 	ClustersCollection                     = "clusters"
@@ -36,6 +37,7 @@ const (
 	FrameworkCollection                    = "v1_opa_frameworks"
 	RepositoryCollection                   = "v1_repositories"
 	RegistryCronJobCollection              = "v1_registry_cron_jobs"
+	CollaborationConfigCollection          = "v1_collaboration_configurations"
 
 	//Common document fields
 	IdField          = "_id"

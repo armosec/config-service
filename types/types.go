@@ -34,7 +34,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob
+		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -52,6 +52,28 @@ type DocContent interface {
 // redefine types for Doc Content implementations
 
 // DocContent implementations
+
+type CollaborationConfig armotypes.CollaborationConfig
+
+func (p *CollaborationConfig) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsV1
+}
+func (p *CollaborationConfig) InitNew() {
+	p.CreationTime = time.Now().UTC().Format(time.RFC3339)
+}
+
+func (p *CollaborationConfig) GetCreationTime() *time.Time {
+	if p.CreationTime == "" {
+		return nil
+	}
+	creationTime, err := time.Parse(time.RFC3339, p.CreationTime)
+	if err != nil {
+		return nil
+	}
+	return &creationTime
+
+}
+
 type CustomerConfig struct {
 	armotypes.CustomerConfig `json:",inline" bson:"inline"`
 	GUID                     string `json:"guid" bson:"guid"`
@@ -78,7 +100,7 @@ func (c *CustomerConfig) SetName(name string) {
 	c.Name = name
 }
 func (c *CustomerConfig) GetReadOnlyFields() []string {
-	return customerConfigReadOnlyFields
+	return commonReadOnlyFieldsV1
 }
 func (c *CustomerConfig) InitNew() {
 	c.CreationTime = time.Now().UTC().Format(time.RFC3339)
@@ -190,7 +212,7 @@ func (c *Cluster) GetCreationTime() *time.Time {
 type VulnerabilityExceptionPolicy armotypes.VulnerabilityExceptionPolicy
 
 func (c *VulnerabilityExceptionPolicy) GetReadOnlyFields() []string {
-	return exceptionPolicyReadOnlyFields
+	return commonReadOnlyFieldsV1
 }
 func (c *VulnerabilityExceptionPolicy) InitNew() {
 	c.CreationTime = time.Now().UTC().Format(time.RFC3339)
@@ -209,7 +231,7 @@ func (c *VulnerabilityExceptionPolicy) GetCreationTime() *time.Time {
 type PostureExceptionPolicy armotypes.PostureExceptionPolicy
 
 func (p *PostureExceptionPolicy) GetReadOnlyFields() []string {
-	return exceptionPolicyReadOnlyFields
+	return commonReadOnlyFieldsV1
 }
 func (p *PostureExceptionPolicy) InitNew() {
 	p.CreationTime = time.Now().UTC().Format(time.RFC3339)
@@ -274,8 +296,7 @@ func (r *RegistryCronJob) GetCreationTime() *time.Time {
 }
 
 var commonReadOnlyFields = []string{consts.IdField, consts.NameField, consts.GUIDField}
+var commonReadOnlyFieldsV1 = append([]string{"creationTime"}, commonReadOnlyFields...)
 var clusterReadOnlyFields = append([]string{"subscription_date"}, commonReadOnlyFields...)
-var exceptionPolicyReadOnlyFields = append([]string{"creationTime"}, commonReadOnlyFields...)
-var customerConfigReadOnlyFields = append([]string{"creationTime"}, commonReadOnlyFields...)
 var repositoryReadOnlyFields = append([]string{"creationDate", "provider", "owner", "repoName", "branchName"}, commonReadOnlyFields...)
 var croneJobReadOnlyFields = append([]string{"creationTime", "clusterName", "registryName"}, commonReadOnlyFields...)

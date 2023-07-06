@@ -47,14 +47,15 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	documents = testBulkPostDocs(suite, path, documents, compareNewOpts...)
-	//check updated time
+	//check updated time and fill names
+	var names []string
 	for _, doc := range documents {
 		suite.NotNil(doc.GetUpdatedTime(), "updated time should not be nil")
 		//check the the customer update date is updated
 		suite.True(updateTime.Before(*doc.GetUpdatedTime()) || updateTime.Equal(*doc.GetUpdatedTime()), "update time is not recent")
+		names = append(names, doc.GetName())
 	}
 	//bulk post documents with same name should fail
-	names := []string{documents[0].GetName(), documents[1].GetName()}
 	sort.Strings(names)
 	testBadRequest(suite, http.MethodPost, path, errorNameExist(names...), documents, http.StatusBadRequest)
 
@@ -112,6 +113,12 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	for _, doc := range documents {
 		testDeleteDocByGUID(suite, path, doc, compareNewOpts...)
 	}
+	//test get all after delete all
+	testGetDocs(suite, path, []T{}, compareNewOpts...)
+
+	//test post and delete bulk
+	testDeleteBulkDeleteByGUID(suite, path, documents, compareNewOpts...)
+
 	//test get all after delete all
 	testGetDocs(suite, path, []T{}, compareNewOpts...)
 
@@ -199,7 +206,23 @@ func testDeleteByName[T types.DocContent](suite *MainTestSuite, basePath, namePa
 	//test bulk delete with body
 	testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
 	testBulkDeleteByNameWithBody(suite, basePath, nameParam, docNames)
+}
 
+func testDeleteBulkDeleteByGUID[T types.DocContent](suite *MainTestSuite, basePath string, testDocs []T, compareOpts ...cmp.Option) {
+	//test bulk delete by Ids in body
+	newDocs := testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
+	docsIds := []string{}
+	for i := range newDocs {
+		docsIds = append(docsIds, newDocs[i].GetGUID())
+	}
+	testBulkDeleteByGUIDWithBody(suite, basePath, docsIds)
+	//test bulk delete by Ids in query
+	newDocs = testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
+	docsIds = []string{}
+	for i := range newDocs {
+		docsIds = append(docsIds, newDocs[i].GetGUID())
+	}
+	testBulkDeleteByGUIDWithBody(suite, basePath, docsIds)
 }
 
 func testGetByQuery[T types.DocContent](suite *MainTestSuite, basePath string, testDocs []T, getQueries []queryTest[T], compareOpts ...cmp.Option) {
@@ -456,6 +479,31 @@ func testBulkDeleteByNameWithBody(suite *MainTestSuite, path string, nameParam s
 	w := suite.doRequest(http.MethodDelete, path, namesBody)
 	suite.Equal(http.StatusOK, w.Code)
 	diff := cmp.Diff(fmt.Sprintf(`{"deletedCount":%d}`, len(names)), w.Body.String())
+	suite.Equal("", diff)
+}
+
+func testBulkDeleteByGUIDWithBody(suite *MainTestSuite, path string, guids []string) {
+	if len(guids) == 0 {
+		return
+	}
+	w := suite.doRequest(http.MethodDelete, path+"/bulk", guids)
+	suite.Equal(http.StatusOK, w.Code)
+	diff := cmp.Diff(fmt.Sprintf(`{"deletedCount":%d}`, len(guids)), w.Body.String())
+	suite.Equal("", diff)
+}
+
+func testBulkDeleteByGUIDWithQuery(suite *MainTestSuite, path string, guids []string) {
+	if len(guids) == 0 {
+		return
+	}
+	path += "/bulk"
+	path = fmt.Sprintf("%s?%s=%s", path, "guid", guids[0])
+	for _, name := range guids[1:] {
+		path = fmt.Sprintf("%s&%s=%s", path, "guid", name)
+	}
+	w := suite.doRequest(http.MethodDelete, path, nil)
+	suite.Equal(http.StatusOK, w.Code)
+	diff := cmp.Diff(fmt.Sprintf(`{"deletedCount":%d}`, len(guids)), w.Body.String())
 	suite.Equal("", diff)
 }
 
