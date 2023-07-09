@@ -34,7 +34,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig
+		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -52,6 +52,62 @@ type DocContent interface {
 // redefine types for Doc Content implementations
 
 // DocContent implementations
+
+type Cache armotypes.Cache
+
+func (c *Cache) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsV1
+}
+func (c *Cache) InitNew() {
+	c.CreationTime = time.Now().UTC().Format(time.RFC3339)
+}
+func (c *Cache) GetAttributes() map[string]interface{} {
+	return nil
+}
+func (c *Cache) SetAttributes(attributes map[string]interface{}) {
+}
+func (c *Cache) GetGUID() string {
+	return c.GUID
+}
+func (c *Cache) SetGUID(guid string) {
+	//allow user defined GUID
+	if c.GUID == "" {
+		c.GUID = guid
+	}
+}
+func (c *Cache) GetName() string {
+	return c.Name
+}
+func (c *Cache) SetName(name string) {
+	c.Name = name
+}
+func (c *Cache) GetCreationTime() *time.Time {
+	if c.CreationTime == "" {
+		return nil
+	}
+	creationTime, err := time.Parse(time.RFC3339, c.CreationTime)
+	if err != nil {
+		return nil
+	}
+	return &creationTime
+}
+func (c *Cache) GetUpdatedTime() *time.Time {
+	if c.UpdatedTime == "" {
+		return nil
+	}
+	UpdatedTime, err := time.Parse(time.RFC3339, c.UpdatedTime)
+	if err != nil {
+		return nil
+	}
+	return &UpdatedTime
+}
+func (c *Cache) SetUpdatedTime(updatedTime *time.Time) {
+	if updatedTime == nil {
+		c.UpdatedTime = time.Now().UTC().Format(time.RFC3339)
+		return
+	}
+	c.UpdatedTime = updatedTime.UTC().Format(time.RFC3339)
+}
 
 type CollaborationConfig armotypes.CollaborationConfig
 
@@ -71,7 +127,6 @@ func (p *CollaborationConfig) GetCreationTime() *time.Time {
 		return nil
 	}
 	return &creationTime
-
 }
 
 type CustomerConfig struct {

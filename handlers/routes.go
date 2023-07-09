@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"config-service/db"
 	"config-service/types"
 	"config-service/utils/consts"
 	"fmt"
@@ -69,6 +70,9 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 	opts := newRouterOptions[T]()
 	opts.apply(options)
 	if err := opts.validate(); err != nil {
+		panic(err)
+	}
+	if err := db.Index(opts.dbCollection); err != nil {
 		panic(err)
 	}
 	routerGroup := g.Group(opts.path)

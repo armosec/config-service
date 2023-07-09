@@ -17,6 +17,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Index triggers index creation according to predefined indexes
+func Index(collection string) error {
+	return mongo.IndexCollection(collection)
+}
+
 //////////////////////////////////Sugar functions for mongo using values in gin context /////////////////////////////////////////
 /////////////////////////////////all methods are expecting collection and customerGUID from context/////////////////////////////
 
