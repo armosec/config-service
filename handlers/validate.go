@@ -32,8 +32,7 @@ type UniqueKeyValueInfo[T types.DocContent] func() (key string, mandatory bool, 
 
 func ValidateUniqueValues[T types.DocContent](uniqueKeyValues ...UniqueKeyValueInfo[T]) func(c *gin.Context, docs []T) ([]T, bool) {
 	return func(c *gin.Context, docs []T) ([]T, bool) {
-		filter := db.NewFilterBuilder()
-		projection := db.NewProjectionBuilder()
+		findOpts := db.NewFindOptions()
 		keys2Values := map[string][]string{}
 		for _, uniqueKeyValue := range uniqueKeyValues {
 			key, mandatory, valueGetter := uniqueKeyValue()
@@ -50,19 +49,19 @@ func ValidateUniqueValues[T types.DocContent](uniqueKeyValues ...UniqueKeyValueI
 				}
 				values = append(values, value)
 			}
-			if len(filter.Get()) > 0 {
-				filter.WarpOr()
+			if len(findOpts.Filter().Get()) > 0 {
+				findOpts.Filter().WarpOr()
 			}
 			if len(docs) > 1 {
-				filter.WithIn(key, values)
+				findOpts.Filter().WithIn(key, values)
 			} else {
-				filter.WithValue(key, values[0])
+				findOpts.Filter().WithValue(key, values[0])
 			}
-			projection.Include(key)
+			findOpts.Projection().Include(key)
 			keys2Values[key] = values
 		}
 
-		if existingDocs, err := db.FindForCustomer[T](c, filter, projection.Get()); err != nil {
+		if existingDocs, err := db.FindForCustomer[T](c, findOpts); err != nil {
 			ResponseInternalServerError(c, "failed to read documents", err)
 			return nil, false
 		} else if len(existingDocs) > 0 {

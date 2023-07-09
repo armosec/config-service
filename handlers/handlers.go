@@ -70,8 +70,9 @@ func HandleGetAllWithGlobals[T types.DocContent](c *gin.Context) {
 func GetNamesListHandler[T types.DocContent](c *gin.Context, includeGlobals bool) bool {
 	if _, list := c.GetQuery(consts.ListParam); list {
 		defer log.LogNTraceEnterExit("GetNamesListHandler", c)()
-		namesProjection := db.NewProjectionBuilder().Include(consts.NameField).ExcludeID().Get()
-		if docNames, err := db.GetAllForCustomerWithProjection[T](c, namesProjection, includeGlobals); err != nil {
+		findOps := db.NewFindOptions()
+		findOps.Projection().Include(consts.NameField).ExcludeID()
+		if docNames, err := db.FindForCustomerWithGlobals[T](c, findOps); err != nil {
 			ResponseInternalServerError(c, "failed to read documents", err)
 			return true
 		} else {
@@ -115,9 +116,9 @@ func GetByScopeParamsHandler[T types.DocContent](c *gin.Context, conf *QueryPara
 	if allQueriesFilter == nil {
 		return false // not served by this handler
 	}
-
+	findOpts := db.NewFindOptions().WithFilter(allQueriesFilter)
 	log.LogNTrace(fmt.Sprintf("query params: %v search query %v", c.Request.URL.Query(), allQueriesFilter.Get()), c)
-	if docs, err := db.FindForCustomer[T](c, allQueriesFilter, nil); err != nil {
+	if docs, err := db.FindForCustomer[T](c, findOpts); err != nil {
 		ResponseInternalServerError(c, "failed to read documents", err)
 		return true
 	} else {

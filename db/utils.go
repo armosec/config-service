@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	mongoDB "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -23,63 +22,51 @@ import (
 
 // GetAllForCustomer returns all docs for customer
 func GetAllForCustomer[T any](c context.Context, includeGlobals bool) ([]T, error) {
-	return GetAllForCustomerWithProjection[T](c, nil, includeGlobals)
-}
-
-// GetAllForCustomerWithProjection returns all docs for customer with projection
-func GetAllForCustomerWithProjection[T any](c context.Context, projection bson.D, includeGlobals bool) ([]T, error) {
-	defer log.LogNTraceEnterExit("GetAllForCustomerWithProjection", c)()
-	collection, _, err := ReadContext(c)
-	result := []T{}
-	if err != nil {
-		return nil, err
-	}
-	fb := NewFilterBuilder()
+	findOps := NewFindOptions()
 	if includeGlobals {
-		fb.WithNotDeleteForCustomerAndGlobal(c)
+		findOps.Filter().WithNotDeleteForCustomerAndGlobal(c)
 	} else {
-		fb.WithNotDeleteForCustomer(c)
+		findOps.Filter().WithNotDeleteForCustomer(c)
 	}
-	filter := fb.Get()
-	findOpts := options.Find().SetNoCursorTimeout(true)
-	if projection != nil {
-		findOpts.SetProjection(projection)
-	}
-	if cur, err := mongo.GetReadCollection(collection).
-		Find(c, filter, findOpts); err != nil {
-		return nil, err
-	} else if err := cur.All(c, &result); err != nil {
-		return nil, err
-	}
-	return result, nil
+	return AdminFind[T](c, findOps)
 }
 
-func FindForCustomer[T any](c context.Context, filterBuilder *FilterBuilder, projection bson.D) ([]T, error) {
+func FindForCustomerWithGlobals[T any](c context.Context, findOpts *FindOptions) ([]T, error) {
 	defer log.LogNTraceEnterExit("FindForCustomer", c)()
-	if filterBuilder == nil {
-		filterBuilder = NewFilterBuilder()
+	if findOpts == nil {
+		findOpts = NewFindOptions()
 	}
-	filter := filterBuilder.WithNotDeleteForCustomer(c)
-	return Find[T](c, filter, projection)
+	findOpts.Filter().WithNotDeleteForCustomerAndGlobal(c)
+	return AdminFind[T](c, findOpts)
 }
 
-func Find[T any](c context.Context, filterBuilder *FilterBuilder, projection bson.D) ([]T, error) {
+func FindForCustomer[T any](c context.Context, findOpts *FindOptions) ([]T, error) {
+	defer log.LogNTraceEnterExit("FindForCustomer", c)()
+	if findOpts == nil {
+		findOpts = NewFindOptions()
+	}
+	findOpts.Filter().WithNotDeleteForCustomer(c)
+	return AdminFind[T](c, findOpts)
+}
+
+// AdminFind search for docs of all customers (unless filtered by caller)
+func AdminFind[T any](c context.Context, findOps *FindOptions) ([]T, error) {
 	defer log.LogNTraceEnterExit("Find", c)()
 	collection, _, err := ReadContext(c)
 	result := []T{}
 	if err != nil {
 		return nil, err
 	}
-	var filter primitive.D
-	if filterBuilder != nil {
-		filter = filterBuilder.Get()
+	if findOps == nil {
+		findOps = NewFindOptions()
 	}
-	findOpts := options.Find().SetNoCursorTimeout(true)
-	if projection != nil {
-		findOpts.SetProjection(projection)
-	}
+	dbFindOptions := options.Find().SetNoCursorTimeout(true)
+	dbFindOptions.SetProjection(findOps.projection.Get())
+	dbFindOptions.SetSort(findOps.sort.Get())
+	dbFindOptions.SetSkip(int64(findOps.skip))
+
 	if cur, err := mongo.GetReadCollection(collection).
-		Find(c, filter, findOpts); err != nil {
+		Find(c, findOps.filter.Get(), dbFindOptions); err != nil {
 		return nil, err
 	} else {
 
@@ -88,6 +75,57 @@ func Find[T any](c context.Context, filterBuilder *FilterBuilder, projection bso
 		}
 	}
 	return result, nil
+}
+
+type paginatedResult[T any] struct {
+	TotalDocuments []TotalDocuments `bson:"totalDocuments"`
+	LimitedResults []T              `bson:"limitedResults"`
+}
+type TotalDocuments struct {
+	Count int64 `bson:"count"`
+}
+
+func FindPaginated[T any](c context.Context, findOps *FindOptions) (*FindResult[T], error) {
+	defer log.LogNTraceEnterExit(fmt.Sprintf("FindPaginated %+v", findOps), c)()
+	collection, _, err := ReadContext(c)
+	if err != nil {
+		return nil, err
+	}
+	if findOps == nil {
+		findOps = &FindOptions{}
+	}
+	pipeline := mongoDB.Pipeline{
+		{{Key: "$facet", Value: bson.M{
+			"totalDocuments": []bson.M{
+				{"$count": "count"},
+			},
+			"Results": []bson.M{
+				{"$match": findOps.filter.Get()},
+				{"$sort": findOps.sort.Get()},
+				{"$skip": findOps.skip},
+				{"$limit": findOps.limit},
+				{"$project": findOps.projection.Get()},
+			},
+		}}},
+	}
+	cursor, err := mongo.GetReadCollection(collection).Aggregate(c, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(c)
+	var result paginatedResult[T]
+	if cursor.Next(c) {
+		err = cursor.Decode(&result)
+		if err != nil {
+			return nil, err
+		}
+	}
+	count := result.TotalDocuments[0].Count
+	limitedResults := result.LimitedResults
+	return &FindResult[T]{
+		Total:   count,
+		Results: limitedResults,
+	}, nil
 }
 
 // UpdateDocument updates document by GUID and update command
