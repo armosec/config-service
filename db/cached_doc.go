@@ -14,8 +14,8 @@ import (
 
 var cachedDocuments = sync.Map{}
 
-func AddCachedDocument[T types.DocContent](cacheKey, collection string, queryFilter bson.D, updateInterval time.Duration) {
-	cachedDocuments.Store(cacheKey, newCachedDocument[T](collection, queryFilter, updateInterval))
+func AddCachedDocument[T types.DocContent](cacheKey, collection string, filterBuilder *FilterBuilder, updateInterval time.Duration) {
+	cachedDocuments.Store(cacheKey, newCachedDocument[T](collection, filterBuilder.get(), updateInterval))
 }
 
 func GetCachedDocument[T types.DocContent](cacheKey string) (T, error) {

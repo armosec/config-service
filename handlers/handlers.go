@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"k8s.io/utils/strings/slices"
@@ -117,7 +118,7 @@ func GetByScopeParamsHandler[T types.DocContent](c *gin.Context, conf *QueryPara
 		return false // not served by this handler
 	}
 	findOpts := db.NewFindOptions().WithFilter(allQueriesFilter)
-	log.LogNTrace(fmt.Sprintf("query params: %v search query %v", c.Request.URL.Query(), allQueriesFilter.Get()), c)
+	log.LogNTrace(fmt.Sprintf("query params: %v search query %+v", c.Request.URL.Query(), allQueriesFilter), c)
 	if docs, err := db.FindForCustomer[T](c, findOpts); err != nil {
 		ResponseInternalServerError(c, "failed to read documents", err)
 		return true
@@ -180,6 +181,27 @@ func PostDBDocumentHandler[T types.DocContent](c *gin.Context, dbDoc types.Docum
 	} else {
 		c.JSON(http.StatusCreated, dbDoc.Content)
 	}
+}
+
+func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
+	defer log.LogNTraceEnterExit("HandlePostV2ListRequest", c)()
+	var req armotypes.V2ListRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		ResponseFailedToBindJson(c, err)
+		return
+	}
+	findOpts, err := v2List2FindOptions(req)
+	if err != nil {
+		ResponseBadRequest(c, err.Error())
+		return
+	}
+	result, err := db.FindPaginatedForCustomer[T](c, findOpts)
+	if err != nil {
+		ResponseInternalServerError(c, "failed to search documents", err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 // ////////////////////////////////////////PUT///////////////////////////////////////////////

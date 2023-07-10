@@ -16,8 +16,13 @@ func NewProjectionBuilder() *ProjectionBuilder {
 		filter: bson.D{},
 	}
 }
-func (f *ProjectionBuilder) Get() bson.D {
+
+func (f *ProjectionBuilder) get() bson.D {
 	return f.filter
+}
+
+func (f *ProjectionBuilder) Len() int {
+	return len(f.filter)
 }
 
 func (f *ProjectionBuilder) ExcludeID(key ...string) *ProjectionBuilder {

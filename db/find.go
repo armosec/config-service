@@ -8,10 +8,7 @@ type FindOptions struct {
 	skip       int64
 }
 
-type FindResult[T any] struct {
-	Total   int64
-	Results []T
-}
+
 
 func NewFindOptions() *FindOptions {
 	return &FindOptions{

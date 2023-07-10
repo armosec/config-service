@@ -66,12 +66,12 @@ func AdminFind[T any](c context.Context, findOps *FindOptions) ([]T, error) {
 		findOps = NewFindOptions()
 	}
 	dbFindOptions := options.Find().SetNoCursorTimeout(true)
-	dbFindOptions.SetProjection(findOps.projection.Get())
-	dbFindOptions.SetSort(findOps.sort.Get())
+	dbFindOptions.SetProjection(findOps.projection.get())
+	dbFindOptions.SetSort(findOps.sort.get())
 	dbFindOptions.SetSkip(int64(findOps.skip))
 
 	if cur, err := mongo.GetReadCollection(collection).
-		Find(c, findOps.filter.Get(), dbFindOptions); err != nil {
+		Find(c, findOps.filter.get(), dbFindOptions); err != nil {
 		return nil, err
 	} else {
 
@@ -90,8 +90,17 @@ type TotalDocuments struct {
 	Count int64 `bson:"count"`
 }
 
-func FindPaginated[T any](c context.Context, findOps *FindOptions) (*FindResult[T], error) {
-	defer log.LogNTraceEnterExit(fmt.Sprintf("FindPaginated %+v", findOps), c)()
+func FindPaginatedForCustomer[T any](c context.Context, findOps *FindOptions) (*types.SearchResult[T], error) {
+	defer log.LogNTraceEnterExit(fmt.Sprintf("FindPaginatedForCustomer %+v", findOps), c)()
+	if findOps == nil {
+		findOps = &FindOptions{}
+	}
+	findOps.Filter().WithNotDeleteForCustomer(c)
+	return AdminFindPaginated[T](c, findOps)
+}
+
+func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.SearchResult[T], error) {
+	defer log.LogNTraceEnterExit(fmt.Sprintf("AdminFindPaginated %+v", findOps), c)()
 	collection, _, err := ReadContext(c)
 	if err != nil {
 		return nil, err
@@ -99,18 +108,29 @@ func FindPaginated[T any](c context.Context, findOps *FindOptions) (*FindResult[
 	if findOps == nil {
 		findOps = &FindOptions{}
 	}
+
+	resultsPipe := []bson.M{
+		{"$match": findOps.filter.get()},
+	}
+	if findOps.Sort().Len() > 0 {
+		resultsPipe = append(resultsPipe, bson.M{"$sort": findOps.sort.get()})
+	}
+	if findOps.skip > 0 {
+		resultsPipe = append(resultsPipe, bson.M{"$skip": findOps.skip})
+	}
+	if findOps.limit > 0 {
+		resultsPipe = append(resultsPipe, bson.M{"$limit": findOps.limit})
+	}
+	if findOps.Projection().Len() > 0 {
+		resultsPipe = append(resultsPipe, bson.M{"$project": findOps.projection.get()})
+	}
+
 	pipeline := mongoDB.Pipeline{
 		{{Key: "$facet", Value: bson.M{
 			"totalDocuments": []bson.M{
 				{"$count": "count"},
 			},
-			"Results": []bson.M{
-				{"$match": findOps.filter.Get()},
-				{"$sort": findOps.sort.Get()},
-				{"$skip": findOps.skip},
-				{"$limit": findOps.limit},
-				{"$project": findOps.projection.Get()},
-			},
+			"limitedResults": resultsPipe,
 		}}},
 	}
 	cursor, err := mongo.GetReadCollection(collection).Aggregate(c, pipeline)
@@ -127,7 +147,7 @@ func FindPaginated[T any](c context.Context, findOps *FindOptions) (*FindResult[
 	}
 	count := result.TotalDocuments[0].Count
 	limitedResults := result.LimitedResults
-	return &FindResult[T]{
+	return &types.SearchResult[T]{
 		Total:   count,
 		Results: limitedResults,
 	}, nil
@@ -146,7 +166,7 @@ func UpdateDocument[T any](c context.Context, id string, update bson.D) ([]T, er
 			NewFilterBuilder().
 				WithNotDeleteForCustomer(c).
 				WithID(id).
-				Get()).
+				get()).
 		Decode(&oldDoc); err != nil {
 		if err == mongoDB.ErrNoDocuments {
 			return nil, nil
@@ -155,7 +175,7 @@ func UpdateDocument[T any](c context.Context, id string, update bson.D) ([]T, er
 		return nil, err
 	}
 	var newDoc T
-	filter := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id).Get()
+	filter := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id).get()
 	if err := mongo.GetWriteCollection(collection).FindOneAndUpdate(c, filter, update,
 		options.FindOneAndUpdate().SetReturnDocument(options.After)).
 		Decode(&newDoc); err != nil {
@@ -171,7 +191,7 @@ func AddToArray(c context.Context, id string, arrayPath string, values ...interf
 		return 0, err
 	}
 	//filter documents that already have this value in the array
-	filter := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id).Get()
+	filter := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id).get()
 
 	update := GetUpdateAddToSetCommand(arrayPath, values...)
 	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filter, update)
@@ -188,7 +208,7 @@ func UpdateOne(c context.Context, id string, update interface{}) (modified int64
 		return 0, err
 	}
 	filterBuilder := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id)
-	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filterBuilder.Get(), update)
+	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filterBuilder.get(), update)
 	if res != nil {
 		modified = res.ModifiedCount
 	}
@@ -203,7 +223,7 @@ func PullFromArray(c context.Context, id string, arrayPath string, values ...int
 	}
 	filterBuilder := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id)
 	update := GetUpdatePullFromSetCommand(arrayPath, values...)
-	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filterBuilder.Get(), update)
+	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filterBuilder.get(), update)
 	if res != nil {
 		modified = res.ModifiedCount
 	}
@@ -211,7 +231,7 @@ func PullFromArray(c context.Context, id string, arrayPath string, values ...int
 }
 
 // DocExist returns true if at least one document with given filter exists
-func DocExist(c context.Context, f bson.D) (bool, error) {
+func DocExist(c context.Context, filterBuilder *FilterBuilder) (bool, error) {
 	defer log.LogNTraceEnterExit("DocExist", c)()
 	collection, _, err := ReadContext(c)
 	if err != nil {
@@ -219,8 +239,8 @@ func DocExist(c context.Context, f bson.D) (bool, error) {
 	}
 	filter := NewFilterBuilder().
 		WithNotDeleteForCustomer(c).
-		WithFilter(f).
-		Get()
+		WithFilter(filterBuilder).
+		get()
 	n, err := mongo.GetReadCollection(collection).CountDocuments(c, filter, options.Count().SetLimit(1))
 	return n > 0, err
 }
@@ -230,8 +250,7 @@ func DocWithNameExist(c context.Context, name string) (bool, error) {
 	defer log.LogNTraceEnterExit("DocWithNameExist", c)()
 	return DocExist(c,
 		NewFilterBuilder().
-			WithName(name).
-			Get())
+			WithName(name))
 }
 
 // GetDocByGUID returns document by GUID owned by customer
@@ -247,7 +266,7 @@ func GetDocByGUID[T any](c context.Context, guid string) (*T, error) {
 			NewFilterBuilder().
 				WithNotDeleteForCustomer(c).
 				WithID(guid).
-				Get()).
+				get()).
 		Decode(&result); err != nil {
 		if err == mongoDB.ErrNoDocuments {
 			return nil, nil
@@ -268,7 +287,7 @@ func GetDoc[T any](c context.Context, filter *FilterBuilder) (*T, error) {
 	var result T
 	bfilter := bson.D{}
 	if filter != nil {
-		bfilter = filter.Get()
+		bfilter = filter.get()
 	}
 	if err := mongo.GetReadCollection(collection).
 		FindOne(c, bfilter).
@@ -295,7 +314,7 @@ func GetDocByName[T any](c context.Context, name string) (*T, error) {
 			NewFilterBuilder().
 				WithNotDeleteForCustomer(c).
 				WithName(name).
-				Get()).
+				get()).
 		Decode(&result); err != nil {
 		if err == mongoDB.ErrNoDocuments {
 			return nil, nil
@@ -307,7 +326,7 @@ func GetDocByName[T any](c context.Context, name string) (*T, error) {
 }
 
 // CountDocs counts documents that match the filter
-func CountDocs(c context.Context, f bson.D) (int64, error) {
+func CountDocs(c context.Context, filterBuilder *FilterBuilder) (int64, error) {
 	defer log.LogNTraceEnterExit("CountDocs", c)()
 	collection, _, err := ReadContext(c)
 	if err != nil {
@@ -315,8 +334,8 @@ func CountDocs(c context.Context, f bson.D) (int64, error) {
 	}
 	filter := NewFilterBuilder().
 		WithNotDeleteForCustomer(c).
-		WithFilter(f).
-		Get()
+		WithFilter(filterBuilder).
+		get()
 	return mongo.GetReadCollection(collection).CountDocuments(c, filter)
 }
 
@@ -413,7 +432,7 @@ func BulkDelete[T types.DocContent](c context.Context, filter FilterBuilder) (de
 		return 0, err
 	}
 	filter.WithNotDeleteForCustomer(c)
-	if res, err := mongo.GetWriteCollection(collection).DeleteMany(c, filter.Get()); err != nil {
+	if res, err := mongo.GetWriteCollection(collection).DeleteMany(c, filter.get()); err != nil {
 		return 0, err
 	} else {
 		return res.DeletedCount, nil
@@ -455,7 +474,7 @@ func AdminDeleteCustomersDocs(c context.Context, customerGUIDs ...string) (delet
 	go func(customerGUIDs []string) {
 		defer wg.Done()
 		idsFilter := NewFilterBuilder().WithIDs(customerGUIDs)
-		res, err := mongo.GetWriteCollection(consts.CustomersCollection).DeleteMany(c, idsFilter.Get())
+		res, err := mongo.GetWriteCollection(consts.CustomersCollection).DeleteMany(c, idsFilter.get())
 		if err != nil {
 			errChanel <- err
 		}
@@ -473,7 +492,7 @@ func AdminDeleteCustomersDocs(c context.Context, customerGUIDs ...string) (delet
 		wg.Add(1)
 		go func(collection string, customerGUIDs []string) {
 			defer wg.Done()
-			res, err := mongo.GetWriteCollection(collection).DeleteMany(c, ownersFilter.Get())
+			res, err := mongo.GetWriteCollection(collection).DeleteMany(c, ownersFilter.get())
 			if err != nil {
 				log.LogNTraceError(fmt.Sprintf("AdminDeleteAllCustomerDocs errors when deleting documents in collection:%s", collection), err, c)
 				errChanel <- err

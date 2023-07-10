@@ -36,7 +36,7 @@ func AddRoutes(g *gin.Engine) {
 	if defaultCustomerConfig == nil {
 		db.AddCachedDocument[*types.CustomerConfig](consts.DefaultCustomerConfigKey,
 			consts.CustomerConfigCollection,
-			db.NewFilterBuilder().WithGlobalNotDelete().WithName(consts.GlobalConfigName).Get(),
+			db.NewFilterBuilder().WithGlobalNotDelete().WithName(consts.GlobalConfigName),
 			time.Minute*5)
 	}
 }

@@ -113,7 +113,7 @@ func QueryParams2Filter(c context.Context, qParams url.Values, conf *QueryParams
 			for _, v := range values {
 				addValue(fb, queryConfig, key, v)
 			}
-			filterBuilder.WithFilter(fb.WarpOr().Get())
+			filterBuilder.WithFilter(fb.WarpOr())
 		}
 	}
 	//aggregate all filters
@@ -124,9 +124,9 @@ func QueryParams2Filter(c context.Context, qParams url.Values, conf *QueryParams
 		if ok && queryConfig.IsArray {
 			filterBuilder.WarpElementMatch().WarpWithField(queryConfig.FieldName)
 		}
-		allQueriesFilter.WithFilter(filterBuilder.Get())
+		allQueriesFilter.WithFilter(filterBuilder)
 	}
-	if len(allQueriesFilter.Get()) == 0 {
+	if allQueriesFilter.Len() == 0 {
 		return nil
 	}
 	return allQueriesFilter

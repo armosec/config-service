@@ -12,6 +12,7 @@ import (
 	_ "embed"
 
 	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/aws/smithy-go/ptr"
 	rndStr "github.com/dchest/uniuri"
 
 	"github.com/google/go-cmp/cmp"
@@ -79,7 +80,7 @@ func (suite *MainTestSuite) TestCluster() {
 var posturePoliciesJson []byte
 
 var commonCmpFilter = cmp.FilterPath(func(p cmp.Path) bool {
-	return p.String() == "PortalBase.GUID" || p.String() == "CreationTime" || p.String() == "CreationDate" || p.String() == "PortalBase.UpdatedTime"
+	return p.String() == "PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" || p.String() == "CreationDate" || p.String() == "PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
 }, cmp.Ignore())
 
 func (suite *MainTestSuite) TestPostureException() {
@@ -946,4 +947,206 @@ func (suite *MainTestSuite) TestActiveSubscription() {
 	// check the the customer update date is updated
 	suite.NotNil(updatedCustomer.GetUpdatedTime(), "update time should not be nil")
 	suite.Truef(updatedCustomer.GetUpdatedTime().After(timeBeforeUpdate), "update time should be updated")
+}
+
+func (suite *MainTestSuite) TestUsersNotificationsCache() {
+
+	docs := []*types.Cache{
+		{
+			GUID:     "test-guid-1",
+			Name:     "test-name-1",
+			Data:     float64(1),
+			DataType: "test-data-type-1",
+		},
+		{
+			GUID:     "test-guid-2",
+			Name:     "test-name-2",
+			Data:     "data-value-string",
+			DataType: "test-data-type-2",
+		},
+		{
+			GUID: "test-guid-3",
+			Name: "test-name-3",
+			Data: []interface{}{"test-value-3", "test-value-4"},
+		},
+	}
+
+	modifyFunc := func(doc *types.Cache) *types.Cache {
+		switch doc.Data.(type) {
+		case float64:
+			doc.Data = doc.Data.(float64) + 1
+		case string:
+			doc.Data = doc.Data.(string) + "-updated"
+		case []interface{}:
+			doc.Data = append(doc.Data.([]interface{}), "test-value-5")
+		}
+		return doc
+	}
+	testOpts := testOptions{
+		uniqueName:    false,
+		mandatoryName: false,
+		customGUID:    true,
+		customerGUIDSetter: func(doc interface{}, guid string) {
+			doc.(*types.Cache).GUID = guid
+		},
+	}
+
+	commonTestWithOptions(suite, consts.UsersNotificationsCachePath, docs, modifyFunc, testOpts, commonCmpFilter, ignoreTime)
+
+	projectedDocs := []*types.Cache{
+		{
+			Name: "test-name-1",
+		},
+		{
+
+			Name: "test-name-2",
+		},
+		{
+			GUID: "test-guid-3",
+			Data: []interface{}{"test-value-3", "test-value-4"},
+		},
+	}
+
+	searchQueries := []searchTest{
+		{
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "data-value-string,1",
+					},
+				},
+			},
+		},
+		{
+			expectedIndexes: []int{0},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "data-value-string,1",
+						"name": "test-name-1",
+					},
+				},
+			},
+		},
+		{
+			expectedIndexes: []int{0, 1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "data-value-string,1",
+					},
+					{
+						"dataType": "|missing",
+					},
+				},
+			},
+		},
+		{
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				PageSize: ptr.Int(2),
+				OrderBy:  "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "data-value-string,1",
+					},
+					{
+						"dataType": "|missing",
+					},
+				},
+			},
+		},
+		{
+			expectedIndexes: []int{2},
+			listRequest: armotypes.V2ListRequest{
+				PageSize: ptr.Int(2),
+				PageNum:  ptr.Int(2),
+				OrderBy:  "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "data-value-string,1",
+					},
+					{
+						"dataType": "|missing",
+					},
+				},
+			},
+		},
+		{
+			expectedIndexes:  []int{0, 1},
+			projectedResults: true,
+			listRequest: armotypes.V2ListRequest{
+				OrderBy:    "name:asc",
+				FieldsList: []string{"name"},
+				InnerFilters: []map[string]string{
+					{
+						"data": "data-value-string,1",
+					},
+				},
+			},
+		},
+		{
+			expectedIndexes: []int{1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "test-name-2|greater",
+					},
+				},
+			},
+		},
+		{
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "test-name-2|lower",
+					},
+				},
+			},
+		},
+	}
+
+	testPostV2ListRequest(suite, consts.UsersNotificationsCachePath, docs, projectedDocs, searchQueries, commonCmpFilter, ignoreTime)
+
+	ttlDoc := &types.Cache{
+		GUID:     "test-ttl-guid",
+		Name:     "test-ttl-name",
+		Data:     "test-ttl-data",
+		DataType: "test-ttl-data-type",
+	}
+
+	ttlDoc = testPostDoc(suite, consts.UsersNotificationsCachePath, ttlDoc, commonCmpFilter, ignoreTime)
+	//check that default ttl is set to 90 days from now
+	suite.Equal(time.Now().Add(time.Hour*24*90).Format(time.RFC3339), ttlDoc.ExpiryTime.Format(time.RFC3339), "default ttl is not set correctly")
+	//set ttl to more than 90 days - should be ignored
+	expirationTime := ttlDoc.ExpiryTime
+	ttlUpdate := clone(ttlDoc)
+	ttlDoc.ExpiryTime = time.Now().Add(time.Hour * 24 * 100)
+	ttlUpdate = testPutDoc(suite, consts.UsersNotificationsCachePath, ttlDoc, ttlUpdate, commonCmpFilter, ignoreTime)
+	suite.Equal(expirationTime.UTC().Format(time.RFC3339), ttlUpdate.ExpiryTime.Format(time.RFC3339), "ttl above max allowed is not ignored")
+	//set ttl to time in past
+	ttlInPast := clone(ttlDoc)
+	ttlInPast.ExpiryTime = time.Now().Add(time.Hour * -24)
+	expirationTime = ttlInPast.ExpiryTime
+	ttlInPast = testPutDoc(suite, consts.UsersNotificationsCachePath, ttlDoc, ttlInPast, commonCmpFilter, ignoreTime)
+	suite.Equal(expirationTime.UTC().Format(time.RFC3339), ttlInPast.ExpiryTime.Format(time.RFC3339), "ttl in past is not set")
+	//wait for the document to expire and check that it is deleted - this can take up to one minute
+	deleted := false
+	for i := 0; i < 62; i++ {
+		time.Sleep(time.Second)
+		w := suite.doRequest(http.MethodGet, consts.UsersNotificationsCachePath+"/test-ttl-guid", nil)
+		if w.Code == http.StatusNotFound {
+			deleted = true
+			break
+		}
+	}
+	suite.True(deleted, "document was not deleted after ttl expired")
+
 }

@@ -14,8 +14,12 @@ func NewSortBuilder() *SortBuilder {
 		filter: bson.D{},
 	}
 }
-func (f *SortBuilder) Get() bson.D {
+func (f *SortBuilder) get() bson.D {
 	return f.filter
+}
+
+func (f *SortBuilder) Len() int {
+	return len(f.filter)
 }
 
 func (f *SortBuilder) AddAscending(key ...string) *SortBuilder {
