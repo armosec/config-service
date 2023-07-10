@@ -42,7 +42,7 @@ func ResponseSenderContextMiddleware[T types.DocContent](sender *ResponseSender[
 // PostValidationMiddleware validate post request and if valid sets one or many DocContents in context for next handler, otherwise abort request
 func PostValidationMiddleware[T types.DocContent](validators ...MutatorValidator[T]) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		defer log.LogNTraceEnterExit("HandlePostValidation", c)()
+		defer log.LogNTraceEnterExit("PostValidationMiddleware", c)()
 		var doc T
 		var docs []T
 		if customDecoder, _ := GetCustomBodyDecoder[T](c); customDecoder != nil {
@@ -82,7 +82,7 @@ func PostValidationMiddleware[T types.DocContent](validators ...MutatorValidator
 // PutValidationMiddleware validate put request and if valid set DocContent in context for next handler, otherwise abort request
 func PutValidationMiddleware[T types.DocContent](validators ...MutatorValidator[T]) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		defer log.LogNTraceEnterExit("HandlePutValidation", c)()
+		defer log.LogNTraceEnterExit("PutValidationMiddleware", c)()
 		var doc T
 		if customDecoder, _ := GetCustomBodyDecoder[T](c); customDecoder != nil {
 			if docs, err := customDecoder(c); err != nil {

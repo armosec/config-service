@@ -72,6 +72,7 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 	if err := opts.validate(); err != nil {
 		panic(err)
 	}
+	//update collection index if needed
 	if err := db.Index(opts.dbCollection); err != nil {
 		panic(err)
 	}

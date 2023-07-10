@@ -37,7 +37,7 @@ func GetAllForCustomer[T any](c context.Context, includeGlobals bool) ([]T, erro
 }
 
 func FindForCustomerWithGlobals[T any](c context.Context, findOpts *FindOptions) ([]T, error) {
-	defer log.LogNTraceEnterExit("FindForCustomer", c)()
+	defer log.LogNTraceEnterExit("FindForCustomerWithGlobals", c)()
 	if findOpts == nil {
 		findOpts = NewFindOptions()
 	}
@@ -56,7 +56,7 @@ func FindForCustomer[T any](c context.Context, findOpts *FindOptions) ([]T, erro
 
 // AdminFind search for docs of all customers (unless filtered by caller)
 func AdminFind[T any](c context.Context, findOps *FindOptions) ([]T, error) {
-	defer log.LogNTraceEnterExit("Find", c)()
+	defer log.LogNTraceEnterExit(fmt.Sprintf("AdminFind %+v", findOps), c)()
 	collection, _, err := ReadContext(c)
 	result := []T{}
 	if err != nil {
@@ -202,7 +202,7 @@ func AddToArray(c context.Context, id string, arrayPath string, values ...interf
 }
 
 func UpdateOne(c context.Context, id string, update interface{}) (modified int64, err error) {
-	defer log.LogNTraceEnterExit("AddToArray", c)()
+	defer log.LogNTraceEnterExit("UpdateOne", c)()
 	collection, _, err := ReadContext(c)
 	if err != nil {
 		return 0, err
@@ -426,7 +426,7 @@ func BulkDeleteByName[T types.DocContent](c context.Context, names []string) (de
 }
 
 func BulkDelete[T types.DocContent](c context.Context, filter FilterBuilder) (deletedCount int64, err error) {
-	defer log.LogNTraceEnterExit("BulkDeleteByName", c)()
+	defer log.LogNTraceEnterExit("BulkDelete", c)()
 	collection, err := readCollection(c)
 	if err != nil {
 		return 0, err
