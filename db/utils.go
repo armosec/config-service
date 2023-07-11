@@ -145,12 +145,10 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 			return nil, err
 		}
 	}
-	count := result.TotalDocuments[0].Count
-	limitedResults := result.LimitedResults
-	return &types.SearchResult[T]{
-		Total:   count,
-		Results: limitedResults,
-	}, nil
+	searchRes := &types.SearchResult[T]{}
+	searchRes.SetCount(result.TotalDocuments[0].Count)
+	searchRes.SetResults(result.LimitedResults)
+	return searchRes, nil
 }
 
 // UpdateDocument updates document by GUID and update command

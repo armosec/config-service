@@ -645,7 +645,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 
 	//put new notification config
 	notificationConfig.UnsubscribedUsers = make(map[string][]armotypes.NotificationConfigIdentifier)
-	notificationConfig.UnsubscribedUsers["user1"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeAll}}
+	notificationConfig.UnsubscribedUsers["user1"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeVulnerabilityNewFix}}
 	notificationConfig.UnsubscribedUsers["user2"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypePushPosture}}
 	prevConfig := &armotypes.NotificationsConfig{}
 	testPutDoc(suite, configPath, prevConfig, notificationConfig, nil)
@@ -670,7 +670,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	suite.NoError(err)
 	suite.Equal(0, res["added"])
 	//add another one to the same user
-	notifyAll := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypeAll}
+	notifyAll := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypeVulnerabilityNewFix}
 	w = suite.doRequest(http.MethodPut, unsubscribePath, notifyAll)
 	suite.Equal(http.StatusOK, w.Code)
 	res, err = decodeResponse[map[string]int](w)
@@ -711,8 +711,8 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 
 	//updated the expected notification config with the changes
 	notificationConfig.UnsubscribedUsers["user3"] = []armotypes.NotificationConfigIdentifier{}
-	notificationConfig.UnsubscribedUsers["user6"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeAll}}
-	notificationConfig.UnsubscribedUsers["user5"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypeAll}}
+	notificationConfig.UnsubscribedUsers["user6"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeVulnerabilityNewFix}}
+	notificationConfig.UnsubscribedUsers["user5"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypeVulnerabilityNewFix}}
 
 	//test put delete multiple elements
 	notifyPush := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypePushPosture}
@@ -1096,6 +1096,31 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				InnerFilters: []map[string]string{
 					{
 						"name": "test-name-2|greater",
+					},
+				},
+			},
+		},
+		//like match
+		{
+			testName:        "like ignorecase match",
+			expectedIndexes: []int{4},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "ClusterRole|like&ignorecase",
+					},
+				},
+			},
+		},
+		{
+			testName:        "like with multi results",
+			expectedIndexes: []int{0, 1, 3, 4},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"dataType": "test-data-type-|like",
 					},
 				},
 			},

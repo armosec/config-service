@@ -23,7 +23,7 @@ import (
 type testOptions struct {
 	uniqueName    bool
 	mandatoryName bool
-	customGUID    bool	
+	customGUID    bool
 }
 
 func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string, testDocs []T, modifyFunc func(T) T, testOptions testOptions, compareNewOpts ...cmp.Option) {
@@ -303,7 +303,7 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 		var result types.SearchResult[T]
 		err := json.Unmarshal(w.Body.Bytes(), &result)
 		suite.NoError(err)
-		suite.Equal(len(test.expectedIndexes), len(result.Results))
+		suite.Equal(len(test.expectedIndexes), len(result.Response))
 		var expectedDocs []T
 		for _, index := range test.expectedIndexes {
 			if test.projectedResults {
@@ -312,7 +312,7 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 				expectedDocs = append(expectedDocs, testDocs[index])
 			}
 		}
-		diff := cmp.Diff(result.Results, expectedDocs, compareOpts...)
+		diff := cmp.Diff(result.Response, expectedDocs, compareOpts...)
 		suite.Equal("", diff, "Unexpected diff: %s", test.testName)
 	}
 
