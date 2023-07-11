@@ -127,7 +127,7 @@ func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) 
 				val1 := utils.String2Interface(rangeValues[0])
 				val2 := utils.String2Interface(rangeValues[1])
 				if !utils.SameType(val1, val2) {
-					return nil, fmt.Errorf("invalid range must use same value types %s", value)
+					return nil, fmt.Errorf("invalid range must use same value types found %T %T", val1, val2)
 				}
 				filters = append(filters, db.NewFilterBuilder().WithRange(key, val1, val2))
 			default:

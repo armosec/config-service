@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/aws/smithy-go/ptr"
 	"github.com/go-faker/faker/v4"
 	"github.com/go-faker/faker/v4/pkg/options"
 	uuid "github.com/satori/go.uuid"
@@ -304,11 +305,9 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 		err := json.Unmarshal(w.Body.Bytes(), &result)
 		suite.NoError(err, "Unexpected error: %s", test.testName)
 		suite.Equal(len(test.expectedIndexes), len(result.Response), "Unexpected result count: %s", test.testName)
-		if test.listRequest.PageSize == nil {
+		if test.listRequest.PageSize == nil && test.listRequest.PageNum == nil {
 			//not paginated expected all results
-			if !suite.Equal(len(test.expectedIndexes), result.Total.Value, "Unexpected total count: %s", test.testName) {
-				suite.FailNow("Unexpected total count")
-			}
+			suite.Equal(len(test.expectedIndexes), result.Total.Value, "Unexpected total count: %s", test.testName)
 		}
 		var expectedDocs []T
 		for _, index := range test.expectedIndexes {
@@ -332,11 +331,38 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 		},
 	}
 	testBadRequest(suite, http.MethodPost, basePath+"/search", errorUnsupportedOperator("unknownOp"), req, http.StatusBadRequest)
+
 	//invalid sort type
 	req = armotypes.V2ListRequest{
 		OrderBy: "name:unknownOrder",
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/search", errorInvalidSortType("unknownOrder"), req, http.StatusBadRequest)
+	testBadRequest(suite, http.MethodPost, basePath+"/search", errorMessage("invalid sort type unknownOrder"), req, http.StatusBadRequest)
+
+	//use of unsupported Until
+	req = armotypes.V2ListRequest{
+		Until: ptr.Time(time.Now()),
+	}
+	testBadRequest(suite, http.MethodPost, basePath+"/search", errorMessage("until is not supported"), req, http.StatusBadRequest)
+	
+	//range with no &
+	req = armotypes.V2ListRequest{
+		InnerFilters: []map[string]string{
+			{
+				"name": "something|range",
+			},
+		},
+	}
+	testBadRequest(suite, http.MethodPost, basePath+"/search", errorMessage("value missing range separator something"), req, http.StatusBadRequest)
+	
+	//range with different data types
+	req = armotypes.V2ListRequest{
+		InnerFilters: []map[string]string{
+			{
+				"name": "1&name|range",
+			},
+		},
+	}
+	testBadRequest(suite, http.MethodPost, basePath+"/search", errorMessage("invalid range must use same value types found int64 string"), req, http.StatusBadRequest)
 
 	//bulk delete all docs
 	guids := []string{}
@@ -414,6 +440,9 @@ func errorUnsupportedOperator(op string) string {
 
 func errorInvalidSortType(sortType string) string {
 	return fmt.Sprintf(`{"error":"invalid sort type %s"}`, sortType)
+}
+func errorMessage(msg string) string {
+	return fmt.Sprintf(`{"error":"%s"}`, msg)
 }
 
 func testBadRequest(suite *MainTestSuite, method, path, expectedResponse string, body interface{}, expectedCode int) {
