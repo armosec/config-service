@@ -302,8 +302,14 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 		suite.Equal(http.StatusOK, w.Code)
 		var result types.SearchResult[T]
 		err := json.Unmarshal(w.Body.Bytes(), &result)
-		suite.NoError(err)
-		suite.Equal(len(test.expectedIndexes), len(result.Response))
+		suite.NoError(err, "Unexpected error: %s", test.testName)
+		suite.Equal(len(test.expectedIndexes), len(result.Response), "Unexpected result count: %s", test.testName)
+		if test.listRequest.PageSize == nil {
+			//not paginated expected all results
+			if !suite.Equal(len(test.expectedIndexes), result.Total.Value, "Unexpected total count: %s", test.testName) {
+				suite.FailNow("Unexpected total count")
+			}
+		}
 		var expectedDocs []T
 		for _, index := range test.expectedIndexes {
 			if test.projectedResults {

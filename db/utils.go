@@ -83,10 +83,10 @@ func AdminFind[T any](c context.Context, findOps *FindOptions) ([]T, error) {
 }
 
 type paginatedResult[T any] struct {
-	TotalDocuments []TotalDocuments `bson:"totalDocuments"`
-	LimitedResults []T              `bson:"limitedResults"`
+	Count          []countResult `bson:"count"`
+	LimitedResults []T           `bson:"limitedResults"`
 }
-type TotalDocuments struct {
+type countResult struct {
 	Count int64 `bson:"count"`
 }
 
@@ -109,9 +109,7 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 		findOps = &FindOptions{}
 	}
 
-	resultsPipe := []bson.M{
-		{"$match": findOps.filter.get()},
-	}
+	resultsPipe := []bson.M{}
 	if findOps.Sort().Len() > 0 {
 		resultsPipe = append(resultsPipe, bson.M{"$sort": findOps.sort.get()})
 	}
@@ -126,11 +124,12 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 	}
 
 	pipeline := mongoDB.Pipeline{
+		{{Key: "$match", Value: findOps.filter.get()}},
 		{{Key: "$facet", Value: bson.M{
-			"totalDocuments": []bson.M{
+			"limitedResults": resultsPipe,
+			"count": []bson.M{
 				{"$count": "count"},
 			},
-			"limitedResults": resultsPipe,
 		}}},
 	}
 	cursor, err := mongo.GetReadCollection(collection).Aggregate(c, pipeline)
@@ -146,7 +145,7 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 		}
 	}
 	searchRes := &types.SearchResult[T]{}
-	searchRes.SetCount(result.TotalDocuments[0].Count)
+	searchRes.SetCount(result.Count[0].Count)
 	searchRes.SetResults(result.LimitedResults)
 	return searchRes, nil
 }
