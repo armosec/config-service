@@ -1,6 +1,10 @@
 package utils
 
-import "strconv"
+import (
+	"reflect"
+	"strconv"
+	"strings"
+)
 
 func BoolPointer(b bool) *bool {
 	return &b
@@ -8,6 +12,10 @@ func BoolPointer(b bool) *bool {
 
 func StringPointer(s string) *string {
 	return &s
+}
+
+func SameType(a, b interface{}) bool {
+	return reflect.TypeOf(a) == reflect.TypeOf(b)
 }
 
 func String2Interface(value string) interface{} {
@@ -21,4 +29,24 @@ func String2Interface(value string) interface{} {
 		return b
 	}
 	return value
+}
+
+func SplitIgnoreEscaped(s, sep, escape string) []string {
+	parts := strings.Split(s, sep)
+	var result []string
+	var buffer string
+	for _, part := range parts {
+		if buffer != "" {
+			buffer += sep
+		}
+		buffer += part
+		if !strings.HasSuffix(part, escape) {
+			result = append(result, buffer)
+			buffer = ""
+		}
+	}
+	if buffer != "" {
+		result = append(result, buffer)
+	}
+	return result
 }

@@ -97,6 +97,11 @@ func (f *FilterBuilder) WithRegex(key string, value string, ignoreCase bool) *Fi
 	return f
 }
 
+func (f *FilterBuilder) WithRange(key string, minVal, maxVal interface{}) *FilterBuilder {
+	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$gte", Value: minVal}, {Key: "$lte", Value: maxVal}}})
+	return f
+}
+
 func (f *FilterBuilder) WithGreaterThanEqual(key string, value interface{}) *FilterBuilder {
 	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$gte", Value: value}}})
 	return f

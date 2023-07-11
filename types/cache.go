@@ -23,8 +23,9 @@ func (c *Cache) GetGUID() string {
 	return c.GUID
 }
 func (c *Cache) SetGUID(guid string) {
-	//allow user defined GUID
-	if c.GUID == "" {
+	//if user defined a GUID do not change it
+	//alow only to reset it to empty
+	if c.GUID == "" || guid == "" {
 		c.GUID = guid
 	}
 }

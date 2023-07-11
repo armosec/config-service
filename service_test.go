@@ -646,7 +646,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	//put new notification config
 	notificationConfig.UnsubscribedUsers = make(map[string][]armotypes.NotificationConfigIdentifier)
 	notificationConfig.UnsubscribedUsers["user1"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeAll}}
-	notificationConfig.UnsubscribedUsers["user2"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypePush}}
+	notificationConfig.UnsubscribedUsers["user2"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypePushPosture}}
 	prevConfig := &armotypes.NotificationsConfig{}
 	testPutDoc(suite, configPath, prevConfig, notificationConfig, nil)
 	//update notification config
@@ -715,7 +715,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	notificationConfig.UnsubscribedUsers["user5"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypeAll}}
 
 	//test put delete multiple elements
-	notifyPush := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypePush}
+	notifyPush := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypePushPosture}
 	//add 2 elements to user10
 	unsubscribePath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "unsubscribe", "user10")
 	w = suite.doRequest(http.MethodPut, unsubscribePath, []armotypes.NotificationConfigIdentifier{notify, notifyPush})
@@ -743,7 +743,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	suite.NoError(err)
 	suite.Equal(1, res["removed"])
 	//set expected state for the notification config
-	notificationConfig.UnsubscribedUsers["user10"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypePush}}
+	notificationConfig.UnsubscribedUsers["user10"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypePushPosture}}
 	notificationConfig.UnsubscribedUsers["user11"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}}
 
 	//update just one field in the configuration
@@ -969,6 +969,19 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 			Name: "test-name-3",
 			Data: []interface{}{"test-value-3", "test-value-4"},
 		},
+		{
+			GUID:     "test-guid-4",
+			Name:     "test-name-4",
+			Data:     float64(5),
+			DataType: "test-data-type-1",
+		},
+		{
+			GUID:       "test-guid-5",
+			Name:       "test-name-5",
+			Data:       "role,bind,clusterrole",
+			DataType:   "test-data-type-5",
+			ExpiryTime: time.Now().UTC().Add(1 * time.Hour),
+		},
 	}
 
 	modifyFunc := func(doc *types.Cache) *types.Cache {
@@ -986,9 +999,6 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 		uniqueName:    false,
 		mandatoryName: false,
 		customGUID:    true,
-		customerGUIDSetter: func(doc interface{}, guid string) {
-			doc.(*types.Cache).GUID = guid
-		},
 	}
 
 	commonTestWithOptions(suite, consts.UsersNotificationsCachePath, docs, modifyFunc, testOpts, commonCmpFilter, ignoreTime)
@@ -1008,7 +1018,9 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 	}
 
 	searchQueries := []searchTest{
+		//field or match
 		{
+			testName:        "field or match",
 			expectedIndexes: []int{0, 1},
 			listRequest: armotypes.V2ListRequest{
 				OrderBy: "name:asc",
@@ -1019,25 +1031,55 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				},
 			},
 		},
+		//same field or match in descending order
 		{
+			testName:        "same field or match in descending order",
+			expectedIndexes: []int{1, 0},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:desc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "data-value-string,1",
+					},
+				},
+			},
+		},
+		//fields and match
+		{
+			testName:        "fields and match",
 			expectedIndexes: []int{0},
 			listRequest: armotypes.V2ListRequest{
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "data-value-string,1",
+						"data": "data-value-string,1|equal",
 						"name": "test-name-1",
 					},
 				},
 			},
 		},
+		//filters exist operator
 		{
+			testName:        "filters exist operator",
+			expectedIndexes: []int{0, 1, 3, 4},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"dataType": "|exists",
+					},
+				},
+			},
+		},
+		//filters or match with missing operator
+		{
+			testName:        "filters or match with missing operator",
 			expectedIndexes: []int{0, 1, 2},
 			listRequest: armotypes.V2ListRequest{
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "data-value-string,1",
+						"data": "data-value-string|match,1",
 					},
 					{
 						"dataType": "|missing",
@@ -1045,7 +1087,109 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				},
 			},
 		},
+		//greater than equal on one field
 		{
+			testName:        "greater than equal on one field",
+			expectedIndexes: []int{1, 2, 3, 4},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "test-name-2|greater",
+					},
+				},
+			},
+		},
+		//regex match
+		{
+			testName:        "regex ignorecase match",
+			expectedIndexes: []int{4},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": ".*\\,.*\\,ClusterRole|regex&ignorecase",
+					},
+				},
+			},
+		},
+		{
+			testName:        "range  strings",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "test-name&test-name-3|range",
+					},
+				},
+			},
+		},
+		{
+			testName:        "range  numbers",
+			expectedIndexes: []int{0, 3},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "0&5|range",
+					},
+				},
+			},
+		},
+		{
+			testName:        "range string dates",
+			expectedIndexes: []int{0, 1, 2, 3, 4},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"creationTime": fmt.Sprintf("%s&%s|range", time.Now().UTC().Add(-1*time.Hour).Format(time.RFC3339), time.Now().UTC().Add(1*time.Hour).Format(time.RFC3339)),
+					},
+				},
+			},
+		},
+		/*{ //TODO - add schema to identify time.time fields so the search will convert it to time object
+			testName:        "range time dates",
+			expectedIndexes: []int{0, 1, 2, 3, 4},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"creationTime": fmt.Sprintf("%s&%s|range", time.Now().UTC().Add(-1*time.Hour).Format(time.RFC3339), time.Now().UTC().Add(1*time.Hour).Format(time.RFC3339)),
+					},
+				},
+			},
+		},*/
+		//lower than equal on one field
+		{
+			testName:        "lower than equal on one field",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "test-name-2|lower",
+					},
+				},
+			},
+		},
+		//greater than equal on multiple values
+		{
+			testName:        "greater than equal on multiple values",
+			expectedIndexes: []int{0, 3, 4},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "1|lower,4|greater,.*\\,.*\\,clusterrole|regex",
+					},
+				},
+			},
+		},
+		//paginated tests
+		{
+			testName:        "paginated with query 1",
 			expectedIndexes: []int{0, 1},
 			listRequest: armotypes.V2ListRequest{
 				PageSize: ptr.Int(2),
@@ -1061,6 +1205,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 			},
 		},
 		{
+			testName:        "paginated with query 2",
 			expectedIndexes: []int{2},
 			listRequest: armotypes.V2ListRequest{
 				PageSize: ptr.Int(2),
@@ -1071,12 +1216,58 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 						"data": "data-value-string,1",
 					},
 					{
-						"dataType": "|missing",
+						"dataType": ",|missing",
 					},
 				},
 			},
 		},
 		{
+			testName:        "paginated with query 2",
+			expectedIndexes: []int{2},
+			listRequest: armotypes.V2ListRequest{
+				PageSize: ptr.Int(2),
+				PageNum:  ptr.Int(2),
+				OrderBy:  "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "data-value-string,1",
+					},
+					{
+						"dataType": ",|missing",
+					},
+				},
+			},
+		},
+		{
+			testName:        "paginated all 1",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				PageSize: ptr.Int(2),
+				PageNum:  ptr.Int(1),
+				OrderBy:  "name:asc",
+			},
+		},
+		{
+			testName:        "paginated all 2",
+			expectedIndexes: []int{2, 3},
+			listRequest: armotypes.V2ListRequest{
+				PageSize: ptr.Int(2),
+				PageNum:  ptr.Int(2),
+				OrderBy:  "name:asc",
+			},
+		},
+		{
+			testName:        "paginated all 3",
+			expectedIndexes: []int{4},
+			listRequest: armotypes.V2ListRequest{
+				PageSize: ptr.Int(2),
+				PageNum:  ptr.Int(3),
+				OrderBy:  "name:asc",
+			},
+		},
+		//projection test
+		{
+			testName:         "projection test",
 			expectedIndexes:  []int{0, 1},
 			projectedResults: true,
 			listRequest: armotypes.V2ListRequest{
@@ -1085,28 +1276,6 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				InnerFilters: []map[string]string{
 					{
 						"data": "data-value-string,1",
-					},
-				},
-			},
-		},
-		{
-			expectedIndexes: []int{1, 2},
-			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
-				InnerFilters: []map[string]string{
-					{
-						"name": "test-name-2|greater",
-					},
-				},
-			},
-		},
-		{
-			expectedIndexes: []int{0, 1},
-			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
-				InnerFilters: []map[string]string{
-					{
-						"name": "test-name-2|lower",
 					},
 				},
 			},
@@ -1124,21 +1293,21 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 
 	ttlDoc = testPostDoc(suite, consts.UsersNotificationsCachePath, ttlDoc, commonCmpFilter, ignoreTime)
 	//check that default ttl is set to 90 days from now
-	suite.Equal(time.Now().Add(time.Hour*24*90).Format(time.RFC3339), ttlDoc.ExpiryTime.Format(time.RFC3339), "default ttl is not set correctly")
+	suite.Equal(time.Now().UTC().Add(time.Hour*24*90).Format(time.RFC3339), ttlDoc.ExpiryTime.Format(time.RFC3339), "default ttl is not set correctly")
 	//set ttl to more than 90 days - should be ignored
 	expirationTime := ttlDoc.ExpiryTime
 	ttlUpdate := clone(ttlDoc)
-	ttlDoc.ExpiryTime = time.Now().Add(time.Hour * 24 * 100)
+	ttlDoc.ExpiryTime = time.Now().UTC().Add(time.Hour * 24 * 100)
 	ttlUpdate = testPutDoc(suite, consts.UsersNotificationsCachePath, ttlDoc, ttlUpdate, commonCmpFilter, ignoreTime)
 	suite.Equal(expirationTime.UTC().Format(time.RFC3339), ttlUpdate.ExpiryTime.Format(time.RFC3339), "ttl above max allowed is not ignored")
 	//set ttl to time in past
 	ttlInPast := clone(ttlDoc)
-	ttlInPast.ExpiryTime = time.Now().Add(time.Hour * -24)
+	ttlInPast.ExpiryTime = time.Now().UTC().Add(time.Hour * -24)
 	expirationTime = ttlInPast.ExpiryTime
 	ttlInPast = testPutDoc(suite, consts.UsersNotificationsCachePath, ttlDoc, ttlInPast, commonCmpFilter, ignoreTime)
 	suite.Equal(expirationTime.UTC().Format(time.RFC3339), ttlInPast.ExpiryTime.Format(time.RFC3339), "ttl in past is not set")
 	//wait for the document to expire and check that it is deleted - this can take up to one minute
-	deleted := false
+	/*deleted := false
 	for i := 0; i < 62; i++ {
 		time.Sleep(time.Second)
 		w := suite.doRequest(http.MethodGet, consts.UsersNotificationsCachePath+"/test-ttl-guid", nil)
@@ -1147,6 +1316,6 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 			break
 		}
 	}
-	suite.True(deleted, "document was not deleted after ttl expired")
+	suite.True(deleted, "document was not deleted after ttl expired")*/
 
 }

@@ -10,14 +10,30 @@ import (
 	"github.com/armosec/armoapi-go/armotypes"
 )
 
+// TODO:
+// support 'Until' (TBD according to what time - creation time or update time)
+// Add missing operator "like" for wildcards (need to transform to regex)
+// support array element match - needs some schema information of what are searchable arrays)
+// support time range for fields of time.time type (vs. RFC3339 string) - need to add schema information
 const (
-	existsFilter   string = "exists"
-	missingFilter  string = "missing"
-	matchFilter    string = "match"
-	greaterFilter  string = "greater"
-	lowerFilter    string = "lower"
+	existsOperator   string = "exists"
+	equalOperator    string = "equal"
+	missingOperator  string = "missing"
+	matchOperator    string = "match"
+	greaterOperator  string = "greater"
+	lowerOperator    string = "lower"
+	regexOperator    string = "regex"
+	rangeOperator    string = "range"
+	ignoreCaseOption string = "ignorecase"
+
 	ascendingSort  string = "asc"
 	descendingSort string = "desc"
+
+	valueSeparator    = ","
+	operatorSeparator = "|"
+	subQuerySeparator = "&"
+	sortTypeSeparator = ":"
+	escapeChar        = "\\"
 )
 
 const maxV2PageSize = 1000
@@ -40,9 +56,9 @@ func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error
 		//default sort by update time
 		request.OrderBy = fmt.Sprintf("%s:%s", consts.UpdatedTimeField, descendingSort)
 	}
-	sortFields := strings.Split(request.OrderBy, ",")
+	sortFields := strings.Split(request.OrderBy, valueSeparator)
 	for _, sortField := range sortFields {
-		sortNameAndType := strings.Split(sortField, ":")
+		sortNameAndType := strings.Split(sortField, sortTypeSeparator)
 		if len(sortNameAndType) != 2 {
 			return nil, fmt.Errorf("invalid sort field %s", sortField)
 		}
@@ -82,20 +98,91 @@ func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error
 func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) {
 	filterBuilder := db.NewFilterBuilder()
 	for key, value := range innerFilter {
-		valueAndOperation := strings.Split(value, "|")
-		values := strings.Split(valueAndOperation[0], ",")
-		operation := matchFilter
-		if len(valueAndOperation) == 2 {
-			operation = valueAndOperation[1]
+		// Split the value into parts by comma
+		parts := utils.SplitIgnoreEscaped(value, valueSeparator, escapeChar)
+		//parts := strings.Split(value, valueSeparator)
+		// Prepare a slice to hold all filters for this key
+		filters := make([]*db.FilterBuilder, 0, len(parts))
+		for _, part := range parts {
+			// Split each part into value and operator by pipe
+			valueAndOperation := strings.Split(part, operatorSeparator)
+			value := valueAndOperation[0]
+			value = strings.ReplaceAll(value, escapeChar, "")
+			operator := matchOperator
+			operatorOption := ""
+			if len(valueAndOperation) == 2 {
+				operatorAndOption := strings.Split(valueAndOperation[1], subQuerySeparator)
+				operator = operatorAndOption[0]
+				if len(operatorAndOption) == 2 {
+					operatorOption = operatorAndOption[1]
+				}
+			}
+			switch operator {
+			case existsOperator:
+				filters = append(filters, db.NewFilterBuilder().AddExists(key, true))
+			case missingOperator:
+				filters = append(filters, db.NewFilterBuilder().AddExists(key, false))
+			case matchOperator, equalOperator:
+				if key == consts.GUIDField {
+					filters = append(filters, db.NewFilterBuilder().WithID(value))
+				} else {
+					filters = append(filters, db.NewFilterBuilder().WithValue(key, utils.String2Interface(value)))
+				}
+			case greaterOperator:
+				filters = append(filters, db.NewFilterBuilder().WithGreaterThanEqual(key, utils.String2Interface(value)))
+			case lowerOperator:
+				filters = append(filters, db.NewFilterBuilder().WithLowerThanEqual(key, utils.String2Interface(value)))
+			case regexOperator:
+				ignoreCase := operatorOption == ignoreCaseOption
+				filters = append(filters, db.NewFilterBuilder().WithRegex(key, value, ignoreCase))
+			case rangeOperator:
+				rangeValues := strings.Split(value, subQuerySeparator)
+				if len(rangeValues) != 2 {
+					return nil, fmt.Errorf("value missing range separator %s", value)
+				}
+				if rangeValues[0] == "" || rangeValues[1] == "" {
+					return nil, fmt.Errorf("invalid range value %s", value)
+				}
+				val1 := utils.String2Interface(rangeValues[0])
+				val2 := utils.String2Interface(rangeValues[1])
+				if !utils.SameType(val1, val2) {
+					return nil, fmt.Errorf("invalid range must use same value types %s", value)
+				}
+				filters = append(filters, db.NewFilterBuilder().WithRange(key, val1, val2))
+			default:
+				return nil, fmt.Errorf("unsupported operator %s", operator)
+			}
 		}
-		switch operation {
-		case existsFilter:
+		// Add all filters for this key to the main filter builder
+		if len(filters) > 1 {
+			filterBuilder.AddOr(filters...)
+		} else if len(filters) == 1 {
+			filterBuilder.WithFilter(filters[0])
+		}
+	}
+	if filterBuilder.Len() == 0 {
+		return nil, nil
+	}
+	return filterBuilder, nil
+}
+
+func buildInnerFilter1(innerFilter map[string]string) (*db.FilterBuilder, error) {
+	filterBuilder := db.NewFilterBuilder()
+	for key, value := range innerFilter {
+		valueAndOperation := strings.Split(value, operatorSeparator)
+		values := strings.Split(valueAndOperation[0], valueSeparator)
+		operator := matchOperator
+		if len(valueAndOperation) == 2 {
+			operator = valueAndOperation[1]
+		}
+		switch operator {
+		case existsOperator:
 			filterBuilder.AddExists(key, true)
 
-		case missingFilter:
+		case missingOperator:
 			filterBuilder.AddExists(key, false)
 
-		case matchFilter:
+		case matchOperator:
 			filters := make([]*db.FilterBuilder, len(values))
 			isID := key == consts.GUIDField
 			for i, value := range values {
@@ -111,7 +198,7 @@ func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) 
 				filterBuilder.WithFilter(filters[0])
 			}
 
-		case greaterFilter:
+		case greaterOperator:
 			filters := make([]*db.FilterBuilder, len(values))
 			for i, value := range values {
 				filters[i] = db.NewFilterBuilder().WithGreaterThanEqual(key, utils.String2Interface(value))
@@ -122,7 +209,7 @@ func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) 
 				filterBuilder.WithFilter(filters[0])
 			}
 
-		case lowerFilter:
+		case lowerOperator:
 			filters := make([]*db.FilterBuilder, len(values))
 			for i, value := range values {
 				filters[i] = db.NewFilterBuilder().WithLowerThanEqual(key, utils.String2Interface(value))
@@ -134,7 +221,7 @@ func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) 
 			}
 
 		default:
-			return nil, fmt.Errorf("unsupported operation %s", operation)
+			return nil, fmt.Errorf("unsupported operator %s", operator)
 		}
 
 	}

@@ -21,10 +21,9 @@ import (
 
 // //////////////////////////////////////// Test scenarios //////////////////////////////////////////
 type testOptions struct {
-	uniqueName         bool
-	mandatoryName      bool
-	customGUID         bool
-	customerGUIDSetter func(doc interface{}, guid string)
+	uniqueName    bool
+	mandatoryName bool
+	customGUID    bool	
 }
 
 func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string, testDocs []T, modifyFunc func(T) T, testOptions testOptions, compareNewOpts ...cmp.Option) {
@@ -50,11 +49,7 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 	suite.NotNil(doc1.GetCreationTime(), "creation time should not be nil")
 	suite.True(createTime.Before(*doc1.GetCreationTime()) || createTime.Equal(*doc1.GetCreationTime()), "creation time is not recent")
 	sameNameDoc := clone(doc1)
-	if testOptions.customerGUIDSetter != nil {
-		testOptions.customerGUIDSetter(sameNameDoc, "")
-	} else {
-		sameNameDoc.SetGUID("")
-	}
+	sameNameDoc.SetGUID("")
 	if testOptions.uniqueName {
 		//post doc with same name should fail
 		testBadRequest(suite, http.MethodPost, path, errorNameExist(sameNameDoc.GetName()), sameNameDoc, http.StatusBadRequest)
@@ -69,11 +64,7 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 	}
 	noNameDoc := clone(doc1)
 	noNameDoc.SetName("")
-	if testOptions.customerGUIDSetter != nil {
-		testOptions.customerGUIDSetter(noNameDoc, "")
-	} else {
-		noNameDoc.SetGUID("")
-	}
+	noNameDoc.SetGUID("")
 	if testOptions.mandatoryName {
 		//post doc with no name should fail
 		testBadRequest(suite, http.MethodPost, path, errorMissingName, &noNameDoc, http.StatusBadRequest)
@@ -128,27 +119,16 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 	//test put with guid in path
 	oldDoc1 = clone(doc1)
 	doc1 = modifyFunc(doc1)
-	if testOptions.customerGUIDSetter != nil {
-		testOptions.customerGUIDSetter(doc1, "")
-	} else {
-		doc1.SetGUID("")
-	}
+	doc1.SetGUID("")
 	testPutDocWGuid(suite, path, oldDoc1, doc1, compareNewOpts...)
 	//test put with no guid should fail
 	noGuidDoc := clone(doc1)
-	if testOptions.customerGUIDSetter != nil {
-		testOptions.customerGUIDSetter(noGuidDoc, "")
-	} else {
-		noGuidDoc.SetGUID("")
-	}
+	noGuidDoc.SetGUID("")
 	testBadRequest(suite, http.MethodPut, path, errorMissingGUID, &noGuidDoc, http.StatusBadRequest)
 	//not existing doc should fail
 	noneExistingDoc := clone(doc1)
-	if testOptions.customerGUIDSetter != nil {
-		testOptions.customerGUIDSetter(noneExistingDoc, "not_exist")
-	} else {
-		noneExistingDoc.SetGUID("not_exist")
-	}
+	noneExistingDoc.SetGUID("")
+	noneExistingDoc.SetGUID("not_exist")
 	testBadRequest(suite, http.MethodPut, path, errorDocumentNotFound, &noneExistingDoc, http.StatusNotFound)
 
 	//GET
@@ -225,6 +205,7 @@ type queryTest[T types.DocContent] struct {
 }
 
 type searchTest struct {
+	testName         string
 	listRequest      armotypes.V2ListRequest
 	expectedIndexes  []int
 	projectedResults bool
@@ -313,26 +294,26 @@ func testGetByQuery[T types.DocContent](suite *MainTestSuite, basePath string, t
 
 }
 
-func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath string, testDocs []T, projectionTestDocs []T, queries []searchTest, compareOpts ...cmp.Option) {
+func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath string, testDocs []T, projectionTestDocs []T, tests []searchTest, compareOpts ...cmp.Option) {
 	newDocs := testBulkPostDocs(suite, basePath, testDocs, compareOpts...)
 
-	for _, query := range queries {
-		w := suite.doRequest(http.MethodPost, basePath+"/search", query.listRequest)
+	for _, test := range tests {
+		w := suite.doRequest(http.MethodPost, basePath+"/search", test.listRequest)
 		suite.Equal(http.StatusOK, w.Code)
 		var result types.SearchResult[T]
 		err := json.Unmarshal(w.Body.Bytes(), &result)
 		suite.NoError(err)
-		suite.Equal(len(query.expectedIndexes), len(result.Results))
+		suite.Equal(len(test.expectedIndexes), len(result.Results))
 		var expectedDocs []T
-		for _, index := range query.expectedIndexes {
-			if query.projectedResults {
+		for _, index := range test.expectedIndexes {
+			if test.projectedResults {
 				expectedDocs = append(expectedDocs, projectionTestDocs[index])
 			} else {
 				expectedDocs = append(expectedDocs, testDocs[index])
 			}
 		}
 		diff := cmp.Diff(result.Results, expectedDocs, compareOpts...)
-		suite.Equal("", diff)
+		suite.Equal("", diff, "Unexpected diff: %s", test.testName)
 	}
 
 	//test bad requests for search
@@ -344,17 +325,19 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 			},
 		},
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/search", errorUnsupportedOperation("unknownOp"), req, http.StatusBadRequest)
+	testBadRequest(suite, http.MethodPost, basePath+"/search", errorUnsupportedOperator("unknownOp"), req, http.StatusBadRequest)
 	//invalid sort type
 	req = armotypes.V2ListRequest{
 		OrderBy: "name:unknownOrder",
 	}
 	testBadRequest(suite, http.MethodPost, basePath+"/search", errorInvalidSortType("unknownOrder"), req, http.StatusBadRequest)
 
-	//delete all docs
+	//bulk delete all docs
+	guids := []string{}
 	for _, doc := range newDocs {
-		testDeleteDocByGUID(suite, basePath, doc, compareOpts...)
+		guids = append(guids, doc.GetGUID())
 	}
+	testBulkDeleteByGUIDWithBody(suite, basePath, guids)
 
 }
 
@@ -419,9 +402,8 @@ func errorNameExist(name ...string) string {
 	return `{"error":"` + msg + `"}`
 }
 
-func errorUnsupportedOperation(op string) string {
-	//"{\"error\":\"unsupported operation unknownOp\"}"
-	return `{"error":"unsupported operation ` + op + `"}`
+func errorUnsupportedOperator(op string) string {
+	return `{"error":"unsupported operator ` + op + `"}`
 }
 
 func errorInvalidSortType(sortType string) string {
