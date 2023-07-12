@@ -646,7 +646,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	//put new notification config
 	notificationConfig.UnsubscribedUsers = make(map[string][]armotypes.NotificationConfigIdentifier)
 	notificationConfig.UnsubscribedUsers["user1"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeVulnerabilityNewFix}}
-	notificationConfig.UnsubscribedUsers["user2"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypePushPosture}}
+	notificationConfig.UnsubscribedUsers["user2"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypePush}}
 	prevConfig := &armotypes.NotificationsConfig{}
 	testPutDoc(suite, configPath, prevConfig, notificationConfig, nil)
 	//update notification config
@@ -715,7 +715,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	notificationConfig.UnsubscribedUsers["user5"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypeVulnerabilityNewFix}}
 
 	//test put delete multiple elements
-	notifyPush := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypePushPosture}
+	notifyPush := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypePush}
 	//add 2 elements to user10
 	unsubscribePath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "unsubscribe", "user10")
 	w = suite.doRequest(http.MethodPut, unsubscribePath, []armotypes.NotificationConfigIdentifier{notify, notifyPush})
@@ -743,7 +743,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	suite.NoError(err)
 	suite.Equal(1, res["removed"])
 	//set expected state for the notification config
-	notificationConfig.UnsubscribedUsers["user10"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypePushPosture}}
+	notificationConfig.UnsubscribedUsers["user10"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypePush}}
 	notificationConfig.UnsubscribedUsers["user11"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}}
 
 	//update just one field in the configuration
@@ -1332,7 +1332,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 	ttlInPast = testPutDoc(suite, consts.UsersNotificationsCachePath, ttlDoc, ttlInPast, commonCmpFilter, ignoreTime)
 	suite.Equal(expirationTime.UTC().Format(time.RFC3339), ttlInPast.ExpiryTime.Format(time.RFC3339), "ttl in past is not set")
 	//wait for the document to expire and check that it is deleted - this can take up to one minute
-	/*deleted := false
+	deleted := false
 	for i := 0; i < 62; i++ {
 		time.Sleep(time.Second)
 		w := suite.doRequest(http.MethodGet, consts.UsersNotificationsCachePath+"/test-ttl-guid", nil)
@@ -1340,7 +1340,8 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 			deleted = true
 			break
 		}
+		suite.T().Logf("waiting for document to expire, for %d seconds", i)
 	}
-	suite.True(deleted, "document was not deleted after ttl expired")*/
+	suite.True(deleted, "document was not deleted after ttl expired")
 
 }

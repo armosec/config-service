@@ -72,8 +72,8 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 	if err := opts.validate(); err != nil {
 		panic(err)
 	}
-	//update collection index if needed
-	if err := db.Index(opts.dbCollection); err != nil {
+	//validate and initialize collection
+	if err := db.ValidateCollection(opts.dbCollection); err != nil {
 		panic(err)
 	}
 	routerGroup := g.Group(opts.path)

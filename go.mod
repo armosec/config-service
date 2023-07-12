@@ -3,7 +3,7 @@ module config-service
 go 1.18
 
 require (
-	github.com/armosec/armoapi-go v0.0.199
+	github.com/armosec/armoapi-go v0.0.201
 	github.com/aws/smithy-go v1.13.5
 	github.com/chidiwilliams/flatbson v0.3.0
 	github.com/dchest/uniuri v1.2.0
@@ -28,7 +28,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.11.1
 	go.opentelemetry.io/otel/trace v1.11.1
 	go.uber.org/zap v1.23.0
-	golang.org/x/exp v0.0.0-20230116083435-1de6713980de
+	golang.org/x/exp v0.0.0-20230711023510-fffb14384f22
 	k8s.io/utils v0.0.0-20221108210102-8e77b1f39fe2
 )
 
