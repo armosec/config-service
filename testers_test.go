@@ -299,7 +299,7 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 	newDocs := testBulkPostDocs(suite, basePath, testDocs, compareOpts...)
 
 	for _, test := range tests {
-		w := suite.doRequest(http.MethodPost, basePath+"/search", test.listRequest)
+		w := suite.doRequest(http.MethodPost, basePath+"/query", test.listRequest)
 		suite.Equal(http.StatusOK, w.Code)
 		var result types.SearchResult[T]
 		err := json.Unmarshal(w.Body.Bytes(), &result)
@@ -330,20 +330,20 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 			},
 		},
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/search", errorUnsupportedOperator("unknownOp"), req, http.StatusBadRequest)
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorUnsupportedOperator("unknownOp"), req, http.StatusBadRequest)
 
 	//invalid sort type
 	req = armotypes.V2ListRequest{
 		OrderBy: "name:unknownOrder",
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/search", errorMessage("invalid sort type unknownOrder"), req, http.StatusBadRequest)
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("invalid sort type unknownOrder"), req, http.StatusBadRequest)
 
 	//use of unsupported Until
 	req = armotypes.V2ListRequest{
 		Until: ptr.Time(time.Now()),
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/search", errorMessage("until is not supported"), req, http.StatusBadRequest)
-	
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("until is not supported"), req, http.StatusBadRequest)
+
 	//range with no &
 	req = armotypes.V2ListRequest{
 		InnerFilters: []map[string]string{
@@ -352,8 +352,8 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 			},
 		},
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/search", errorMessage("value missing range separator something"), req, http.StatusBadRequest)
-	
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("value missing range separator something"), req, http.StatusBadRequest)
+
 	//range with different data types
 	req = armotypes.V2ListRequest{
 		InnerFilters: []map[string]string{
@@ -362,7 +362,7 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 			},
 		},
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/search", errorMessage("invalid range must use same value types found int64 string"), req, http.StatusBadRequest)
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("invalid range must use same value types found int64 string"), req, http.StatusBadRequest)
 
 	//bulk delete all docs
 	guids := []string{}

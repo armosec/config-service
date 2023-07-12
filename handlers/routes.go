@@ -18,7 +18,7 @@ type routerOptions[T types.DocContent] struct {
 	serveGetWithGUIDOnly      bool                      //default false, GET will return the document by GUID only
 	serveGetIncludeGlobalDocs bool                      //default false, when true, in GET all the response will include global documents (with customers[""])
 	servePost                 bool                      //default true, serve POST
-	servePostV2ListRequests   bool                      //default false, when true  POST /<path>/search with V2ListRequest is served
+	servePostV2ListRequests   bool                      //default false, when true  POST /<path>/query with V2ListRequest is served
 	servePut                  bool                      //default true, serve PUT /<path> to update document by GUID in body and PUT /<path>/<GUID> to update document by GUID in path
 	serveDelete               bool                      //default true, serve DELETE  /<path>/<GUID> to delete document by GUID in path
 	serveBulkDelete           bool                      //default true, serve DELETE /<path>/bulk with list of GUIDs in body or query to delete documents by GUIDs
@@ -129,7 +129,7 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
 	}
 	if opts.servePostV2ListRequests {
-		routerGroup.POST("/search", HandlePostV2ListRequest[T])
+		routerGroup.POST("/query", HandlePostV2ListRequest[T])
 	}
 	//add array handlers
 	for _, containerHandler := range opts.containersHandlers {
