@@ -27,7 +27,7 @@ var pluralize = plural.NewClient()
 func ResponseInternalServerError(c *gin.Context, msg string, err error) {
 	//try to identify error and return appropriate status code
 	if db.IsDuplicateKeyError(err) {
-		ResponseDuplicateKey(c, consts.GUIDField)
+		ResponseConflict(c, consts.GUIDField)
 		return
 	}
 	if errors.Is(err, context.Canceled) {
@@ -57,12 +57,19 @@ func ResponseDuplicateNames(c *gin.Context, names ...string) {
 	ResponseDuplicateKey(c, "name", names...)
 }
 
-func ResponseDuplicateKey(c *gin.Context, key string, values ...string) {
+func ResponseConflict(c *gin.Context, key string, values ...string) {
 	dupNames := map[string][]string{key: values}
-	ResponseDuplicateKeysNValues(c, dupNames)
+	msg := createAlreadyExistsMsg(dupNames)
+	log.LogNTrace(msg, c)
+	c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": msg})
 }
 
-func ResponseDuplicateKeysNValues(c *gin.Context, key2Values map[string][]string) {
+func ResponseDuplicateKey(c *gin.Context, key string, values ...string) {
+	dupNames := map[string][]string{key: values}
+	ResponseBadRequest(c, createAlreadyExistsMsg(dupNames))
+}
+
+func createAlreadyExistsMsg(key2Values map[string][]string) string {
 	var msg string
 	keys := make([]string, 0, len(key2Values))
 	for k := range key2Values {
@@ -82,7 +89,11 @@ func ResponseDuplicateKeysNValues(c *gin.Context, key2Values map[string][]string
 			msg = fmt.Sprintf("%s %s already exist", pluralize.Plural(key), strings.Join(values, ","))
 		}
 	}
-	ResponseBadRequest(c, msg)
+	return msg
+}
+
+func ResponseDuplicateKeysNValues(c *gin.Context, key2Values map[string][]string) {
+	ResponseBadRequest(c, createAlreadyExistsMsg(key2Values))
 }
 
 func ResponseMissingGUID(c *gin.Context) {

@@ -441,7 +441,7 @@ func (suite *MainTestSuite) TestCustomer() {
 	newCustomer.LicenseType = "partial"
 	testPutPartialDoc(suite, "/customer", oldCustomer, partialCustomer, newCustomer, customerCompareFilter)
 	//test post with existing guid - expect error 400
-	testBadRequest(suite, http.MethodPost, "/customer_tenant", errorGUIDExists, customer, http.StatusBadRequest)
+	testBadRequest(suite, http.MethodPost, "/customer_tenant", errorGUIDExists, customer, http.StatusConflict)
 	//test post customer without GUID
 	customer.GUID = ""
 	testBadRequest(suite, http.MethodPost, "/customer_tenant", errorMissingGUID, customer, http.StatusBadRequest)

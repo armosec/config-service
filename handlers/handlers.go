@@ -155,7 +155,7 @@ func PostDocHandler[T types.DocContent](c *gin.Context, docs []T) {
 	var err error
 	if docs, err = db.InsertDocuments(c, docs); err != nil {
 		if db.IsDuplicateKeyError(err) {
-			ResponseDuplicateKey(c, consts.GUIDField)
+			ResponseConflict(c, consts.GUIDField)
 			return
 		} else {
 			ResponseInternalServerError(c, "failed to create document", err)
@@ -173,7 +173,7 @@ func PostDocHandler[T types.DocContent](c *gin.Context, docs []T) {
 func PostDBDocumentHandler[T types.DocContent](c *gin.Context, dbDoc types.Document[T]) {
 	if _, err := db.InsertDBDocument(c, dbDoc); err != nil {
 		if db.IsDuplicateKeyError(err) {
-			ResponseDuplicateKey(c, consts.GUIDField)
+			ResponseConflict(c, consts.GUIDField)
 			return
 		}
 		ResponseInternalServerError(c, "failed to create document", err)
