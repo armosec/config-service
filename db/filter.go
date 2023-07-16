@@ -19,14 +19,19 @@ func NewFilterBuilder() *FilterBuilder {
 	}
 }
 
-func (f *FilterBuilder) WithFilter(filter bson.D) *FilterBuilder {
+func (f *FilterBuilder) WithFilter(filterBuilder *FilterBuilder) *FilterBuilder {
+	filter := filterBuilder.get()
 	for e := range filter {
 		f.filter = append(f.filter, filter[e])
 	}
 	return f
 }
 
-func (f *FilterBuilder) Get() bson.D {
+func (f *FilterBuilder) Len() int {
+	return len(f.filter)
+}
+
+func (f *FilterBuilder) get() bson.D {
 	return f.filter
 }
 
@@ -83,6 +88,30 @@ func (f *FilterBuilder) WithValue(key string, value interface{}) *FilterBuilder 
 	return f
 }
 
+func (f *FilterBuilder) WithRegex(key string, value string, ignoreCase bool) *FilterBuilder {
+	regexValue := bson.D{{Key: "$regex", Value: value}}
+	if ignoreCase {
+		regexValue = append(regexValue, bson.E{Key: "$options", Value: "i"})
+	}
+	f.filter = append(f.filter, bson.E{Key: key, Value: regexValue})
+	return f
+}
+
+func (f *FilterBuilder) WithRange(key string, minVal, maxVal interface{}) *FilterBuilder {
+	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$gte", Value: minVal}, {Key: "$lte", Value: maxVal}}})
+	return f
+}
+
+func (f *FilterBuilder) WithGreaterThanEqual(key string, value interface{}) *FilterBuilder {
+	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$gte", Value: value}}})
+	return f
+}
+
+func (f *FilterBuilder) WithLowerThanEqual(key string, value interface{}) *FilterBuilder {
+	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$lte", Value: value}}})
+	return f
+}
+
 func (f *FilterBuilder) WithNotEqual(key string, value interface{}) *FilterBuilder {
 	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$ne", Value: value}}})
 	return f
@@ -103,13 +132,21 @@ func (f *FilterBuilder) WithNotIn(key string, value interface{}) *FilterBuilder 
 	return f
 }
 
-func (f *FilterBuilder) WithExists(key string, value bool) *FilterBuilder {
+func (f *FilterBuilder) AddExists(key string, value bool) *FilterBuilder {
 	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$exists", Value: value}}})
 	return f
 }
 
-func (f *FilterBuilder) AddNotExists(key string) *FilterBuilder {
-	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$exists", Value: false}}})
+func (f *FilterBuilder) AddOr(filters ...*FilterBuilder) *FilterBuilder {
+	orM := []bson.M{}
+	for _, filter := range filters {
+		m := bson.M{}
+		for i := range filter.filter {
+			m[filter.filter[i].Key] = filter.filter[i].Value
+		}
+		orM = append(orM, m)
+	}
+	f.filter = bson.D{{Key: "$or", Value: orM}}
 	return f
 }
 

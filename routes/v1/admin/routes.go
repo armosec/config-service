@@ -49,14 +49,14 @@ func getCustomers(c *gin.Context) {
 	if query == nil {
 		handlers.ResponseBadRequest(c, "must provide query params") //TODO: support pagination and return all customers
 	}
-	projection := db.NewProjectionBuilder()
+	findOpts := db.NewFindOptions().WithFilter(query)
 	if projectionParam := c.Query(consts.ProjectionParam); projectionParam != "" {
 		includeFields := strings.Split(projectionParam, ",")
 		if len(includeFields) > 0 {
-			projection.Include(includeFields...)
+			findOpts.Projection().Include(includeFields...)
 		}
 	}
-	customers, error := db.Find[*types.Customer](c, query, projection.Get())
+	customers, error := db.AdminFind[*types.Customer](c, findOpts)
 	if error != nil {
 		log.LogNTraceError("getCustomers completed with errors", error, c)
 		handlers.ResponseInternalServerError(c, "getCustomers completed with errors", error)

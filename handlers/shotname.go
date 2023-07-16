@@ -18,10 +18,9 @@ import (
 
 // getAllShortNames returns the short names of all docs in collection for the customer in context
 func getAllShortNames[T types.DocContent](c *gin.Context) []string {
-	if docs, err := db.GetAllForCustomerWithProjection[T](c, db.NewProjectionBuilder().
-		ExcludeID().
-		Include(consts.ShortNameField).
-		Get(), false); err != nil {
+	findOpts := db.NewFindOptions()
+	findOpts.Projection().ExcludeID().Include(consts.ShortNameField)
+	if docs, err := db.FindForCustomer[T](c, findOpts); err != nil {
 		log.LogNTraceError("failed to read docs", err, c)
 		return nil
 	} else {

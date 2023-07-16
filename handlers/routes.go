@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"config-service/db"
 	"config-service/types"
 	"config-service/utils/consts"
 	"fmt"
@@ -17,6 +18,7 @@ type routerOptions[T types.DocContent] struct {
 	serveGetWithGUIDOnly      bool                      //default false, GET will return the document by GUID only
 	serveGetIncludeGlobalDocs bool                      //default false, when true, in GET all the response will include global documents (with customers[""])
 	servePost                 bool                      //default true, serve POST
+	servePostV2ListRequests   bool                      //default false, when true  POST /<path>/query with V2ListRequest is served
 	servePut                  bool                      //default true, serve PUT /<path> to update document by GUID in body and PUT /<path>/<GUID> to update document by GUID in path
 	serveDelete               bool                      //default true, serve DELETE  /<path>/<GUID> to delete document by GUID in path
 	serveBulkDelete           bool                      //default true, serve DELETE /<path>/bulk with list of GUIDs in body or query to delete documents by GUIDs
@@ -32,7 +34,6 @@ type routerOptions[T types.DocContent] struct {
 	responseSender            ResponseSender[T]         //default nil, when set, replace the default response sender
 	putFields                 []string                  //default nil, when set, PUT will update only the specified fields
 	containersHandlers        []containerHandlerOptions //default nil, list of container handlers to put and remove items from document's containers
-
 }
 
 type ContainerType string
@@ -69,6 +70,10 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 	opts := newRouterOptions[T]()
 	opts.apply(options)
 	if err := opts.validate(); err != nil {
+		panic(err)
+	}
+	//validate and initialize collection
+	if err := db.ValidateCollection(opts.dbCollection); err != nil {
 		panic(err)
 	}
 	routerGroup := g.Group(opts.path)
@@ -122,6 +127,9 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 			routerGroup.DELETE("/bulk", HandleBulkDeleteWithGUIDs[T])
 		}
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
+	}
+	if opts.servePostV2ListRequests {
+		routerGroup.POST("/query", HandlePostV2ListRequest[T])
 	}
 	//add array handlers
 	for _, containerHandler := range opts.containersHandlers {
@@ -250,6 +258,13 @@ func (b *RouterOptionsBuilder[T]) WithServeGetWithGUIDOnly(serveGetIncludeGlobal
 func (b *RouterOptionsBuilder[T]) WithServePost(servePost bool) *RouterOptionsBuilder[T] {
 	b.options = append(b.options, func(opts *routerOptions[T]) {
 		opts.servePost = servePost
+	})
+	return b
+}
+
+func (b *RouterOptionsBuilder[T]) WithV2ListSearch(servePostV2ListRequests bool) *RouterOptionsBuilder[T] {
+	b.options = append(b.options, func(opts *routerOptions[T]) {
+		opts.servePostV2ListRequests = servePostV2ListRequests
 	})
 	return b
 }

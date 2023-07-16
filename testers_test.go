@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/aws/smithy-go/ptr"
 	"github.com/go-faker/faker/v4"
 	"github.com/go-faker/faker/v4/pkg/options"
 	uuid "github.com/satori/go.uuid"
@@ -18,10 +20,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-////////////////////////////////////////// Test scenarios //////////////////////////////////////////
+// //////////////////////////////////////// Test scenarios //////////////////////////////////////////
+type testOptions struct {
+	uniqueName    bool
+	mandatoryName bool
+	customGUID    bool
+}
 
-// common test for (almost) all documents
-func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs []T, modifyFunc func(T) T, compareNewOpts ...cmp.Option) {
+func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string, testDocs []T, modifyFunc func(T) T, testOptions testOptions, compareNewOpts ...cmp.Option) {
 	if len(testDocs) < 3 {
 		suite.FailNow("commonTest: need at least 3 documents")
 	}
@@ -29,21 +35,49 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	documents := testDocs[1:]
 	//POST
 	//create doc
-	doc1.SetGUID("some bad value")
+	doc1.SetGUID("my custom guid")
+	doc1Guid := doc1.GetGUID()
 	createTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	doc1 = testPostDoc(suite, path, doc1, compareNewOpts...)
-	_, err := uuid.FromString(doc1.GetGUID())
-	suite.NoError(err, "GUID should be a valid uuid")
+	if testOptions.customGUID {
+		suite.Equal(doc1Guid, doc1.GetGUID(), "GUID should be the same")
+	} else {
+		suite.NotEqual(doc1Guid, doc1.GetGUID(), "GUID should be generated")
+		_, err := uuid.FromString(doc1.GetGUID())
+		suite.NoError(err, "GUID should be a valid uuid")
+	}
 	//check creation time
 	suite.NotNil(doc1.GetCreationTime(), "creation time should not be nil")
 	suite.True(createTime.Before(*doc1.GetCreationTime()) || createTime.Equal(*doc1.GetCreationTime()), "creation time is not recent")
-	//post doc with same name should fail
 	sameNameDoc := clone(doc1)
-	testBadRequest(suite, http.MethodPost, path, errorNameExist(sameNameDoc.GetName()), sameNameDoc, http.StatusBadRequest)
-	//post doc with no name should fail
+	sameNameDoc.SetGUID("")
+	if testOptions.uniqueName {
+		//post doc with same name should fail
+		testBadRequest(suite, http.MethodPost, path, errorNameExist(sameNameDoc.GetName()), sameNameDoc, http.StatusBadRequest)
+	} else {
+		//post doc with same name should succeed
+		newDoc := testPostDoc(suite, path, sameNameDoc, compareNewOpts...)
+		//make sure GUID is generated
+		_, err := uuid.FromString(newDoc.GetGUID())
+		suite.NoError(err, "GUID should be a valid uuid")
+		//delete the new doc
+		testDeleteDocByGUID(suite, path, newDoc, compareNewOpts...)
+	}
 	noNameDoc := clone(doc1)
 	noNameDoc.SetName("")
-	testBadRequest(suite, http.MethodPost, path, errorMissingName, &noNameDoc, http.StatusBadRequest)
+	noNameDoc.SetGUID("")
+	if testOptions.mandatoryName {
+		//post doc with no name should fail
+		testBadRequest(suite, http.MethodPost, path, errorMissingName, &noNameDoc, http.StatusBadRequest)
+	} else {
+		//post doc with no name should succeed
+		newDoc := testPostDoc(suite, path, noNameDoc, compareNewOpts...)
+		//make sure GUID is generated
+		_, err := uuid.FromString(newDoc.GetGUID())
+		suite.NoError(err, "GUID should be a valid uuid")
+		//delete the new doc
+		testDeleteDocByGUID(suite, path, newDoc, compareNewOpts...)
+	}
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	documents = testBulkPostDocs(suite, path, documents, compareNewOpts...)
@@ -55,9 +89,11 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 		suite.True(updateTime.Before(*doc.GetUpdatedTime()) || updateTime.Equal(*doc.GetUpdatedTime()), "update time is not recent")
 		names = append(names, doc.GetName())
 	}
-	//bulk post documents with same name should fail
-	sort.Strings(names)
-	testBadRequest(suite, http.MethodPost, path, errorNameExist(names...), documents, http.StatusBadRequest)
+	if testOptions.uniqueName {
+		//bulk post documents with same name should fail
+		sort.Strings(names)
+		testBadRequest(suite, http.MethodPost, path, errorNameExist(names...), documents, http.StatusBadRequest)
+	}
 
 	//PUT
 	oldDoc1 := clone(doc1)
@@ -65,7 +101,7 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	updateTime, _ = time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	testPutDoc(suite, path, oldDoc1, doc1, compareNewOpts...)
 	suite.NotNil(doc1.GetUpdatedTime(), "updated time should not be nil")
-	//check the the customer update date is updated
+	//check that the doc update date is updated
 	suite.True(updateTime.Before(*doc1.GetUpdatedTime()) || updateTime.Equal(*doc1.GetUpdatedTime()), "update time is not recent")
 
 	//test changed name - should be ignored
@@ -84,6 +120,7 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	//test put with guid in path
 	oldDoc1 = clone(doc1)
 	doc1 = modifyFunc(doc1)
+	doc1.SetGUID("")
 	testPutDocWGuid(suite, path, oldDoc1, doc1, compareNewOpts...)
 	//test put with no guid should fail
 	noGuidDoc := clone(doc1)
@@ -91,7 +128,8 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 	testBadRequest(suite, http.MethodPut, path, errorMissingGUID, &noGuidDoc, http.StatusBadRequest)
 	//not existing doc should fail
 	noneExistingDoc := clone(doc1)
-	noneExistingDoc.SetGUID("no_exist")
+	noneExistingDoc.SetGUID("")
+	noneExistingDoc.SetGUID("not_exist")
 	testBadRequest(suite, http.MethodPut, path, errorDocumentNotFound, &noneExistingDoc, http.StatusNotFound)
 
 	//GET
@@ -127,6 +165,16 @@ func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs 
 
 }
 
+// common test for (almost) all documents
+func commonTest[T types.DocContent](suite *MainTestSuite, path string, testDocs []T, modifyFunc func(T) T, compareNewOpts ...cmp.Option) {
+	testOptions := testOptions{
+		mandatoryName: true,
+		uniqueName:    true,
+		customGUID:    false,
+	}
+	commonTestWithOptions[T](suite, path, testDocs, modifyFunc, testOptions, compareNewOpts...)
+}
+
 func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, emptyDoc T, compareOpts ...cmp.Option) {
 	fullDoc := clone(emptyDoc)
 	partialDoc := clone(emptyDoc)
@@ -155,6 +203,13 @@ func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, em
 type queryTest[T types.DocContent] struct {
 	query           string
 	expectedIndexes []int
+}
+
+type searchTest struct {
+	testName         string
+	listRequest      armotypes.V2ListRequest
+	expectedIndexes  []int
+	projectedResults bool
 }
 
 func testGetByName[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, compareOpts ...cmp.Option) {
@@ -240,6 +295,84 @@ func testGetByQuery[T types.DocContent](suite *MainTestSuite, basePath string, t
 
 }
 
+func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath string, testDocs []T, projectionTestDocs []T, tests []searchTest, compareOpts ...cmp.Option) {
+	newDocs := testBulkPostDocs(suite, basePath, testDocs, compareOpts...)
+
+	for _, test := range tests {
+		w := suite.doRequest(http.MethodPost, basePath+"/query", test.listRequest)
+		suite.Equal(http.StatusOK, w.Code)
+		var result types.SearchResult[T]
+		err := json.Unmarshal(w.Body.Bytes(), &result)
+		suite.NoError(err, "Unexpected error: %s", test.testName)
+		suite.Equal(len(test.expectedIndexes), len(result.Response), "Unexpected result count: %s", test.testName)
+		if test.listRequest.PageSize == nil && test.listRequest.PageNum == nil {
+			//not paginated expected all results
+			suite.Equal(len(test.expectedIndexes), result.Total.Value, "Unexpected total count: %s", test.testName)
+		}
+		var expectedDocs []T
+		for _, index := range test.expectedIndexes {
+			if test.projectedResults {
+				expectedDocs = append(expectedDocs, projectionTestDocs[index])
+			} else {
+				expectedDocs = append(expectedDocs, testDocs[index])
+			}
+		}
+		diff := cmp.Diff(result.Response, expectedDocs, compareOpts...)
+		suite.Equal("", diff, "Unexpected diff: %s", test.testName)
+	}
+
+	//test bad requests for search
+	//unsupported operation
+	req := armotypes.V2ListRequest{
+		InnerFilters: []map[string]string{
+			{
+				"name": "name|unknownOp",
+			},
+		},
+	}
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorUnsupportedOperator("unknownOp"), req, http.StatusBadRequest)
+
+	//invalid sort type
+	req = armotypes.V2ListRequest{
+		OrderBy: "name:unknownOrder",
+	}
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("invalid sort type unknownOrder"), req, http.StatusBadRequest)
+
+	//use of unsupported Until
+	req = armotypes.V2ListRequest{
+		Until: ptr.Time(time.Now()),
+	}
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("until is not supported"), req, http.StatusBadRequest)
+
+	//range with no &
+	req = armotypes.V2ListRequest{
+		InnerFilters: []map[string]string{
+			{
+				"name": "something|range",
+			},
+		},
+	}
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("value missing range separator something"), req, http.StatusBadRequest)
+
+	//range with different data types
+	req = armotypes.V2ListRequest{
+		InnerFilters: []map[string]string{
+			{
+				"name": "1&name|range",
+			},
+		},
+	}
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("invalid range must use same value types found int64 string"), req, http.StatusBadRequest)
+
+	//bulk delete all docs
+	guids := []string{}
+	for _, doc := range newDocs {
+		guids = append(guids, doc.GetGUID())
+	}
+	testBulkDeleteByGUIDWithBody(suite, basePath, guids)
+
+}
+
 func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, getQueries []queryTest[T], compareOpts ...cmp.Option) {
 	testGetByName(suite, basePath, nameParam, testDocs, compareOpts...)
 
@@ -299,6 +432,17 @@ func errorNameExist(name ...string) string {
 		msg = fmt.Sprintf("names %s already exist", strings.Join(name, ","))
 	}
 	return `{"error":"` + msg + `"}`
+}
+
+func errorUnsupportedOperator(op string) string {
+	return `{"error":"unsupported operator ` + op + `"}`
+}
+
+func errorInvalidSortType(sortType string) string {
+	return fmt.Sprintf(`{"error":"invalid sort type %s"}`, sortType)
+}
+func errorMessage(msg string) string {
+	return fmt.Sprintf(`{"error":"%s"}`, msg)
 }
 
 func testBadRequest(suite *MainTestSuite, method, path, expectedResponse string, body interface{}, expectedCode int) {
@@ -382,7 +526,7 @@ func testBulkPostDocs[T types.DocContent](suite *MainTestSuite, path string, doc
 }
 
 // //////////////////////////////////////// PUT //////////////////////////////////////////
-func testPutDoc[T any](suite *MainTestSuite, path string, oldDoc, newDoc T, compareNewOpts ...cmp.Option) {
+func testPutDoc[T any](suite *MainTestSuite, path string, oldDoc, newDoc T, compareNewOpts ...cmp.Option) T {
 	w := suite.doRequest(http.MethodPut, path, newDoc)
 	suite.Equal(http.StatusOK, w.Code)
 	response, err := decodeResponseArray[T](w)
@@ -392,6 +536,7 @@ func testPutDoc[T any](suite *MainTestSuite, path string, oldDoc, newDoc T, comp
 	}
 	diff := cmp.Diff(response, expectedResponse, compareNewOpts...)
 	suite.Equal("", diff)
+	return response[1]
 }
 
 func testPutPartialDoc[T any](suite *MainTestSuite, path string, oldDoc T, newPartialDoc interface{}, expectedFullDoc T, compareNewOpts ...cmp.Option) T {
@@ -408,7 +553,7 @@ func testPutPartialDoc[T any](suite *MainTestSuite, path string, oldDoc T, newPa
 }
 
 func testPutDocWGuid[T types.DocContent](suite *MainTestSuite, path string, oldDoc, newDoc T, compareNewOpts ...cmp.Option) {
-	guid := newDoc.GetGUID()
+	guid := oldDoc.GetGUID()
 	path = fmt.Sprintf("%s/%s", path, guid)
 	newDoc.SetGUID("")
 	w := suite.doRequest(http.MethodPut, path, newDoc)

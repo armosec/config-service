@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"k8s.io/utils/strings/slices"
@@ -70,8 +71,9 @@ func HandleGetAllWithGlobals[T types.DocContent](c *gin.Context) {
 func GetNamesListHandler[T types.DocContent](c *gin.Context, includeGlobals bool) bool {
 	if _, list := c.GetQuery(consts.ListParam); list {
 		defer log.LogNTraceEnterExit("GetNamesListHandler", c)()
-		namesProjection := db.NewProjectionBuilder().Include(consts.NameField).ExcludeID().Get()
-		if docNames, err := db.GetAllForCustomerWithProjection[T](c, namesProjection, includeGlobals); err != nil {
+		findOps := db.NewFindOptions()
+		findOps.Projection().Include(consts.NameField).ExcludeID()
+		if docNames, err := db.FindForCustomerWithGlobals[T](c, findOps); err != nil {
 			ResponseInternalServerError(c, "failed to read documents", err)
 			return true
 		} else {
@@ -115,9 +117,9 @@ func GetByScopeParamsHandler[T types.DocContent](c *gin.Context, conf *QueryPara
 	if allQueriesFilter == nil {
 		return false // not served by this handler
 	}
-
-	log.LogNTrace(fmt.Sprintf("query params: %v search query %v", c.Request.URL.Query(), allQueriesFilter.Get()), c)
-	if docs, err := db.FindForCustomer[T](c, allQueriesFilter, nil); err != nil {
+	findOpts := db.NewFindOptions().WithFilter(allQueriesFilter)
+	log.LogNTrace(fmt.Sprintf("query params: %v search query %+v", c.Request.URL.Query(), allQueriesFilter), c)
+	if docs, err := db.FindForCustomer[T](c, findOpts); err != nil {
 		ResponseInternalServerError(c, "failed to read documents", err)
 		return true
 	} else {
@@ -153,7 +155,7 @@ func PostDocHandler[T types.DocContent](c *gin.Context, docs []T) {
 	var err error
 	if docs, err = db.InsertDocuments(c, docs); err != nil {
 		if db.IsDuplicateKeyError(err) {
-			ResponseDuplicateKey(c, consts.GUIDField)
+			ResponseConflict(c, consts.GUIDField)
 			return
 		} else {
 			ResponseInternalServerError(c, "failed to create document", err)
@@ -171,7 +173,7 @@ func PostDocHandler[T types.DocContent](c *gin.Context, docs []T) {
 func PostDBDocumentHandler[T types.DocContent](c *gin.Context, dbDoc types.Document[T]) {
 	if _, err := db.InsertDBDocument(c, dbDoc); err != nil {
 		if db.IsDuplicateKeyError(err) {
-			ResponseDuplicateKey(c, consts.GUIDField)
+			ResponseConflict(c, consts.GUIDField)
 			return
 		}
 		ResponseInternalServerError(c, "failed to create document", err)
@@ -179,6 +181,27 @@ func PostDBDocumentHandler[T types.DocContent](c *gin.Context, dbDoc types.Docum
 	} else {
 		c.JSON(http.StatusCreated, dbDoc.Content)
 	}
+}
+
+func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
+	defer log.LogNTraceEnterExit("HandlePostV2ListRequest", c)()
+	var req armotypes.V2ListRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		ResponseFailedToBindJson(c, err)
+		return
+	}
+	findOpts, err := v2List2FindOptions(req)
+	if err != nil {
+		ResponseBadRequest(c, err.Error())
+		return
+	}
+	result, err := db.FindPaginatedForCustomer[T](c, findOpts)
+	if err != nil {
+		ResponseInternalServerError(c, "failed to search documents", err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }
 
 // ////////////////////////////////////////PUT///////////////////////////////////////////////
