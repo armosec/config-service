@@ -967,7 +967,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 		{
 			GUID: "test-guid-3",
 			Name: "test-name-3",
-			Data: []interface{}{"test-value-3", "test-value-4"},
+			Data: []interface{}{"test-*value*?-3", "test-value-4"},
 		},
 		{
 			GUID:     "test-guid-4",
@@ -1017,7 +1017,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 		},
 	}
 
-	searchQueries := []searchTest{
+	searchQueries := []searchTest{		
 		//field or match
 		{
 			testName:        "field or match",
@@ -1121,6 +1121,18 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				InnerFilters: []map[string]string{
 					{
 						"dataType": "test-data-type-|like",
+					},
+				},
+			},
+		},
+		{
+			testName:        "like with special chars",
+			expectedIndexes: []int{2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"data": "test-*value*?-3|like&ignorecase",
 					},
 				},
 			},

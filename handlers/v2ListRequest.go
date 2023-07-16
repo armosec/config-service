@@ -5,6 +5,7 @@ import (
 	"config-service/utils"
 	"config-service/utils/consts"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/armosec/armoapi-go/armotypes"
@@ -113,7 +114,10 @@ func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) 
 				filters = append(filters, db.NewFilterBuilder().WithGreaterThanEqual(key, utils.String2Interface(value)))
 			case armotypes.V2ListLowerOperator:
 				filters = append(filters, db.NewFilterBuilder().WithLowerThanEqual(key, utils.String2Interface(value)))
-			case armotypes.V2ListRegexOperator, armotypes.V2ListLikeOperator:
+			case armotypes.V2ListLikeOperator:
+				value = regexp.QuoteMeta(value)
+				fallthrough
+			case armotypes.V2ListRegexOperator:
 				ignoreCase := operatorOption == armotypes.V2ListIgnoreCaseOption
 				filters = append(filters, db.NewFilterBuilder().WithRegex(key, value, ignoreCase))
 			case armotypes.V2ListRangeOperator:
