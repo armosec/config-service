@@ -14,7 +14,7 @@ import (
 // support array element match - needs some schema information of what are searchable arrays)
 // support time range for fields of time.time type (vs. RFC3339 string) - need to add schema information
 
-const maxV2PageSize = 1000
+const maxV2PageSize = 150
 
 func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error) {
 	if request.Until != nil {
