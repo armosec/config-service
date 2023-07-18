@@ -145,7 +145,11 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 		}
 	}
 	searchRes := &types.SearchResult[T]{}
-	searchRes.SetCount(result.Count[0].Count)
+	var count int64
+	if len(result.Count) > 0 {
+		count = result.Count[0].Count
+	}
+	searchRes.SetCount(count)
 	searchRes.SetResults(result.LimitedResults)
 	return searchRes, nil
 }

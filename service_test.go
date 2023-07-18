@@ -5,6 +5,7 @@ import (
 	"config-service/types"
 	"config-service/utils"
 	"config-service/utils/consts"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -950,48 +951,58 @@ func (suite *MainTestSuite) TestActiveSubscription() {
 }
 
 func (suite *MainTestSuite) TestUsersNotificationsCache() {
+	toJson := func(i interface{}) json.RawMessage {
+		b, _ := json.Marshal(i)
+		return json.RawMessage(b)
+	}
+	fromJson := func(data json.RawMessage) interface{} {
+		var i interface{}
+		_ = json.Unmarshal(data, &i)
+		return i
+	}
 
 	docs := []*types.Cache{
 		{
 			GUID:     "test-guid-1",
 			Name:     "test-name-1",
-			Data:     float64(1),
+			Data:     toJson(float64(1)),
 			DataType: "test-data-type-1",
 		},
 		{
 			GUID:     "test-guid-2",
 			Name:     "test-name-2",
-			Data:     "data-value-string",
+			Data:     toJson("data-value-string"),
 			DataType: "test-data-type-2",
 		},
 		{
 			GUID: "test-guid-3",
-			Name: "test-name-3",
-			Data: []interface{}{"test-*value*?-3", "test-value-4"},
+			Name: "test-name-3*.?7*",
+			Data: toJson([]interface{}{"test-*value*?-3", "test-value-4"}),
 		},
 		{
 			GUID:     "test-guid-4",
 			Name:     "test-name-4",
-			Data:     float64(5),
-			DataType: "test-data-type-1",
+			Data:     toJson(float64(5)),
+			DataType: "test-data-type-4",
 		},
 		{
 			GUID:       "test-guid-5",
 			Name:       "test-name-5",
-			Data:       "role,bind,clusterrole",
+			Data:       toJson("role,bind,clusterrole"),
 			DataType:   "test-data-type-5",
 			ExpiryTime: time.Now().UTC().Add(1 * time.Hour),
 		},
 	}
 
 	modifyFunc := func(doc *types.Cache) *types.Cache {
-		switch doc.Data.(type) {
+		i := fromJson(doc.Data)
+		switch i.(type) {
 		case float64:
-			doc.Data = doc.Data.(float64) + 1
+			doc.Data = toJson(i.(float64) + 1)
 		case string:
-			doc.Data = doc.Data.(string) + "-updated"
+			doc.Data = toJson(i.(string) + "-updated")
 		case []interface{}:
-			doc.Data = append(doc.Data.([]interface{}), "test-value-5")
+			doc.Data = toJson(append(i.([]interface{}), "test-value-5"))
 		}
 		return doc
 	}
@@ -1013,11 +1024,13 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 		},
 		{
 			GUID: "test-guid-3",
-			Data: []interface{}{"test-value-3", "test-value-4"},
+			Data: toJson([]interface{}{"test-value-3", "test-value-4"}),
 		},
 	}
 
-	searchQueries := []searchTest{		
+	//Until we will support schema info queries can only match string, boolean, and numbers
+	//Types like slices, time.Time, and json.RawMessage fields are not supported yet
+	searchQueries := []searchTest{
 		//field or match
 		{
 			testName:        "field or match",
@@ -1026,7 +1039,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "data-value-string,1",
+						"dataType": "test-data-type-1,test-data-type-2",
 					},
 				},
 			},
@@ -1039,7 +1052,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy: "name:desc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "data-value-string,1",
+						"dataType": "test-data-type-1,test-data-type-2",
 					},
 				},
 			},
@@ -1052,8 +1065,8 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "data-value-string,1|equal",
-						"name": "test-name-1",
+						"dataType": "test-data-type-1,test-data-type-2|equal",
+						"name":     "test-name-1",
 					},
 				},
 			},
@@ -1079,7 +1092,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "data-value-string|match,1",
+						"dataType": "test-data-type-1|match,test-data-type-2",
 					},
 					{
 						"dataType": "|missing",
@@ -1108,7 +1121,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "ClusterRole|like&ignorecase",
+						"dataType": "TEST-data-Type-5|like&ignorecase",
 					},
 				},
 			},
@@ -1132,7 +1145,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "test-*value*?-3|like&ignorecase",
+						"name": "test-name-3*.?|like&ignorecase",
 					},
 				},
 			},
@@ -1145,14 +1158,14 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": ".*\\,.*\\,ClusterRole|regex&ignorecase",
+						"dataType": ".*Dat.-type-5|regex&ignorecase",
 					},
 				},
 			},
 		},
 		{
 			testName:        "range  strings",
-			expectedIndexes: []int{0, 1, 2},
+			expectedIndexes: []int{0, 1},
 			listRequest: armotypes.V2ListRequest{
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
@@ -1163,13 +1176,13 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 			},
 		},
 		{
-			testName:        "range  numbers",
-			expectedIndexes: []int{0, 3},
+			testName:        "range ids",
+			expectedIndexes: []int{0, 1, 2},
 			listRequest: armotypes.V2ListRequest{
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "0&5|range",
+						"guid": "test-guid-0&test-guid-3|range",
 					},
 				},
 			},
@@ -1214,12 +1227,12 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 		//greater than equal on multiple values
 		{
 			testName:        "greater than equal on multiple values",
-			expectedIndexes: []int{0, 3, 4},
+			expectedIndexes: []int{0, 2, 3, 4},
 			listRequest: armotypes.V2ListRequest{
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "1|lower,4|greater,.*\\,.*\\,clusterrole|regex",
+						"guid": "test-guid-1|lower,test-guid-4|greater,.*-gui.-3|regex",
 					},
 				},
 			},
@@ -1233,7 +1246,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy:  "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "data-value-string,1",
+						"dataType": "test-data-type-1,test-data-type-2",
 					},
 					{
 						"dataType": "|missing",
@@ -1250,7 +1263,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy:  "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "data-value-string,1",
+						"dataType": "test-data-type-1,test-data-type-2",
 					},
 					{
 						"dataType": ",|missing",
@@ -1267,7 +1280,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy:  "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"data": "data-value-string,1",
+						"dataType": "test-data-type-1,test-data-type-2",
 					},
 					{
 						"dataType": ",|missing",
@@ -1312,7 +1325,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				FieldsList: []string{"name"},
 				InnerFilters: []map[string]string{
 					{
-						"data": "data-value-string,1",
+						"dataType": "test-data-type-1,test-data-type-2",
 					},
 				},
 			},
@@ -1324,7 +1337,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 	ttlDoc := &types.Cache{
 		GUID:     "test-ttl-guid",
 		Name:     "test-ttl-name",
-		Data:     "test-ttl-data",
+		Data:     toJson("test-ttl-data"),
 		DataType: "test-ttl-data-type",
 	}
 
