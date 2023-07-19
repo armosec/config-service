@@ -952,12 +952,18 @@ func (suite *MainTestSuite) TestActiveSubscription() {
 
 func (suite *MainTestSuite) TestUsersNotificationsCache() {
 	toJson := func(i interface{}) json.RawMessage {
-		b, _ := json.Marshal(i)
+		b, err := json.Marshal(i)
+		if err != nil {
+			suite.FailNow(err.Error())
+		}
 		return json.RawMessage(b)
 	}
 	fromJson := func(data json.RawMessage) interface{} {
 		var i interface{}
-		_ = json.Unmarshal(data, &i)
+		err := json.Unmarshal(data, &i)
+		if err != nil {
+			suite.FailNow(err.Error())
+		}
 		return i
 	}
 
