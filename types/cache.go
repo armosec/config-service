@@ -1,12 +1,13 @@
 package types
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/armosec/armoapi-go/armotypes"
 )
 
-type Cache armotypes.PortalCache
+type Cache armotypes.PortalCache[json.RawMessage]
 
 func (c *Cache) GetReadOnlyFields() []string {
 	return commonReadOnlyFieldsV1
@@ -63,9 +64,9 @@ func (c *Cache) SetUpdatedTime(updatedTime *time.Time) {
 	c.UpdatedTime = updatedTime.UTC().Format(time.RFC3339)
 }
 func (c *Cache) SetExpiryTime(expiryTime time.Time) {
-	(*armotypes.PortalCache)(c).SetExpiryTime(expiryTime)
+	(*armotypes.PortalCache[json.RawMessage])(c).SetExpiryTime(expiryTime)
 }
 
 func (c *Cache) SetTTL(ttl time.Duration) {
-	(*armotypes.PortalCache)(c).SetTTL(ttl)
+	(*armotypes.PortalCache[json.RawMessage])(c).SetTTL(ttl)
 }
