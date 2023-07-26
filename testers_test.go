@@ -212,6 +212,12 @@ type searchTest struct {
 	projectedResults bool
 }
 
+type uniqueValueTest struct {
+	testName            string
+	uniqueValuesRequest armotypes.UniqueValuesRequestV2
+	expectedResponse    armotypes.UniqueValuesResponseV2
+}
+
 func testGetByName[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, compareOpts ...cmp.Option) {
 	w := suite.doRequest(http.MethodPost, basePath, testDocs)
 	suite.Equal(http.StatusCreated, w.Code)
@@ -370,7 +376,39 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 		guids = append(guids, doc.GetGUID())
 	}
 	testBulkDeleteByGUIDWithBody(suite, basePath, guids)
+}
 
+func testUniqueValues[T types.DocContent](suite *MainTestSuite, basePath string, testDocs []T, uniqueValuesTests []uniqueValueTest, compareOpts ...cmp.Option) {
+	newDocs := testBulkPostDocs(suite, basePath, testDocs, compareOpts...)
+	//unique values
+	for _, test := range uniqueValuesTests {
+		w := suite.doRequest(http.MethodPost, basePath+"/uniqueValues", test.uniqueValuesRequest)
+		suite.Equal(http.StatusOK, w.Code)
+		var result armotypes.UniqueValuesResponseV2
+		err := json.Unmarshal(w.Body.Bytes(), &result)
+		if err != nil {
+			suite.FailNow(err.Error())
+		}
+		suite.Equal(test.expectedResponse, result, "Unexpected result: %s", test.testName)
+	}
+
+	//bulk delete all docs
+	guids := []string{}
+	for _, doc := range newDocs {
+		guids = append(guids, doc.GetGUID())
+	}
+
+	//test uniqueValues bad requests
+	req := armotypes.UniqueValuesRequestV2{}
+	testBadRequest(suite, http.MethodPost, basePath+"/uniqueValues", errorMessage("fields are required"), req, http.StatusBadRequest)
+	req.Fields = map[string]string{
+		"name": "",
+	}
+	req.Since = ptr.Time(time.Now())
+	req.Until = ptr.Time(time.Now())
+	testBadRequest(suite, http.MethodPost, basePath+"/uniqueValues", errorMessage("since and until are not supported"), req, http.StatusBadRequest)
+
+	testBulkDeleteByGUIDWithBody(suite, basePath, guids)
 }
 
 func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, getQueries []queryTest[T], compareOpts ...cmp.Option) {

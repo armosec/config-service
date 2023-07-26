@@ -3,6 +3,7 @@ package db
 import (
 	"config-service/db/mongo"
 	"config-service/types"
+	"config-service/utils"
 	"config-service/utils/consts"
 	"config-service/utils/log"
 	"context"
@@ -11,10 +12,12 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/hashicorp/go-multierror"
 	"go.mongodb.org/mongo-driver/bson"
 	mongoDB "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/sync/errgroup"
 )
 
 // triggers collection actions - called by the router builder on startup
@@ -82,14 +85,6 @@ func AdminFind[T any](c context.Context, findOps *FindOptions) ([]T, error) {
 	return result, nil
 }
 
-type paginatedResult[T any] struct {
-	Count          []countResult `bson:"count"`
-	LimitedResults []T           `bson:"limitedResults"`
-}
-type countResult struct {
-	Count int64 `bson:"count"`
-}
-
 func FindPaginatedForCustomer[T any](c context.Context, findOps *FindOptions) (*types.SearchResult[T], error) {
 	defer log.LogNTraceEnterExit(fmt.Sprintf("FindPaginatedForCustomer %+v", findOps), c)()
 	if findOps == nil {
@@ -99,6 +94,7 @@ func FindPaginatedForCustomer[T any](c context.Context, findOps *FindOptions) (*
 	return AdminFindPaginated[T](c, findOps)
 }
 
+// AdminFindPaginated search for docs of all customers (unless filtered by caller) and return paginated result
 func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.SearchResult[T], error) {
 	defer log.LogNTraceEnterExit(fmt.Sprintf("AdminFindPaginated %+v", findOps), c)()
 	collection, _, err := ReadContext(c)
@@ -152,6 +148,116 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 	searchRes.SetCount(count)
 	searchRes.SetResults(result.LimitedResults)
 	return searchRes, nil
+}
+
+func AggregateForCustomer[T any](c context.Context, findOps *FindOptions) (*armotypes.UniqueValuesResponseV2, error) {
+	defer log.LogNTraceEnterExit(fmt.Sprintf("AggregateForCustomer %+v", findOps), c)()
+	if findOps == nil {
+		findOps = &FindOptions{}
+	}
+	findOps.Filter().WithNotDeleteForCustomer(c)
+	return AdminAggregate[T](c, findOps)
+}
+
+// AdminAggregate search for docs of all customers (unless filtered by caller) and return aggregated result
+func AdminAggregate[T any](c context.Context, findOps *FindOptions) (*armotypes.UniqueValuesResponseV2, error) {
+	defer log.LogNTraceEnterExit(fmt.Sprintf("AdminAggregate %+v", findOps), c)()
+	collection, _, err := ReadContext(c)
+	if err != nil {
+		return nil, err
+	}
+	if findOps == nil {
+		return nil, fmt.Errorf("findOps is nil")
+	}
+	if len(findOps.group) == 0 {
+		return nil, fmt.Errorf("group is empty")
+	}
+
+	//prepare a pipeline for each field
+	fieldsPipelines := map[string]mongoDB.Pipeline{}
+	for _, field := range findOps.group {
+		filedRef := "$" + field
+		fieldsPipelines[field] = mongoDB.Pipeline{
+			{{Key: "$match", Value: findOps.filter.get()}},
+			{{Key: "$group", Value: bson.D{
+				{Key: "_id", Value: filedRef},
+				{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}},
+			}}},
+			{{Key: "$sort", Value: bson.D{
+				{Key: "_id", Value: 1},
+			}}},
+			{{Key: "$limit", Value: findOps.limit}},
+			{{Key: "$group", Value: bson.D{
+				{Key: "_id", Value: nil},
+				{Key: "values", Value: bson.D{{Key: "$push", Value: "$_id"}}},
+				{Key: "count", Value: bson.D{{Key: "$push", Value: bson.D{{Key: "key", Value: "$_id"}, {Key: "count", Value: "$count"}}}}},
+			}}},
+			{{Key: "$project", Value: bson.D{
+				{Key: "_id", Value: 0},
+				{Key: "values", Value: 1},
+				{Key: "count", Value: 1},
+			}}},
+		}
+	}
+
+	//store each field result in a sync map
+	results := sync.Map{}
+	errGroup, ctx := errgroup.WithContext(c)
+	for field, fieldPipeline := range fieldsPipelines {
+		fieldPipeline := fieldPipeline
+		field := field
+		errGroup.Go(func() error {
+			cursor, err := mongo.GetReadCollection(collection).Aggregate(ctx, fieldPipeline)
+			if err != nil {
+				return fmt.Errorf("failed to aggregate field %s: %w", field, err)
+			}
+			defer cursor.Close(ctx)
+			var result aggregateResult
+			if cursor.Next(ctx) {
+				err = cursor.Decode(&result)
+				if err != nil {
+					return fmt.Errorf("failed to decode field %s: %w", field, err)
+				}
+			}
+			results.Store(field, result)
+			return nil
+		})
+	}
+	if err := errGroup.Wait(); err != nil {
+		return nil, err
+	}
+
+	//aggregate all fields results into one response
+	aggregatedResults := &armotypes.UniqueValuesResponseV2{
+		Fields:      make(map[string][]string),
+		FieldsCount: make(map[string][]armotypes.UniqueValuesResponseFieldsCount),
+	}
+	var aggregateResultErr error
+	results.Range(func(key, value interface{}) bool {
+		field, ok := key.(string)
+		if !ok {
+			aggregateResultErr = errors.New("failed to cast key")
+			return false
+		}
+		result, ok := value.(aggregateResult)
+		if !ok {
+			aggregateResultErr = fmt.Errorf("failed to cast result for field %s", field)
+			return false
+		}
+		aggregatedResults.Fields[field] = make([]string, len(result.Values))
+		for i, value := range result.Values {
+			aggregatedResults.Fields[field][i] = utils.Interface2String(value)
+		}
+		aggregatedResults.FieldsCount[field] = []armotypes.UniqueValuesResponseFieldsCount{}
+		for _, count := range result.Count {
+			aggregatedResults.FieldsCount[field] = append(aggregatedResults.FieldsCount[field], armotypes.UniqueValuesResponseFieldsCount{
+				Field: count.Key,
+				Count: count.Count,
+			})
+		}
+		return true
+	})
+	return aggregatedResults, aggregateResultErr
 }
 
 // UpdateDocument updates document by GUID and update command

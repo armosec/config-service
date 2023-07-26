@@ -41,6 +41,10 @@ type ContainerType string
 const (
 	ContainerTypeArray ContainerType = "array"
 	ContainerTypeMap   ContainerType = "map"
+
+	bulkSuffix         = "/bulk"
+	querySuffix        = "/query"
+	uniqueValuesSuffix = "/uniqueValues"
 )
 
 type containerHandlerOptions struct {
@@ -124,12 +128,14 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 			routerGroup.DELETE("", HandleDeleteDocByName[T](opts.nameQueryParam))
 		}
 		if opts.serveBulkDelete {
-			routerGroup.DELETE("/bulk", HandleBulkDeleteWithGUIDs[T])
+			routerGroup.DELETE(bulkSuffix, HandleBulkDeleteWithGUIDs[T])
 		}
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
 	}
 	if opts.servePostV2ListRequests {
-		routerGroup.POST("/query", HandlePostV2ListRequest[T])
+		routerGroup.POST(querySuffix, HandlePostV2ListRequest[T])
+		routerGroup.POST(uniqueValuesSuffix, HandlePostUniqueValuesRequestV2[T])
+
 	}
 	//add array handlers
 	for _, containerHandler := range opts.containersHandlers {

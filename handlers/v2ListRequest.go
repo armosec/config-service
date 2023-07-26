@@ -32,7 +32,6 @@ func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error
 		page = *request.PageNum
 	}
 	findOptions.SetPagination(int64(page), int64(perPage))
-
 	//sort
 	if request.OrderBy == "" {
 		//default sort by update time
@@ -53,10 +52,8 @@ func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error
 			return nil, fmt.Errorf("invalid sort type %s", sortNameAndType[1])
 		}
 	}
-
 	//projection
 	findOptions.Projection().Include(request.FieldsList...)
-
 	//filters
 	if len(request.InnerFilters) > 0 {
 		filters := make([]*db.FilterBuilder, len(request.InnerFilters))
@@ -73,7 +70,38 @@ func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error
 			findOptions.Filter().WithFilter(filters[0])
 		}
 	}
+	return findOptions, nil
+}
 
+func uniqueValuesRequest2FindOptions(request armotypes.UniqueValuesRequestV2) (*db.FindOptions, error) {
+	request.ValidatePageProperties(maxV2PageSize)
+	if request.Until != nil || request.Since != nil {
+		return nil, fmt.Errorf("since and until are not supported")
+	}
+	if len(request.Fields) == 0 {
+		return nil, fmt.Errorf("fields are required")
+	}
+	findOptions := db.NewFindOptions()
+	for field := range request.Fields {
+		findOptions.WithGroup(field)
+	}
+	findOptions.Limit(int64(request.PageSize))
+	//filters
+	if len(request.InnerFilters) > 0 {
+		filters := make([]*db.FilterBuilder, len(request.InnerFilters))
+		for i := range request.InnerFilters {
+			if filter, err := buildInnerFilter(request.InnerFilters[i]); err != nil {
+				return nil, err
+			} else if filter != nil {
+				filters[i] = filter
+			}
+		}
+		if len(filters) > 1 {
+			findOptions.Filter().AddOr(filters...)
+		} else {
+			findOptions.Filter().WithFilter(filters[0])
+		}
+	}
 	return findOptions, nil
 }
 
