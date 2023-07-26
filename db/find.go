@@ -4,11 +4,10 @@ type FindOptions struct {
 	filter     *FilterBuilder
 	projection *ProjectionBuilder
 	sort       *SortBuilder
+	group      []string
 	limit      int64
 	skip       int64
 }
-
-
 
 func NewFindOptions() *FindOptions {
 	return &FindOptions{
@@ -16,6 +15,15 @@ func NewFindOptions() *FindOptions {
 		projection: NewProjectionBuilder(),
 		sort:       NewSortBuilder(),
 	}
+}
+
+func (f *FindOptions) WithGroup(group ...string) *FindOptions {
+	f.group = append(f.group, group...)
+	return f
+}
+
+func (f *FindOptions) GetGroup() []string {
+	return f.group
 }
 
 func (f *FindOptions) WithFilter(filter *FilterBuilder) *FindOptions {

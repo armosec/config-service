@@ -1341,6 +1341,158 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 
 	testPostV2ListRequest(suite, consts.UsersNotificationsCachePath, docs, projectedDocs, searchQueries, commonCmpFilter, ignoreTime)
 
+	//add some docs for unique values tests
+	moreDocs := []*types.Cache{
+		{
+			GUID:     "test-guid-6",
+			Name:     "test-name-1",
+			DataType: "test-data-type-1",
+		},
+		{
+			GUID:     "test-guid-7",
+			Name:     "test-name-2",
+			DataType: "test-data-type-2",
+		},
+		{
+			GUID:     "test-guid-8",
+			Name:     "test-name-2",
+			DataType: "test-data-type-2",
+		},
+	}
+	docs = append(docs, moreDocs...)
+
+	uniqueValues := []uniqueValueTest{
+		{
+			testName: "unique names",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name": {"test-name-1", "test-name-2", "test-name-3*.?7*", "test-name-4", "test-name-5"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+
+							Field: "test-name-1",
+							Count: 2,
+						},
+						{
+							Field: "test-name-2",
+							Count: 3,
+						},
+						{
+							Field: "test-name-3*.?7*",
+							Count: 1,
+						},
+						{
+							Field: "test-name-4",
+							Count: 1,
+						},
+						{
+							Field: "test-name-5",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique names with filter",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"dataType": "test-data-type-1,test-data-type-2",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name": {"test-name-1", "test-name-2"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+
+							Field: "test-name-1",
+							Count: 2,
+						},
+						{
+
+							Field: "test-name-2",
+							Count: 3,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique names and datatypes",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name":     "",
+					"dataType": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name":     {"test-name-1", "test-name-2", "test-name-3*.?7*", "test-name-4", "test-name-5"},
+					"dataType": {"test-data-type-1", "test-data-type-2", "test-data-type-4", "test-data-type-5"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+							Field: "test-name-1",
+							Count: 2,
+						},
+						{
+							Field: "test-name-2",
+							Count: 3,
+						},
+						{
+							Field: "test-name-3*.?7*",
+							Count: 1,
+						},
+						{
+							Field: "test-name-4",
+							Count: 1,
+						},
+						{
+							Field: "test-name-5",
+							Count: 1,
+						},
+					},
+					"dataType": {
+						{
+							Field: "test-data-type-1",
+							Count: 2,
+						},
+						{
+							Field: "test-data-type-2",
+							Count: 3,
+						},
+						{
+							Field: "test-data-type-4",
+							Count: 1,
+						},
+						{
+							Field: "test-data-type-5",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testUniqueValues(suite, consts.UsersNotificationsCachePath, docs, uniqueValues, commonCmpFilter, ignoreTime)
+
 	ttlDoc := &types.Cache{
 		GUID:     "test-ttl-guid",
 		Name:     "test-ttl-name",
@@ -1375,5 +1527,4 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 		suite.T().Logf("waiting for document to expire, for %d seconds", i)
 	}
 	suite.True(deleted, "document was not deleted after ttl expired")
-
 }
