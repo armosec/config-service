@@ -172,13 +172,15 @@ func AdminAggregate[T any](c context.Context, findOps *FindOptions) (*armotypes.
 	if len(findOps.group) == 0 {
 		return nil, fmt.Errorf("group is empty")
 	}
-
-	//prepare a pipeline for each field
-	fieldsPipelines := map[string]mongoDB.Pipeline{}
+	//store each field result in a sync map
+	results := sync.Map{}
+	errGroup, ctx := errgroup.WithContext(c)
 	for _, field := range findOps.group {
+		field := field
+		fieldFilter := NewFilterBuilder().WithFilter(findOps.filter).AddExists(field, true)
 		filedRef := "$" + field
-		fieldsPipelines[field] = mongoDB.Pipeline{
-			{{Key: "$match", Value: findOps.filter.get()}},
+		pipeline := mongoDB.Pipeline{
+			{{Key: "$match", Value: fieldFilter.get()}},
 			{{Key: "$group", Value: bson.D{
 				{Key: "_id", Value: filedRef},
 				{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}},
@@ -198,16 +200,8 @@ func AdminAggregate[T any](c context.Context, findOps *FindOptions) (*armotypes.
 				{Key: "count", Value: 1},
 			}}},
 		}
-	}
-
-	//store each field result in a sync map
-	results := sync.Map{}
-	errGroup, ctx := errgroup.WithContext(c)
-	for field, fieldPipeline := range fieldsPipelines {
-		fieldPipeline := fieldPipeline
-		field := field
 		errGroup.Go(func() error {
-			cursor, err := mongo.GetReadCollection(collection).Aggregate(ctx, fieldPipeline)
+			cursor, err := mongo.GetReadCollection(collection).Aggregate(ctx, pipeline)
 			if err != nil {
 				return fmt.Errorf("failed to aggregate field %s: %w", field, err)
 			}

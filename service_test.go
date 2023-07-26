@@ -1432,6 +1432,63 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				},
 			},
 		},
+		{
+			testName: "unique names and datatypes",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name":     "",
+					"dataType": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name":     {"test-name-1", "test-name-2", "test-name-3*.?7*", "test-name-4", "test-name-5"},
+					"dataType": {"test-data-type-1", "test-data-type-2", "test-data-type-4", "test-data-type-5"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+							Field: "test-name-1",
+							Count: 2,
+						},
+						{
+							Field: "test-name-2",
+							Count: 3,
+						},
+						{
+							Field: "test-name-3*.?7*",
+							Count: 1,
+						},
+						{
+							Field: "test-name-4",
+							Count: 1,
+						},
+						{
+							Field: "test-name-5",
+							Count: 1,
+						},
+					},
+					"dataType": {
+						{
+							Field: "test-data-type-1",
+							Count: 2,
+						},
+						{
+							Field: "test-data-type-2",
+							Count: 3,
+						},
+						{
+							Field: "test-data-type-4",
+							Count: 1,
+						},
+						{
+							Field: "test-data-type-5",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	testUniqueValues(suite, consts.UsersNotificationsCachePath, docs, uniqueValues, commonCmpFilter, ignoreTime)
@@ -1459,7 +1516,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 	ttlInPast = testPutDoc(suite, consts.UsersNotificationsCachePath, ttlDoc, ttlInPast, commonCmpFilter, ignoreTime)
 	suite.Equal(expirationTime.UTC().Format(time.RFC3339), ttlInPast.ExpiryTime.Format(time.RFC3339), "ttl in past is not set")
 	//wait for the document to expire and check that it is deleted - this can take up to one minute
-	/*deleted := false
+	deleted := false
 	for i := 0; i < 62; i++ {
 		time.Sleep(time.Second)
 		w := suite.doRequest(http.MethodGet, consts.UsersNotificationsCachePath+"/test-ttl-guid", nil)
@@ -1469,6 +1526,5 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 		}
 		suite.T().Logf("waiting for document to expire, for %d seconds", i)
 	}
-	suite.True(deleted, "document was not deleted after ttl expired")*/
-
+	suite.True(deleted, "document was not deleted after ttl expired")
 }

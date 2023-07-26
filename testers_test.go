@@ -397,6 +397,7 @@ func testUniqueValues[T types.DocContent](suite *MainTestSuite, basePath string,
 	for _, doc := range newDocs {
 		guids = append(guids, doc.GetGUID())
 	}
+	testBulkDeleteByGUIDWithBody(suite, basePath, guids)
 
 	//test uniqueValues bad requests
 	req := armotypes.UniqueValuesRequestV2{}
@@ -408,7 +409,6 @@ func testUniqueValues[T types.DocContent](suite *MainTestSuite, basePath string,
 	req.Until = ptr.Time(time.Now())
 	testBadRequest(suite, http.MethodPost, basePath+"/uniqueValues", errorMessage("since and until are not supported"), req, http.StatusBadRequest)
 
-	testBulkDeleteByGUIDWithBody(suite, basePath, guids)
 }
 
 func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, getQueries []queryTest[T], compareOpts ...cmp.Option) {
