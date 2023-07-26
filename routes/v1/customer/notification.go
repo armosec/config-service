@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/armosec/armoapi-go/notifications"
 	"github.com/gin-gonic/gin"
 )
 
@@ -37,7 +37,7 @@ func latestPushReportMiddleware(c *gin.Context) (latestPushPath string, valuesTo
 		handlers.ResponseMissingKey(c, "clusterName")
 		return "", nil, false
 	}
-	report := &armotypes.PushReport{}
+	report := &notifications.PushReport{}
 	if c.Request.Method == http.MethodPut {
 		if err := c.ShouldBindJSON(&report); err != nil {
 			handlers.ResponseFailedToBindJson(c, err)
@@ -62,7 +62,7 @@ func unsubscribeMiddleware(c *gin.Context) (unsubscribePath string, valuesToAdd 
 		handlers.ResponseMissingKey(c, "userId")
 		return "", nil, false
 	}
-	notificationsIds, err := handlers.GetBulkOrSingleBody[*armotypes.NotificationConfigIdentifier](c)
+	notificationsIds, err := handlers.GetBulkOrSingleBody[*notifications.NotificationConfigIdentifier](c)
 	if err != nil {
 		log.LogNTraceError("failed to get notificationsIds from body", err, c)
 		return "", nil, false
@@ -97,7 +97,7 @@ func notificationConfigResponseSender(c *gin.Context, customer *types.Customer, 
 			handlers.ResponseInternalServerError(c, "unexpected nill doc array response in PUT", nil)
 			return
 		}
-		notifications := []*armotypes.NotificationsConfig{}
+		notifications := []*notifications.NotificationsConfig{}
 		for _, customer := range customers {
 			notifications = append(notifications, customer2NotificationConfig(customer))
 		}
@@ -111,18 +111,18 @@ func notificationConfigResponseSender(c *gin.Context, customer *types.Customer, 
 	c.JSON(http.StatusOK, customer2NotificationConfig(customer))
 }
 
-func customer2NotificationConfig(customer *types.Customer) *armotypes.NotificationsConfig {
+func customer2NotificationConfig(customer *types.Customer) *notifications.NotificationsConfig {
 	if customer == nil {
 		return nil
 	}
 	if customer.NotificationsConfig == nil {
-		return &armotypes.NotificationsConfig{}
+		return &notifications.NotificationsConfig{}
 	}
 	return customer.NotificationsConfig
 }
 
 func decodeNotificationConfig(c *gin.Context) ([]*types.Customer, error) {
-	var notificationConfig *armotypes.NotificationsConfig
+	var notificationConfig *notifications.NotificationsConfig
 	//notificationConfig do not support bulk update - so we do not expect array
 	if err := c.ShouldBindJSON(&notificationConfig); err != nil {
 		handlers.ResponseFailedToBindJson(c, err)
