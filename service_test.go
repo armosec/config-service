@@ -13,6 +13,7 @@ import (
 	_ "embed"
 
 	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/armosec/armoapi-go/notifications"
 	"github.com/aws/smithy-go/ptr"
 	rndStr "github.com/dchest/uniuri"
 
@@ -632,7 +633,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	//login as customer
 	suite.login(testCustomerGUID)
 	//get customer notification config - should be empty
-	notificationConfig := &armotypes.NotificationsConfig{}
+	notificationConfig := &notifications.NotificationsConfig{}
 	configPath := consts.NotificationConfigPath + "/" + testCustomerGUID
 	testGetDoc(suite, configPath, notificationConfig, nil)
 
@@ -645,19 +646,19 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	testBadRequest(suite, http.MethodPost, consts.NotificationConfigPath, "404 page not found", notificationConfig, http.StatusNotFound)
 
 	//put new notification config
-	notificationConfig.UnsubscribedUsers = make(map[string][]armotypes.NotificationConfigIdentifier)
-	notificationConfig.UnsubscribedUsers["user1"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeVulnerabilityNewFix}}
-	notificationConfig.UnsubscribedUsers["user2"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypePush}}
-	prevConfig := &armotypes.NotificationsConfig{}
+	notificationConfig.UnsubscribedUsers = make(map[string][]notifications.NotificationConfigIdentifier)
+	notificationConfig.UnsubscribedUsers["user1"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypeVulnerabilityNewFix}}
+	notificationConfig.UnsubscribedUsers["user2"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypePush}}
+	prevConfig := &notifications.NotificationsConfig{}
 	testPutDoc(suite, configPath, prevConfig, notificationConfig, nil)
 	//update notification config
 	prevConfig = clone(notificationConfig)
-	notificationConfig.UnsubscribedUsers = make(map[string][]armotypes.NotificationConfigIdentifier)
-	notificationConfig.UnsubscribedUsers["user3"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}}
+	notificationConfig.UnsubscribedUsers = make(map[string][]notifications.NotificationConfigIdentifier)
+	notificationConfig.UnsubscribedUsers["user3"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypeWeekly}}
 	testPutDoc(suite, configPath, prevConfig, notificationConfig, nil)
 
 	//test unsubscribe user
-	notify := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypeWeekly}
+	notify := notifications.NotificationConfigIdentifier{NotificationType: notifications.NotificationTypeWeekly}
 	unsubscribePath := fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "unsubscribe", "user5")
 	w := suite.doRequest(http.MethodPut, unsubscribePath, notify)
 	suite.Equal(http.StatusOK, w.Code)
@@ -671,7 +672,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	suite.NoError(err)
 	suite.Equal(0, res["added"])
 	//add another one to the same user
-	notifyAll := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypeVulnerabilityNewFix}
+	notifyAll := notifications.NotificationConfigIdentifier{NotificationType: notifications.NotificationTypeVulnerabilityNewFix}
 	w = suite.doRequest(http.MethodPut, unsubscribePath, notifyAll)
 	suite.Equal(http.StatusOK, w.Code)
 	res, err = decodeResponse[map[string]int](w)
@@ -711,46 +712,46 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	suite.Equal(0, res["removed"])
 
 	//updated the expected notification config with the changes
-	notificationConfig.UnsubscribedUsers["user3"] = []armotypes.NotificationConfigIdentifier{}
-	notificationConfig.UnsubscribedUsers["user6"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeVulnerabilityNewFix}}
-	notificationConfig.UnsubscribedUsers["user5"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypeVulnerabilityNewFix}}
+	notificationConfig.UnsubscribedUsers["user3"] = []notifications.NotificationConfigIdentifier{}
+	notificationConfig.UnsubscribedUsers["user6"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypeVulnerabilityNewFix}}
+	notificationConfig.UnsubscribedUsers["user5"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypeWeekly}, {NotificationType: notifications.NotificationTypeVulnerabilityNewFix}}
 
 	//test put delete multiple elements
-	notifyPush := armotypes.NotificationConfigIdentifier{NotificationType: armotypes.NotificationTypePush}
+	notifyPush := notifications.NotificationConfigIdentifier{NotificationType: notifications.NotificationTypePush}
 	//add 2 elements to user10
 	unsubscribePath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "unsubscribe", "user10")
-	w = suite.doRequest(http.MethodPut, unsubscribePath, []armotypes.NotificationConfigIdentifier{notify, notifyPush})
+	w = suite.doRequest(http.MethodPut, unsubscribePath, []notifications.NotificationConfigIdentifier{notify, notifyPush})
 	suite.Equal(http.StatusOK, w.Code)
 	res, err = decodeResponse[map[string]int](w)
 	suite.NoError(err)
 	suite.Equal(1, res["added"])
 	//remove non existing element from user10
-	w = suite.doRequest(http.MethodDelete, unsubscribePath, []armotypes.NotificationConfigIdentifier{notifyAll})
+	w = suite.doRequest(http.MethodDelete, unsubscribePath, []notifications.NotificationConfigIdentifier{notifyAll})
 	suite.Equal(http.StatusOK, w.Code)
 	res, err = decodeResponse[map[string]int](w)
 	suite.NoError(err)
 	suite.Equal(0, res["removed"])
 	// add 3 elements to user11
 	unsubscribePath = fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "unsubscribe", "user11")
-	w = suite.doRequest(http.MethodPut, unsubscribePath, []armotypes.NotificationConfigIdentifier{notify, notifyPush, notifyAll})
+	w = suite.doRequest(http.MethodPut, unsubscribePath, []notifications.NotificationConfigIdentifier{notify, notifyPush, notifyAll})
 	suite.Equal(http.StatusOK, w.Code)
 	res, err = decodeResponse[map[string]int](w)
 	suite.NoError(err)
 	suite.Equal(1, res["added"])
 	// remove 2 elements from user11
-	w = suite.doRequest(http.MethodDelete, unsubscribePath, []armotypes.NotificationConfigIdentifier{notifyPush, notifyAll})
+	w = suite.doRequest(http.MethodDelete, unsubscribePath, []notifications.NotificationConfigIdentifier{notifyPush, notifyAll})
 	suite.Equal(http.StatusOK, w.Code)
 	res, err = decodeResponse[map[string]int](w)
 	suite.NoError(err)
 	suite.Equal(1, res["removed"])
 	//set expected state for the notification config
-	notificationConfig.UnsubscribedUsers["user10"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}, {NotificationType: armotypes.NotificationTypePush}}
-	notificationConfig.UnsubscribedUsers["user11"] = []armotypes.NotificationConfigIdentifier{{NotificationType: armotypes.NotificationTypeWeekly}}
+	notificationConfig.UnsubscribedUsers["user10"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypeWeekly}, {NotificationType: notifications.NotificationTypePush}}
+	notificationConfig.UnsubscribedUsers["user11"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypeWeekly}}
 
 	//update just one field in the configuration
-	notificationConfigWeekly := &armotypes.NotificationsConfig{LatestWeeklyReport: &armotypes.WeeklyReport{ClustersScannedThisWeek: 1}}
+	notificationConfigWeekly := &notifications.NotificationsConfig{LatestWeeklyReport: &notifications.WeeklyReport{ClustersScannedThisWeek: 1}}
 	prevConfig = clone(notificationConfig)
-	notificationConfig.LatestWeeklyReport = &armotypes.WeeklyReport{ClustersScannedThisWeek: 1}
+	notificationConfig.LatestWeeklyReport = &notifications.WeeklyReport{ClustersScannedThisWeek: 1}
 	//test partial update
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	testPutPartialDoc(suite, configPath, prevConfig, notificationConfigWeekly, notificationConfig, nil)
@@ -763,14 +764,14 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	suite.True(updateTime.Before(*updatedCustomer.GetUpdatedTime()) || updateTime.Equal(*updatedCustomer.GetUpdatedTime()), "update time is not recent")
 	//test add push report
 	pushTime := time.Now().UTC()
-	pushReport := &armotypes.PushReport{Timestamp: pushTime, ReportGUID: "push-guid", Cluster: "cluster1"}
+	pushReport := &notifications.PushReport{Timestamp: pushTime, ReportGUID: "push-guid", Cluster: "cluster1"}
 	pushReportPath := fmt.Sprintf("%s/%s/%s", consts.NotificationConfigPath, "latestPushReport", "cluster1")
 	w = suite.doRequest(http.MethodPut, pushReportPath, pushReport)
 	suite.Equal(http.StatusOK, w.Code)
 	res, err = decodeResponse[map[string]int](w)
 	suite.NoError(err)
 	suite.Equal(1, res["modified"])
-	notificationConfig.LatestPushReports = map[string]*armotypes.PushReport{}
+	notificationConfig.LatestPushReports = map[string]*notifications.PushReport{}
 	notificationConfig.LatestPushReports["cluster1"] = pushReport
 	testGetDoc(suite, configPath, notificationConfig, ignoreTime)
 	//add one for cluster2

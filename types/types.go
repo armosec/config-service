@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/armosec/armoapi-go/configservice"
+	"github.com/armosec/armoapi-go/notifications"
 	opapolicy "github.com/kubescape/opa-utils/reporthandling"
 	uuid "github.com/satori/go.uuid"
 )
@@ -53,8 +55,7 @@ type DocContent interface {
 
 // DocContent implementations
 
-
-type CollaborationConfig armotypes.CollaborationConfig
+type CollaborationConfig notifications.CollaborationConfig
 
 func (p *CollaborationConfig) GetReadOnlyFields() []string {
 	return commonReadOnlyFieldsV1
@@ -167,7 +168,7 @@ func (f *Framework) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
-type Customer armotypes.PortalCustomer
+type Customer configservice.PortalCustomer
 
 func (c *Customer) GetReadOnlyFields() []string {
 	return commonReadOnlyFields
