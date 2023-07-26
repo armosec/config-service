@@ -179,28 +179,28 @@ func AdminAggregate[T any](c context.Context, findOps *FindOptions) (*armotypes.
 		field := field
 		fieldFilter := NewFilterBuilder().WithFilter(findOps.filter).AddExists(field, true)
 		filedRef := "$" + field
-		pipeline := mongoDB.Pipeline{
-			{{Key: "$match", Value: fieldFilter.get()}},
-			{{Key: "$group", Value: bson.D{
-				{Key: "_id", Value: filedRef},
-				{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}},
-			}}},
-			{{Key: "$sort", Value: bson.D{
-				{Key: "_id", Value: 1},
-			}}},
-			{{Key: "$limit", Value: findOps.limit}},
-			{{Key: "$group", Value: bson.D{
-				{Key: "_id", Value: nil},
-				{Key: "values", Value: bson.D{{Key: "$push", Value: "$_id"}}},
-				{Key: "count", Value: bson.D{{Key: "$push", Value: bson.D{{Key: "key", Value: "$_id"}, {Key: "count", Value: "$count"}}}}},
-			}}},
-			{{Key: "$project", Value: bson.D{
-				{Key: "_id", Value: 0},
-				{Key: "values", Value: 1},
-				{Key: "count", Value: 1},
-			}}},
-		}
 		errGroup.Go(func() error {
+			pipeline := mongoDB.Pipeline{
+				{{Key: "$match", Value: fieldFilter.get()}},
+				{{Key: "$group", Value: bson.D{
+					{Key: "_id", Value: filedRef},
+					{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}},
+				}}},
+				{{Key: "$sort", Value: bson.D{
+					{Key: "_id", Value: 1},
+				}}},
+				{{Key: "$limit", Value: findOps.limit}},
+				{{Key: "$group", Value: bson.D{
+					{Key: "_id", Value: nil},
+					{Key: "values", Value: bson.D{{Key: "$push", Value: "$_id"}}},
+					{Key: "count", Value: bson.D{{Key: "$push", Value: bson.D{{Key: "key", Value: "$_id"}, {Key: "count", Value: "$count"}}}}},
+				}}},
+				{{Key: "$project", Value: bson.D{
+					{Key: "_id", Value: 0},
+					{Key: "values", Value: 1},
+					{Key: "count", Value: 1},
+				}}},
+			}
 			cursor, err := mongo.GetReadCollection(collection).Aggregate(ctx, pipeline)
 			if err != nil {
 				return fmt.Errorf("failed to aggregate field %s: %w", field, err)
