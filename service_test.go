@@ -1059,7 +1059,8 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				OrderBy: "name:desc",
 				InnerFilters: []map[string]string{
 					{
-						"dataType": "test-data-type-1,test-data-type-2",
+						"dataType":  "test-data-type-1,test-data-type-2",
+						"someField": "", //test ignore empty field
 					},
 				},
 			},
@@ -1438,6 +1439,11 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				Fields: map[string]string{
 					"name":     "",
 					"dataType": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"someField": "", //test ignore empty field
+					},
 				},
 			},
 			expectedResponse: armotypes.UniqueValuesResponseV2{
