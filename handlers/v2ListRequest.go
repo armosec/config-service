@@ -56,12 +56,12 @@ func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error
 	findOptions.Projection().Include(request.FieldsList...)
 	//filters
 	if len(request.InnerFilters) > 0 {
-		filters := make([]*db.FilterBuilder, len(request.InnerFilters))
+		filters := []*db.FilterBuilder{}
 		for i := range request.InnerFilters {
 			if filter, err := buildInnerFilter(request.InnerFilters[i]); err != nil {
 				return nil, err
 			} else if filter != nil {
-				filters[i] = filter
+				filters = append(filters, filter)
 			}
 		}
 		if len(filters) > 1 {
@@ -88,17 +88,17 @@ func uniqueValuesRequest2FindOptions(request armotypes.UniqueValuesRequestV2) (*
 	findOptions.Limit(int64(request.PageSize))
 	//filters
 	if len(request.InnerFilters) > 0 {
-		filters := make([]*db.FilterBuilder, len(request.InnerFilters))
+		filters := []*db.FilterBuilder{}
 		for i := range request.InnerFilters {
 			if filter, err := buildInnerFilter(request.InnerFilters[i]); err != nil {
 				return nil, err
 			} else if filter != nil {
-				filters[i] = filter
+				filters = append(filters, filter)
 			}
 		}
 		if len(filters) > 1 {
 			findOptions.Filter().AddOr(filters...)
-		} else {
+		} else if len(filters) == 1 {
 			findOptions.Filter().WithFilter(filters[0])
 		}
 	}
@@ -108,6 +108,10 @@ func uniqueValuesRequest2FindOptions(request armotypes.UniqueValuesRequestV2) (*
 func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) {
 	filterBuilder := db.NewFilterBuilder()
 	for key, value := range innerFilter {
+		//ignore empty values
+		if value == "" {
+			continue
+		}
 		// Split the value into parts by comma
 		parts := utils.SplitIgnoreEscaped(value, armotypes.V2ListValueSeparator, armotypes.V2ListEscapeChar)
 		//parts := strings.Split(value, valueSeparator)

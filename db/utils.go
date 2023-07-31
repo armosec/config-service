@@ -3,7 +3,6 @@ package db
 import (
 	"config-service/db/mongo"
 	"config-service/types"
-	"config-service/utils"
 	"config-service/utils/consts"
 	"config-service/utils/log"
 	"context"
@@ -178,30 +177,9 @@ func AdminAggregate[T any](c context.Context, findOps *FindOptions) (*armotypes.
 	for _, field := range findOps.group {
 		field := field
 		fieldFilter := NewFilterBuilder().WithFilter(findOps.filter).AddExists(field, true)
-		filedRef := "$" + field
+
 		errGroup.Go(func() error {
-			pipeline := mongoDB.Pipeline{
-				{{Key: "$match", Value: fieldFilter.get()}},
-				{{Key: "$group", Value: bson.D{
-					{Key: "_id", Value: filedRef},
-					{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}},
-				}}},
-				{{Key: "$sort", Value: bson.D{
-					{Key: "_id", Value: 1},
-				}}},
-				{{Key: "$limit", Value: findOps.limit}},
-				{{Key: "$group", Value: bson.D{
-					{Key: "_id", Value: nil},
-					{Key: "values", Value: bson.D{{Key: "$push", Value: "$_id"}}},
-					{Key: "count", Value: bson.D{{Key: "$push", Value: bson.D{{Key: "key", Value: "$_id"}, {Key: "count", Value: "$count"}}}}},
-				}}},
-				{{Key: "$project", Value: bson.D{
-					{Key: "_id", Value: 0},
-					{Key: "values", Value: 1},
-					{Key: "count", Value: 1},
-				}}},
-			}
-			cursor, err := mongo.GetReadCollection(collection).Aggregate(ctx, pipeline)
+			cursor, err := mongo.GetReadCollection(collection).Aggregate(ctx, uniqueValuePipeline(field, fieldFilter.get(), findOps.limit))
 			if err != nil {
 				return fmt.Errorf("failed to aggregate field %s: %w", field, err)
 			}
@@ -230,25 +208,15 @@ func AdminAggregate[T any](c context.Context, findOps *FindOptions) (*armotypes.
 	results.Range(func(key, value interface{}) bool {
 		field, ok := key.(string)
 		if !ok {
-			aggregateResultErr = errors.New("failed to cast key")
+			aggregateResultErr = fmt.Errorf("unexpected key type %T in unique values results", key)
 			return false
 		}
 		result, ok := value.(aggregateResult)
 		if !ok {
-			aggregateResultErr = fmt.Errorf("failed to cast result for field %s", field)
+			aggregateResultErr = fmt.Errorf("unexpected value type %T in unique values results", value)
 			return false
 		}
-		aggregatedResults.Fields[field] = make([]string, len(result.Values))
-		for i, value := range result.Values {
-			aggregatedResults.Fields[field][i] = utils.Interface2String(value)
-		}
-		aggregatedResults.FieldsCount[field] = []armotypes.UniqueValuesResponseFieldsCount{}
-		for _, count := range result.Count {
-			aggregatedResults.FieldsCount[field] = append(aggregatedResults.FieldsCount[field], armotypes.UniqueValuesResponseFieldsCount{
-				Field: count.Key,
-				Count: count.Count,
-			})
-		}
+		addUniqueValuesResult(aggregatedResults, field, result)
 		return true
 	})
 	return aggregatedResults, aggregateResultErr

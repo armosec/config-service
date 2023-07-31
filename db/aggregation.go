@@ -2,6 +2,7 @@ package db
 
 import (
 	"config-service/db/mongo"
+	"config-service/utils"
 	"context"
 	_ "embed"
 	"encoding/json"
@@ -10,6 +11,9 @@ import (
 
 	"config-service/utils/log"
 	"text/template"
+
+	"github.com/armosec/armoapi-go/armotypes"
+	mongoDB "go.mongodb.org/mongo-driver/mongo"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -94,4 +98,43 @@ func AggregateWithTemplate[T any](ctx context.Context, limit, cursor int, collec
 	}
 
 	return &results, nil
+}
+
+func uniqueValuePipeline(field string, match bson.D, limit int64) mongoDB.Pipeline {
+	filedRef := "$" + field
+	return mongoDB.Pipeline{
+		{{Key: "$match", Value: match}},
+		{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: filedRef},
+			{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}},
+		}}},
+		{{Key: "$sort", Value: bson.D{
+			{Key: "_id", Value: 1},
+		}}},
+		{{Key: "$limit", Value: limit}},
+		{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: nil},
+			{Key: "values", Value: bson.D{{Key: "$push", Value: "$_id"}}},
+			{Key: "count", Value: bson.D{{Key: "$push", Value: bson.D{{Key: "key", Value: "$_id"}, {Key: "count", Value: "$count"}}}}},
+		}}},
+		{{Key: "$project", Value: bson.D{
+			{Key: "_id", Value: 0},
+			{Key: "values", Value: 1},
+			{Key: "count", Value: 1},
+		}}},
+	}
+}
+
+func addUniqueValuesResult(aggregatedResults *armotypes.UniqueValuesResponseV2, field string, result aggregateResult) {
+	aggregatedResults.Fields[field] = make([]string, len(result.Values))
+	for i, value := range result.Values {
+		aggregatedResults.Fields[field][i] = utils.Interface2String(value)
+	}
+	aggregatedResults.FieldsCount[field] = []armotypes.UniqueValuesResponseFieldsCount{}
+	for _, count := range result.Count {
+		aggregatedResults.FieldsCount[field] = append(aggregatedResults.FieldsCount[field], armotypes.UniqueValuesResponseFieldsCount{
+			Field: count.Key,
+			Count: count.Count,
+		})
+	}
 }
