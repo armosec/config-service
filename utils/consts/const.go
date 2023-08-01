@@ -28,6 +28,7 @@ const (
 	ActiveSubscriptionPath           = "/v1_active_subscription"
 	CollaborationConfigPath          = "/v1_collaboration_configuration"
 	UsersNotificationsCachePath      = "/v1_users_notifications_cache"
+	AttackChainsPath                 = "/v1_attack_chains"
 
 	//DB collections
 	ClustersCollection                     = "clusters"
@@ -40,6 +41,7 @@ const (
 	RegistryCronJobCollection              = "v1_registry_cron_jobs"
 	CollaborationConfigCollection          = "v1_collaboration_configurations"
 	UsersNotificationsCacheCollection      = "v1_users_notifications_cache"
+	AttackChainsCollection                 = "v1_attack_chains"
 
 	//Common document fields
 	IdField          = "_id"

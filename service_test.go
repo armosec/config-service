@@ -362,12 +362,12 @@ func (suite *MainTestSuite) TestCustomerConfiguration() {
 	testBadRequest(suite, http.MethodDelete, consts.CustomerConfigPath, errorMissingName, nil, http.StatusBadRequest)
 
 	//test put cluster2 config by cluster name
-	oldCluster2 := clone(cluster2Config)
+	oldCluster2 := Clone(cluster2Config)
 	cluster2Config.Settings.PostureScanConfig.ScanFrequency = "100h"
 	path = fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ClusterNameParam, cluster2Config.GetName())
 	testPutDoc(suite, path, oldCluster2, cluster2Config)
 	// put cluster2 config by config name
-	oldCluster2 = clone(cluster2Config)
+	oldCluster2 = Clone(cluster2Config)
 	cluster2Config.Settings.PostureControlInputs["allowedContainerRepos"] = []string{"repo1", "repo2"}
 	path = fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ConfigNameParam, cluster2Config.GetName())
 	testPutDoc(suite, path, oldCluster2, cluster2Config, compareFilter)
@@ -387,7 +387,7 @@ func (suite *MainTestSuite) TestCustomerConfiguration() {
 	//post costumer config again
 	customerConfig = testPostDoc(suite, consts.CustomerConfigPath, customerConfig, compareFilter)
 	//update it by scope param
-	oldCustomerConfig := clone(customerConfig)
+	oldCustomerConfig := Clone(customerConfig)
 	customerConfig.Settings.PostureScanConfig.ScanFrequency = "11h"
 	path = fmt.Sprintf("%s?%s=%s", consts.CustomerConfigPath, consts.ScopeParam, consts.CustomerScope)
 	testPutDoc(suite, path, oldCustomerConfig, customerConfig, compareFilter)
@@ -434,11 +434,11 @@ func (suite *MainTestSuite) TestCustomer() {
 	suite.login("new-customer-guid")
 	testGetDoc(suite, "/customer", newCustomer, nil)
 	//test put customer
-	oldCustomer := clone(newCustomer)
+	oldCustomer := Clone(newCustomer)
 	newCustomer.LicenseType = "$$$$$$"
 	newCustomer.Description = "new description"
 	testPutDoc(suite, "/customer", oldCustomer, newCustomer, customerCompareFilter)
-	oldCustomer = clone(newCustomer)
+	oldCustomer = Clone(newCustomer)
 	partialCustomer := &types.Customer{LicenseType: "partial"}
 	newCustomer.LicenseType = "partial"
 	testPutPartialDoc(suite, "/customer", oldCustomer, partialCustomer, newCustomer, customerCompareFilter)
@@ -581,13 +581,13 @@ func (suite *MainTestSuite) TestRepository() {
 	suite.Equal(alias, repo.Attributes["alias"].(string))
 
 	//put doc without alias and wrong doc GUID
-	repo1 := clone(repo)
+	repo1 := Clone(repo)
 	repo1.GUID = "wrongGUID"
 	delete(repo1.Attributes, "alias")
 	testBadRequest(suite, http.MethodPut, consts.RepositoryPath, errorDocumentNotFound, repo1, http.StatusNotFound)
 
 	//change read only fields - expect them to be ignored
-	repo1 = clone(repo)
+	repo1 = Clone(repo)
 	repo1.Owner = "new-owner"
 	repo1.Provider = "new-provider"
 	repo1.BranchName = "new-branch"
@@ -652,7 +652,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	prevConfig := &notifications.NotificationsConfig{}
 	testPutDoc(suite, configPath, prevConfig, notificationConfig, nil)
 	//update notification config
-	prevConfig = clone(notificationConfig)
+	prevConfig = Clone(notificationConfig)
 	notificationConfig.UnsubscribedUsers = make(map[string][]notifications.NotificationConfigIdentifier)
 	notificationConfig.UnsubscribedUsers["user3"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypeWeekly}}
 	testPutDoc(suite, configPath, prevConfig, notificationConfig, nil)
@@ -750,13 +750,13 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 
 	//update just one field in the configuration
 	notificationConfigWeekly := &notifications.NotificationsConfig{LatestWeeklyReport: &notifications.WeeklyReport{ClustersScannedThisWeek: 1}}
-	prevConfig = clone(notificationConfig)
+	prevConfig = Clone(notificationConfig)
 	notificationConfig.LatestWeeklyReport = &notifications.WeeklyReport{ClustersScannedThisWeek: 1}
 	//test partial update
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
 	testPutPartialDoc(suite, configPath, prevConfig, notificationConfigWeekly, notificationConfig, nil)
 	//make sure not other customer fields are changed
-	updatedCustomer := clone(testCustomer)
+	updatedCustomer := Clone(testCustomer)
 	updatedCustomer.NotificationsConfig = notificationConfig
 	updatedCustomer = testGetDoc(suite, "/customer", updatedCustomer, customerCompareFilter)
 	//check the the customer update date is updated
@@ -839,7 +839,7 @@ func (suite *MainTestSuite) TestCustomerState() {
 	testBadRequest(suite, http.MethodPost, consts.CustomerStatePath, "404 page not found", state, http.StatusNotFound)
 
 	//put new state
-	prevState := clone(state)
+	prevState := Clone(state)
 	state.Onboarding.CompanySize = utils.StringPointer("1000")
 	state.Onboarding.Completed = utils.BoolPointer(false)
 	state.Onboarding.Interests = []string{"a", "b"}
@@ -855,15 +855,15 @@ func (suite *MainTestSuite) TestCustomerState() {
 
 	// update state - "GettingStarted = nil" should not be updated
 	// we skip checking it in testPutDoc because it will returned as a non-null object and comparison will fail
-	prevState = clone(state)
+	prevState = Clone(state)
 	state.Onboarding.Completed = utils.BoolPointer(true)
-	expectState := clone(state)
+	expectState := Clone(state)
 	state.GettingStarted = nil
 	testPutPartialDoc(suite, statePath, prevState, state, expectState)
-	state = clone(expectState)
+	state = Clone(expectState)
 
 	//make sure not other customer fields are changed
-	updatedCustomer := clone(testCustomer)
+	updatedCustomer := Clone(testCustomer)
 	updatedCustomer.State = state
 	updatedCustomer = testGetDoc(suite, "/customer", updatedCustomer, customerCompareFilter)
 	//check the the customer update date is updated
@@ -871,7 +871,7 @@ func (suite *MainTestSuite) TestCustomerState() {
 	suite.Truef(updatedCustomer.GetUpdatedTime().After(timeBeforeUpdate), "update time should be updated")
 
 	// try updating state with false value
-	prevState = clone(state)
+	prevState = Clone(state)
 	state.Onboarding.Completed = utils.BoolPointer(false)
 	testPutDoc(suite, statePath, prevState, state, nil)
 }
@@ -934,15 +934,15 @@ func (suite *MainTestSuite) TestActiveSubscription() {
 
 	// update activeSubscription partially
 	// we skip checking it in testPutDoc because it will returned as a non-null object and comparison will fail
-	prevActiveSubscription := clone(activeSubscription)
+	prevActiveSubscription := Clone(activeSubscription)
 	activeSubscription.SubscriptionStatus = "canceled"
-	expectActiveSubscription := clone(activeSubscription)
+	expectActiveSubscription := Clone(activeSubscription)
 	activeSubscription.StripeSubscriptionID = "test-subscription-id"
 	testPutPartialDoc(suite, activeSubscriptionPath, prevActiveSubscription, activeSubscription, expectActiveSubscription)
-	activeSubscription = clone(expectActiveSubscription)
+	activeSubscription = Clone(expectActiveSubscription)
 
 	// make sure no other customer fields are changed
-	updatedCustomer := clone(testCustomer)
+	updatedCustomer := Clone(testCustomer)
 	updatedCustomer.ActiveSubscription = activeSubscription
 	updatedCustomer = testGetDoc(suite, "/customer", updatedCustomer, customerCompareFilter)
 
@@ -951,6 +951,360 @@ func (suite *MainTestSuite) TestActiveSubscription() {
 	suite.Truef(updatedCustomer.GetUpdatedTime().After(timeBeforeUpdate), "update time should be updated")
 }
 
+//go:embed test_data/attack-chain-configs.json
+var attackChainConfigsJson []byte
+
+func (suite *MainTestSuite) TestAttackChainsConfigs() {
+	attackChainConfigs, _ := loadJson[*types.AttackChain](attackChainConfigsJson)
+
+	modifyFunc := func(doc *types.AttackChain) *types.AttackChain {
+		return doc
+	}
+
+	cloneDocFunc := func(doc *types.AttackChain) *types.AttackChain {
+		docCloned := Clone(doc)
+		docCloned.AttackChainID = fmt.Sprintf("%d", time.Now().Unix())
+		return docCloned
+	}
+
+	testOpts := testOptions[*types.AttackChain]{
+		uniqueName:    false,
+		mandatoryName: true,
+		customGUID:    true,
+		skipPutTests:  true,
+		clondeDocFunc: &cloneDocFunc,
+	}
+
+	commonTestWithOptions(suite, consts.AttackChainsPath, attackChainConfigs, modifyFunc, testOpts, commonCmpFilter, ignoreTime)
+
+	//todo Add put requests tests
+
+	projectedDocs := []*types.AttackChain{
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "aaa",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "bbb",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "ccc",
+			},
+		},
+	}
+
+	searchQueries := []searchTest{
+		//field or match
+		{
+			testName:        "field or match",
+			expectedIndexes: []int{0},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attackChainID": "aHASBDhsaNj",
+					},
+				},
+			},
+		},
+
+		//same field or match in descending order
+		{
+			testName:        "same field or match in descending order",
+			expectedIndexes: []int{2, 1, 0},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:desc",
+				InnerFilters: []map[string]string{
+					{
+						"clusterName": "minikube-a",
+						"someField":   "", //test ignore empty field
+					},
+				},
+			},
+		},
+		//fields and match
+		{
+			testName:        "fields and match",
+			expectedIndexes: []int{1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"clusterName": "minikube-a",
+						"name":        "bbb",
+					},
+				},
+			},
+		},
+		//filters exist operator
+		{
+			testName:        "filters exist operator",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"clusterName": "|exists",
+					},
+				},
+			},
+		},
+		//filters or match with missing operator
+		{
+			testName:        "filters or match with missing operator",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"last_login_date": "2022-04-28T14:59:44.147901",
+					},
+					{
+						"last_login_date": "|missing",
+					},
+				},
+			},
+		},
+
+		//like match
+		{
+			testName:        "like ignorecase match",
+			expectedIndexes: []int{0},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "AaA|like&ignorecase",
+					},
+				},
+			},
+		},
+		{
+			testName:        "like with multi results",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"clusterName": "mini|like",
+					},
+				},
+			},
+		},
+		//projection test
+		{
+			testName:         "projection test",
+			expectedIndexes:  []int{0, 1, 2},
+			projectedResults: true,
+			listRequest: armotypes.V2ListRequest{
+				OrderBy:    "name:asc",
+				FieldsList: []string{"name"},
+				InnerFilters: []map[string]string{
+					{
+						"clusterName": "minikube-a",
+					},
+				},
+			},
+		},
+	}
+
+	testPostV2ListRequest(suite, consts.AttackChainsPath, attackChainConfigs, projectedDocs, searchQueries, commonCmpFilter, ignoreTime)
+
+	//add some docs for unique values tests
+	moreDocs := []*types.AttackChain{
+		{
+			PortalBase: armotypes.PortalBase{
+				GUID: "11111",
+				Name: "aaa",
+			},
+			ClusterName:   "minikube-a",
+			AttackChainID: "12312312312312",
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				GUID: "11111121",
+				Name: "bbb",
+			},
+			ClusterName:   "minikube-b",
+			AttackChainID: "12312312312312xxx",
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				GUID: "1132111",
+				Name: "ccc",
+			},
+			ClusterName:   "minikube-a",
+			AttackChainID: "12312312312312aaaa",
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				GUID: "223",
+				Name: "aaa",
+			},
+			ClusterName:   "minikube-b",
+			AttackChainID: "12312312312312wwww",
+		},
+
+		{
+			PortalBase: armotypes.PortalBase{
+				GUID: "223x",
+				Name: "ddd",
+			},
+			ClusterName:   "minikube-d",
+			AttackChainID: "12312312312312pppp",
+		},
+	}
+	attackChainConfigs = append(attackChainConfigs, moreDocs...)
+
+	uniqueValues := []uniqueValueTest{
+		{
+			testName: "unique names",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name": {"aaa", "bbb", "ccc", "ddd"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+
+							Field: "aaa",
+							Count: 3,
+						},
+						{
+							Field: "bbb",
+							Count: 2,
+						},
+						{
+							Field: "ccc",
+							Count: 2,
+						},
+						{
+							Field: "ddd",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique names with filter",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"clusterName": "minikube-a",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name": {"aaa", "bbb", "ccc"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+
+							Field: "aaa",
+							Count: 2,
+						},
+						{
+
+							Field: "bbb",
+							Count: 1,
+						},
+						{
+
+							Field: "ccc",
+							Count: 2,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique names and cluster names",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name":        "",
+					"clusterName": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"someField": "", //test ignore empty field
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name":        {"aaa", "bbb", "ccc", "ddd"},
+					"clusterName": {"minikube-a", "minikube-b", "minikube-d"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+							Field: "aaa",
+							Count: 3,
+						}, {
+							Field: "bbb",
+							Count: 2,
+						}, {
+							Field: "ccc",
+							Count: 2,
+						}, {
+							Field: "ddd",
+							Count: 1,
+						},
+					},
+					"clusterName": {
+						{
+							Field: "minikube-a",
+							Count: 5,
+						}, {
+							Field: "minikube-b",
+							Count: 2,
+						},
+						{
+							Field: "minikube-d",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testUniqueValues(suite, consts.AttackChainsPath, attackChainConfigs, uniqueValues, commonCmpFilter, ignoreTime)
+
+	//Post must require attack chain object with defined AttackChainId
+	attackChainWithoutAttackChainId := types.AttackChain{
+		PortalBase: armotypes.PortalBase{
+			GUID: "xxxx",
+			Name: "test-name",
+		},
+		AttackChainID: "",
+	}
+	badRequestResponse := struct {
+		error string
+	}{
+		error: "Attack Chain must contain AttackChainID",
+	}
+	badRequestJsonFormat, err := json.Marshal(badRequestResponse)
+	if err != nil {
+		testBadRequest(suite, http.MethodPost, consts.AttackChainsPath, string(badRequestJsonFormat), attackChainWithoutAttackChainId, http.StatusNotFound)
+	}
+
+}
 func (suite *MainTestSuite) TestUsersNotificationsCache() {
 	toJson := func(i interface{}) json.RawMessage {
 		b, err := json.Marshal(i)
@@ -1013,7 +1367,7 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 		}
 		return doc
 	}
-	testOpts := testOptions{
+	testOpts := testOptions[*types.Cache]{
 		uniqueName:    false,
 		mandatoryName: false,
 		customGUID:    true,
@@ -1511,12 +1865,12 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 	suite.Equal(time.Now().UTC().Add(time.Hour*24*90).Format(time.RFC3339), ttlDoc.ExpiryTime.Format(time.RFC3339), "default ttl is not set correctly")
 	//set ttl to more than 90 days - should be ignored
 	expirationTime := ttlDoc.ExpiryTime
-	ttlUpdate := clone(ttlDoc)
+	ttlUpdate := Clone(ttlDoc)
 	ttlDoc.ExpiryTime = time.Now().UTC().Add(time.Hour * 24 * 100)
 	ttlUpdate = testPutDoc(suite, consts.UsersNotificationsCachePath, ttlDoc, ttlUpdate, commonCmpFilter, ignoreTime)
 	suite.Equal(expirationTime.UTC().Format(time.RFC3339), ttlUpdate.ExpiryTime.Format(time.RFC3339), "ttl above max allowed is not ignored")
 	//set ttl to time in past
-	ttlInPast := clone(ttlDoc)
+	ttlInPast := Clone(ttlDoc)
 	ttlInPast.ExpiryTime = time.Now().UTC().Add(time.Hour * -24)
 	expirationTime = ttlInPast.ExpiryTime
 	ttlInPast = testPutDoc(suite, consts.UsersNotificationsCachePath, ttlDoc, ttlInPast, commonCmpFilter, ignoreTime)

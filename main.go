@@ -4,6 +4,7 @@ import (
 	"config-service/routes/login"
 	"config-service/routes/prob"
 	"config-service/routes/v1/admin"
+	"config-service/routes/v1/attack_chains"
 	"config-service/routes/v1/cluster"
 	"config-service/routes/v1/collaboration_config"
 	"config-service/routes/v1/customer"
@@ -79,6 +80,7 @@ func setupRouter() *gin.Engine {
 	registry_cron_job.AddRoutes(router)
 	collaboration_config.AddRoutes(router)
 	users_notifications_cache.AddRoutes(router)
+	attack_chains.AddRoutes(router)
 	return router
 }
 

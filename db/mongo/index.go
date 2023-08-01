@@ -47,6 +47,14 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			Options: options.Index().SetExpireAfterSeconds(0),
 		},
 	},
+	consts.AttackChainsCollection: {
+		{
+			Keys: bson.D{
+				{Key: "guid", Value: 1},
+			},
+			Options: options.Index().SetBackground(true),
+		},
+	},
 }
 
 // defaultIndex is the default index for all collections unless overridden in collectionIndexes

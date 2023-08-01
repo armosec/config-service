@@ -144,3 +144,26 @@ func ValidatePutAttributerShortName[T types.DocContent](c *gin.Context, docs []T
 	}
 	return docs, true
 }
+
+func ValidateAttackChainId(c *gin.Context, docs []*types.AttackChain) ([]*types.AttackChain, bool) {
+	for i := range docs {
+		if docs[i].AttackChainID == "" {
+			ResponseBadRequest(c, "Attack Chain must contain AttackChainID")
+			return nil, false
+		}
+	}
+	return docs, true
+}
+
+func ValidateNameExistence[T types.DocContent]() func(c *gin.Context, docs []T) ([]T, bool) {
+	return func(c *gin.Context, docs []T) ([]T, bool) {
+		defer log.LogNTraceEnterExit("ValidateNameExistence", c)()
+		for i := range docs {
+			if docs[i].GetName() == "" {
+				ResponseMissingName(c)
+				return nil, false
+			}
+		}
+		return docs, true
+	}
+}

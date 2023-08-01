@@ -1,0 +1,47 @@
+[
+    {
+        "name": "aaa",
+        "description": "Some desc",
+        "attackChainID": "aHASBDhsaNj",
+        "clusterName": "minikube-a",
+        "customerGUID": "abcd-2eddf",
+        "latestReportGUID": "xw2abcd-s2eddf",
+        "subscription_date": "2022-04-28T14:59:44.147901",
+        "last_login_date": "2022-04-28T14:59:44.147901",
+        "uiStatus": {
+            "firstSeen": "2022-04-28T14:59:44.147901",
+            "wasViewedMainScreen": "2022-04-28T14:59:44.147901",
+            "processingStatus": "done"
+        }
+    },
+    {
+        "name": "bbb",
+        "description": "Some desc",
+        "attackChainID": "bHASBDhsaNj",
+        "clusterName": "minikube-a",
+        "customerGUID": "abcd-2eddf",
+        "latestReportGUID": "xw2abcd-s2eddf",
+        "subscription_date": "2022-04-28T14:59:44.147901",
+        "last_login_date": "",
+        "uiStatus": {
+            "firstSeen": "2022-04-28T14:59:44.147901",
+            "wasViewedMainScreen": "2022-04-28T14:59:44.147901",
+            "processingStatus": "done"
+        }
+    },
+    {
+        "name": "ccc",
+        "description": "Some desc",
+        "attackChainID": "cHASBDhsaNj",
+        "clusterName": "minikube-a",
+        "customerGUID": "abcd-2eddf",
+        "latestReportGUID": "xw2abcd-s2eddf",
+        "subscription_date": "2022-04-28T14:59:44.147901",
+        "last_login_date": "",
+        "uiStatus": {
+            "firstSeen": "2022-04-28T14:59:44.147901",
+            "wasViewedMainScreen": "2022-04-28T14:59:44.147901",
+            "processingStatus": "done"
+        }
+    }
+]
