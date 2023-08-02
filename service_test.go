@@ -977,8 +977,6 @@ func (suite *MainTestSuite) TestAttackChainsConfigs() {
 
 	commonTestWithOptions(suite, consts.AttackChainsPath, attackChainConfigs, modifyFunc, testOpts, commonCmpFilter, ignoreTime)
 
-	//todo Add put requests tests
-
 	projectedDocs := []*types.AttackChain{
 		{
 			PortalBase: armotypes.PortalBase{
@@ -1304,7 +1302,31 @@ func (suite *MainTestSuite) TestAttackChainsConfigs() {
 		testBadRequest(suite, http.MethodPost, consts.AttackChainsPath, string(badRequestJsonFormat), attackChainWithoutAttackChainId, http.StatusNotFound)
 	}
 
+	//Put request custom test
+
+	attackChainConfigBeforeUpdate := types.AttackChain{
+		PortalBase: armotypes.PortalBase{
+			Name: "test-name-1",
+			GUID: "ndjsa2135s",
+		},
+		AttackChainID: "ndjsa2135s",
+		UIStatus: &armotypes.AttackChainUIStatus{
+			FirstSeen:        "2022-04-28T14:59:44.147901",
+			ProcessingStatus: "processing",
+		},
+	}
+	testPostDoc(suite, consts.AttackChainsPath, &attackChainConfigBeforeUpdate, commonCmpFilter, ignoreTime)
+
+	attackChainConfigAfterUpdate := Clone(attackChainConfigBeforeUpdate)
+	attackChainConfigAfterUpdate.UIStatus.ProcessingStatus = "done"
+	attackChainConfigAfterUpdate.UIStatus.ViewedMainScreen = "2022-04-29T14:59:44.147901"
+	expectedAttackChainConfigAfterUpdate := Clone(attackChainConfigAfterUpdate)
+
+	testPutPartialDoc(suite, consts.AttackChainsPath, attackChainConfigBeforeUpdate, attackChainConfigAfterUpdate, expectedAttackChainConfigAfterUpdate, commonCmpFilter, ignoreTime)
+
+	testDeleteDocByGUID(suite, consts.AttackChainsPath, &expectedAttackChainConfigAfterUpdate, commonCmpFilter, ignoreTime)
 }
+
 func (suite *MainTestSuite) TestUsersNotificationsCache() {
 	toJson := func(i interface{}) json.RawMessage {
 		b, err := json.Marshal(i)
