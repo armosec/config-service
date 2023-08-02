@@ -310,6 +310,7 @@ func (c *AttackChain) SetGUID(guid string) {
 		c.GUID = guid
 		return
 	}
+	// Force doc GUID to be AttackChainID
 	c.GUID = c.AttackChainID
 }
 

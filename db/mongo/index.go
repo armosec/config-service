@@ -54,6 +54,48 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			},
 			Options: options.Index().SetBackground(true),
 		},
+		{
+			Keys: bson.D{
+				{Key: "name", Value: 1},
+			},
+			Options: options.Index().SetBackground(true),
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+			},
+			Options: options.Index().SetBackground(true),
+		},
+		{
+			Keys: bson.D{
+				{Key: "attackChainID", Value: 1},
+			},
+			Options: options.Index().SetBackground(true),
+		},
+		{
+			Keys: bson.D{
+				{Key: "clusterName", Value: 1},
+			},
+			Options: options.Index().SetBackground(true),
+		},
+		{
+			Keys: bson.D{
+				{Key: "customerGUID", Value: 1},
+			},
+			Options: options.Index().SetBackground(true),
+		},
+		{
+			Keys: bson.D{
+				{Key: "latestReportGUID", Value: 1},
+			},
+			Options: options.Index().SetBackground(true),
+		},
+		{
+			Keys: bson.D{
+				{Key: "uiStatus.processing", Value: 1},
+			},
+			Options: options.Index().SetBackground(true),
+		},
 	},
 }
 

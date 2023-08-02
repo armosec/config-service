@@ -108,7 +108,7 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 			postValidators = append(postValidators, ValidateUniqueValues(NameKeyGetter[T]))
 		}
 		if opts.validatePostMandatoryName {
-			postValidators = append(postValidators, ValidateNameExistence[T]())
+			postValidators = append(postValidators, ValidateNameExistence[T])
 		}
 		if opts.uniqueShortName != nil {
 			postValidators = append(postValidators, ValidatePostAttributeShortName(opts.uniqueShortName))
