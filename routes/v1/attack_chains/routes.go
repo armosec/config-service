@@ -17,6 +17,5 @@ func AddRoutes(g *gin.Engine) {
 		WithValidatePostUniqueName(false).
 		WithValidatePostMandatoryName(true).
 		WithPostValidators(validateAttackChainId).
-		WithUniqueShortName(handlers.NameValueGetter[*types.AttackChain]).
 		Get()...)
 }

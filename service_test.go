@@ -1104,6 +1104,31 @@ func (suite *MainTestSuite) TestAttackChainsConfigs() {
 				},
 			},
 		},
+		//field or match
+		{
+			testName:        "uiStatus.processingStatus = processing query match test",
+			expectedIndexes: []int{2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"uiStatus.processingStatus": "processing",
+					},
+				},
+			},
+		},
+		{
+			testName:        "uiStatus.processingStatus = done query match test",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"uiStatus.processingStatus": "done",
+					},
+				},
+			},
+		},
 	}
 
 	testPostV2ListRequest(suite, consts.AttackChainsPath, attackChainConfigs, projectedDocs, searchQueries, commonCmpFilter, ignoreTime)

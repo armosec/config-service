@@ -80,19 +80,13 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 		},
 		{
 			Keys: bson.D{
-				{Key: "customerGUID", Value: 1},
-			},
-			Options: options.Index().SetBackground(true),
-		},
-		{
-			Keys: bson.D{
 				{Key: "latestReportGUID", Value: 1},
 			},
 			Options: options.Index().SetBackground(true),
 		},
 		{
 			Keys: bson.D{
-				{Key: "uiStatus.processing", Value: 1},
+				{Key: "uiStatus.processingStatus", Value: 1},
 			},
 			Options: options.Index().SetBackground(true),
 		},
