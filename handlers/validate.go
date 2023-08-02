@@ -144,3 +144,14 @@ func ValidatePutAttributerShortName[T types.DocContent](c *gin.Context, docs []T
 	}
 	return docs, true
 }
+
+func ValidateNameExistence[T types.DocContent](c *gin.Context, docs []T) ([]T, bool) {
+	defer log.LogNTraceEnterExit("ValidateNameExistence", c)()
+	for i := range docs {
+		if docs[i].GetName() == "" {
+			ResponseMissingName(c)
+			return nil, false
+		}
+	}
+	return docs, true
+}

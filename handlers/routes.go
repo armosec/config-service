@@ -24,6 +24,7 @@ type routerOptions[T types.DocContent] struct {
 	serveBulkDelete           bool                      //default true, serve DELETE /<path>/bulk with list of GUIDs in body or query to delete documents by GUIDs
 	serveDeleteByName         bool                      //default false, when true, DELETE will check for name param and will delete the document by name
 	validatePostUniqueName    bool                      //default true, POST will validate that the name is unique
+	validatePostMandatoryName bool                      //default false, POST will validate that the name exists
 	validatePutGUID           bool                      //default true, PUT will validate GUID existence in body or path
 	nameQueryParam            string                    //default empty, the param name that indicates query by name (e.g. clusterName) when set GET will check for this param and will return the document by name
 	QueryConfig               *QueryParamsConfig        //default nil, when set, GET will check for the specified query params and will return the documents by the query params
@@ -67,6 +68,7 @@ func newRouterOptions[T types.DocContent]() *routerOptions[T] {
 		serveGetNamesList:         true,
 		serveGetIncludeGlobalDocs: false,
 		serveDeleteByName:         false,
+		validatePostMandatoryName: false,
 	}
 }
 
@@ -104,6 +106,9 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 		postValidators := []MutatorValidator[T]{}
 		if opts.validatePostUniqueName {
 			postValidators = append(postValidators, ValidateUniqueValues(NameKeyGetter[T]))
+		}
+		if opts.validatePostMandatoryName {
+			postValidators = append(postValidators, ValidateNameExistence[T])
 		}
 		if opts.uniqueShortName != nil {
 			postValidators = append(postValidators, ValidatePostAttributeShortName(opts.uniqueShortName))
@@ -341,6 +346,13 @@ func (b *RouterOptionsBuilder[T]) WithPostValidators(validators ...MutatorValida
 func (b *RouterOptionsBuilder[T]) WithValidatePostUniqueName(validatePostUniqueName bool) *RouterOptionsBuilder[T] {
 	b.options = append(b.options, func(opts *routerOptions[T]) {
 		opts.validatePostUniqueName = validatePostUniqueName
+	})
+	return b
+}
+
+func (b *RouterOptionsBuilder[T]) WithValidatePostMandatoryName(validatePostMandatoryName bool) *RouterOptionsBuilder[T] {
+	b.options = append(b.options, func(opts *routerOptions[T]) {
+		opts.validatePostMandatoryName = validatePostMandatoryName
 	})
 	return b
 }

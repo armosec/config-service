@@ -36,7 +36,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache
+		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *AttackChain
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -296,8 +296,42 @@ func (r *RegistryCronJob) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
+type AttackChain armotypes.AttackChainConfig
+
+func (c *AttackChain) GetReadOnlyFields() []string {
+	return attackChainReadOnlyFields
+}
+func (c *AttackChain) InitNew() {
+	c.CreationTime = time.Now().UTC().Format(time.RFC3339)
+}
+
+func (c *AttackChain) SetGUID(guid string) {
+	if guid == "" {
+		c.GUID = guid
+		return
+	}
+	// Force doc GUID to be AttackChainID
+	c.GUID = c.AttackChainID
+}
+
+func (c *AttackChain) GetGUID() string {
+	return c.GUID
+}
+
+func (c *AttackChain) GetCreationTime() *time.Time {
+	if c.CreationTime == "" {
+		return nil
+	}
+	creationTime, err := time.Parse(time.RFC3339, c.CreationTime)
+	if err != nil {
+		return nil
+	}
+	return &creationTime
+}
+
 var commonReadOnlyFields = []string{consts.IdField, consts.NameField, consts.GUIDField}
 var commonReadOnlyFieldsV1 = append([]string{"creationTime"}, commonReadOnlyFields...)
 var clusterReadOnlyFields = append([]string{"subscription_date"}, commonReadOnlyFields...)
 var repositoryReadOnlyFields = append([]string{"creationDate", "provider", "owner", "repoName", "branchName"}, commonReadOnlyFields...)
 var croneJobReadOnlyFields = append([]string{"creationTime", "clusterName", "registryName"}, commonReadOnlyFields...)
+var attackChainReadOnlyFields = append([]string{"creationTime", "customerGUID", "attackChainID", "clusterName"}, commonReadOnlyFieldsV1...)
