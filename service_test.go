@@ -957,10 +957,6 @@ var attackChainConfigsJson []byte
 func (suite *MainTestSuite) TestAttackChainsConfigs() {
 	attackChainConfigs, _ := loadJson[*types.AttackChain](attackChainConfigsJson)
 
-	modifyFunc := func(doc *types.AttackChain) *types.AttackChain {
-		return doc
-	}
-
 	cloneDocFunc := func(doc *types.AttackChain) *types.AttackChain {
 		docCloned := Clone(doc)
 		docCloned.AttackChainID = fmt.Sprintf("%d", time.Now().Unix())
@@ -975,7 +971,7 @@ func (suite *MainTestSuite) TestAttackChainsConfigs() {
 		clondeDocFunc: &cloneDocFunc,
 	}
 
-	commonTestWithOptions(suite, consts.AttackChainsPath, attackChainConfigs, modifyFunc, testOpts, commonCmpFilter, ignoreTime)
+	commonTestWithOptions(suite, consts.AttackChainsPath, attackChainConfigs, nil, testOpts, commonCmpFilter, ignoreTime)
 
 	projectedDocs := []*types.AttackChain{
 		{
