@@ -29,7 +29,7 @@ const (
 	ActiveSubscriptionPath                = "/v1_active_subscription"
 	CollaborationConfigPath               = "/v1_collaboration_configuration"
 	UsersNotificationsCachePath           = "/v1_users_notifications_cache"
-	UsersNotificationsVulnerabilitiesPath = "/v1_users_notifications_vulnerabilities"
+	UsersNotificationsVulnerabilitiesPath = "/v1_users_notifications_vulnerability"
 	AttackChainsPath                      = "/v1_attack_chains"
 
 	//DB collections

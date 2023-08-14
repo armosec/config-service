@@ -103,7 +103,7 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 		},
 		{
 			Keys: bson.D{
-				{Key: "driftType", Value: 1},
+				{Key: "notificationType", Value: 1},
 			},
 		},
 	},
