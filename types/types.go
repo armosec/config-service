@@ -36,7 +36,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *AttackChain
+		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *AttackChain | *VulnerabilityNotification
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -54,6 +54,31 @@ type DocContent interface {
 // redefine types for Doc Content implementations
 
 // DocContent implementations
+
+type VulnerabilityNotification struct {
+	notifications.VulnerabilityNotification `json:",inline" bson:",inline"`
+	//needed only for tests
+	Name string `json:"name,omitempty" bson:"name,omitempty"`
+}
+
+func (c *VulnerabilityNotification) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsV1
+}
+
+func (v *VulnerabilityNotification) InitNew() {
+	v.CreationTime = time.Now().UTC().Format(time.RFC3339)
+}
+func (v *VulnerabilityNotification) GetName() string {
+	return v.Name
+}
+
+func (v *VulnerabilityNotification) SetName(name string) {
+	v.Name = name
+}
+
+func (v *VulnerabilityNotification) GetAttributes() map[string]interface{} { return nil }
+
+func (v *VulnerabilityNotification) SetAttributes(attributes map[string]interface{}) {}
 
 type CollaborationConfig notifications.CollaborationConfig
 

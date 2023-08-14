@@ -294,14 +294,14 @@ func testDeleteByName[T types.DocContent](suite *MainTestSuite, basePath, namePa
 
 func testDeleteBulkDeleteByGUID[T types.DocContent](suite *MainTestSuite, basePath string, testDocs []T, compareOpts ...cmp.Option) {
 	//test bulk delete by Ids in body
-	newDocs := testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
+	newDocs := testBulkPostDocs(suite, basePath, testDocs, compareOpts...)
 	docsIds := []string{}
 	for i := range newDocs {
 		docsIds = append(docsIds, newDocs[i].GetGUID())
 	}
 	testBulkDeleteByGUIDWithBody(suite, basePath, docsIds)
 	//test bulk delete by Ids in query
-	newDocs = testBulkPostDocs(suite, basePath, testDocs, commonCmpFilter)
+	newDocs = testBulkPostDocs(suite, basePath, testDocs, compareOpts...)
 	docsIds = []string{}
 	for i := range newDocs {
 		docsIds = append(docsIds, newDocs[i].GetGUID())

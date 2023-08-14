@@ -82,6 +82,12 @@ func uniqueValuesRequest2FindOptions(request armotypes.UniqueValuesRequestV2) (*
 		return nil, fmt.Errorf("fields are required")
 	}
 	findOptions := db.NewFindOptions()
+	//pages
+	var page int
+	if request.PageNum != nil {
+		page = *request.PageNum
+	}
+	findOptions.SetPagination(int64(page), int64(request.PageSize))
 	for field := range request.Fields {
 		findOptions.WithGroup(field)
 	}
@@ -105,6 +111,8 @@ func uniqueValuesRequest2FindOptions(request armotypes.UniqueValuesRequestV2) (*
 	return findOptions, nil
 }
 
+// TODO - use schema info to query arrays with $elemMatch
+// and to map ambiguous fields types (e.g time.time vs string)
 func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) {
 	filterBuilder := db.NewFilterBuilder()
 	for key, value := range innerFilter {

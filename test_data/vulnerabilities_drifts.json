@@ -1,0 +1,59 @@
+[
+    {
+        "name": "0",
+        "notificationType": "NewVulnerability",
+        "cveID": "CVE-2023-1234",
+        "severity": 1,
+        "cluster": "cluster1",
+        "namespace": "namespace1",
+        "workloads": ["workload1", "workload2"],
+        "images": ["image1", "image2"],        
+        "fixable": true        
+      },
+      {
+        "name": "1",
+        "notificationType": "NewVulnerability",
+        "cveID": "CVE-2023-1234",
+        "severity": 2,
+        "cluster": "cluster1",
+        "namespace": "namespace2",
+        "workloads": ["workload2", "workload3"],
+        "images": ["image2", "image3"],        
+        "fixable": false        
+      },
+      {
+        "name": "2",
+        "notificationType": "NewVulnerability",
+        "cveID": "CVE-2023-1235",
+        "severity": 3,
+        "cluster": "cluster3",
+        "namespace": "namespace2",
+        "workloads": ["workload4", "workload5"],
+        "images": ["image4", "image5"],        
+        "fixable": false        
+      },
+      {
+        "name": "3",
+        "notificationType": "NewFix",
+        "cveID": "CVE-2023-1236",
+        "severity": 4,
+        "cluster": "cluster2",
+        "namespace": "namespace1",
+        "workloads": ["workload1", "workload2"],
+        "images": ["image1", "image2"],
+        "component": "package:v1",
+        "fixVersion": "v2"
+      },
+      {
+        "name": "4",
+        "notificationType": "NewFix",
+        "cveID": "CVE-2023-1237",
+        "severity": 5,
+        "cluster": "cluster1",
+        "namespace": "namespace1",
+        "workloads": ["workload1", "workload2"],
+        "images": ["image1", "image6"],
+        "component": "package:v1",
+        "fixVersion": "v2"
+      }
+]

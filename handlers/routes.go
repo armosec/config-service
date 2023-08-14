@@ -5,6 +5,7 @@ import (
 	"config-service/types"
 	"config-service/utils/consts"
 	"fmt"
+	"reflect"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,6 +36,7 @@ type routerOptions[T types.DocContent] struct {
 	responseSender            ResponseSender[T]         //default nil, when set, replace the default response sender
 	putFields                 []string                  //default nil, when set, PUT will update only the specified fields
 	containersHandlers        []containerHandlerOptions //default nil, list of container handlers to put and remove items from document's containers
+	schemaInfo                types.SchemaInfo          //default nil, when set, the schema info will be used for queries (e.g. identify arrays)
 }
 
 type ContainerType string
@@ -138,8 +140,9 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
 	}
 	if opts.servePostV2ListRequests {
-		routerGroup.POST(querySuffix, HandlePostV2ListRequest[T])
-		routerGroup.POST(uniqueValuesSuffix, HandlePostUniqueValuesRequestV2[T])
+		putSchemaInContext := SchemaContextMiddleware(opts.schemaInfo)
+		routerGroup.POST(querySuffix, putSchemaInContext, HandlePostV2ListRequest[T])
+		routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2[T])
 
 	}
 	//add array handlers
@@ -202,6 +205,16 @@ func (opts *routerOptions[T]) validate() error {
 	}
 	return nil
 }
+func initAPIInfo[T types.DocContent](options routerOptions[T]) {
+	t := reflect.TypeOf((*T)(nil)).Elem()
+	apiInfo := types.APIInfo{
+		BasePath:     options.path,
+		DBCollection: options.dbCollection,
+		Type:         t.Name(),
+		Schema:       options.schemaInfo,
+	}
+	types.SetAPIInfo(options.path, &apiInfo)
+}
 
 type RouterOption[T types.DocContent] func(*routerOptions[T])
 
@@ -220,6 +233,13 @@ func (b *RouterOptionsBuilder[T]) Get() []RouterOption[T] {
 func (b *RouterOptionsBuilder[T]) WithPutFields(fields []string) *RouterOptionsBuilder[T] {
 	b.options = append(b.options, func(opts *routerOptions[T]) {
 		opts.putFields = fields
+	})
+	return b
+}
+
+func (b *RouterOptionsBuilder[T]) WithSchemaInfo(schemaInfo types.SchemaInfo) *RouterOptionsBuilder[T] {
+	b.options = append(b.options, func(opts *routerOptions[T]) {
+		opts.schemaInfo = schemaInfo
 	})
 	return b
 }
