@@ -22,7 +22,7 @@ var driftCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	return p.String() == "VulnerabilityNotification.GUID" || p.String() == "VulnerabilityNotification.UpdatedTime" || p.String() == "VulnerabilityNotification.CreationTime"
 }, cmp.Ignore())
 
-func (suite *MainTestSuite) TestAAUsersNotificationsVulnerabilities() {
+func (suite *MainTestSuite) TestUsersNotificationsVulnerabilities() {
 	docs, _ := loadJson[*types.VulnerabilityNotification](vulnerabilitiesDriftsBytes)
 	modifyFunc := func(doc *types.VulnerabilityNotification) *types.VulnerabilityNotification {
 		newImage := "image-" + uuid.New().String()

@@ -5,7 +5,6 @@ import (
 	"config-service/types"
 	"config-service/utils/consts"
 	"config-service/utils/log"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slices"
@@ -27,19 +26,6 @@ func ValidateGUIDExistence[T types.DocContent](c *gin.Context, docs []T) ([]T, b
 		}
 	}
 	return docs, true
-}
-
-func ValidateCacheTTL(defaultTTL, maxTTL time.Duration) func(c *gin.Context, docs []*types.Cache) ([]*types.Cache, bool) {
-	return func(c *gin.Context, docs []*types.Cache) ([]*types.Cache, bool) {
-		for i := range docs {
-			if docs[i].ExpiryTime.IsZero() {
-				docs[i].SetTTL(defaultTTL)
-			} else if maxTTL > 0 && docs[i].ExpiryTime.Sub(time.Now()) > maxTTL {
-				docs[i].SetTTL(maxTTL)
-			}
-		}
-		return docs, true
-	}
 }
 
 type UniqueKeyValueInfo[T types.DocContent] func() (key string, mandatory bool, valueGetter func(T) string)

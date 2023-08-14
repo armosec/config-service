@@ -307,6 +307,26 @@ func testDeleteBulkDeleteByGUID[T types.DocContent](suite *MainTestSuite, basePa
 		docsIds = append(docsIds, newDocs[i].GetGUID())
 	}
 	testBulkDeleteByGUIDWithBody(suite, basePath, docsIds)
+
+	//test delete by query by Ids in query
+	newDocs = testBulkPostDocs(suite, basePath, testDocs, compareOpts...)
+	docsIds = []string{}
+	for i := range newDocs {
+		docsIds = append(docsIds, newDocs[i].GetGUID())
+	}
+	v2Req := armotypes.V2ListRequest{
+		InnerFilters: []map[string]string{
+			{
+				"guid": strings.Join(docsIds, ","),
+			},
+		}}
+	testDeleteByQuery(suite, basePath, v2Req, len(docsIds))
+
+	//test delete all with empty query
+	newDocs = testBulkPostDocs(suite, basePath, testDocs, compareOpts...)
+	v2Req = armotypes.V2ListRequest{}
+	testDeleteByQuery(suite, basePath, v2Req, len(newDocs))
+
 }
 
 func testGetByQuery[T types.DocContent](suite *MainTestSuite, basePath string, testDocs []T, getQueries []queryTest[T], compareOpts ...cmp.Option) {
@@ -695,6 +715,13 @@ func testBulkDeleteByGUIDWithBody(suite *MainTestSuite, path string, guids []str
 	w := suite.doRequest(http.MethodDelete, path+"/bulk", guids)
 	suite.Equal(http.StatusOK, w.Code)
 	diff := cmp.Diff(fmt.Sprintf(`{"deletedCount":%d}`, len(guids)), w.Body.String())
+	suite.Equal("", diff)
+}
+
+func testDeleteByQuery(suite *MainTestSuite, path string, request armotypes.V2ListRequest, expectedCount int) {
+	w := suite.doRequest(http.MethodDelete, path+"/query", request)
+	suite.Equal(http.StatusOK, w.Code)
+	diff := cmp.Diff(fmt.Sprintf(`{"deletedCount":%d}`, expectedCount), w.Body.String())
 	suite.Equal("", diff)
 }
 

@@ -41,7 +41,7 @@
         "namespace": "namespace1",
         "workloads": ["workload1", "workload2"],
         "images": ["image1", "image2"],
-        "component": "package:v1",
+        "package": "package1",
         "fixVersion": "v2"
       },
       {
@@ -53,7 +53,7 @@
         "namespace": "namespace1",
         "workloads": ["workload1", "workload2"],
         "images": ["image1", "image6"],
-        "component": "package:v1",
+        "package": "package2s",
         "fixVersion": "v2"
       }
 ]

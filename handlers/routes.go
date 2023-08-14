@@ -23,6 +23,7 @@ type routerOptions[T types.DocContent] struct {
 	servePut                  bool                      //default true, serve PUT /<path> to update document by GUID in body and PUT /<path>/<GUID> to update document by GUID in path
 	serveDelete               bool                      //default true, serve DELETE  /<path>/<GUID> to delete document by GUID in path
 	serveBulkDelete           bool                      //default true, serve DELETE /<path>/bulk with list of GUIDs in body or query to delete documents by GUIDs
+	serveDeleteByQuery        bool                      //default true, serve DELETE /<path>/query with V2ListRequest in body - all documents matching the query will be deleted
 	serveDeleteByName         bool                      //default false, when true, DELETE will check for name param and will delete the document by name
 	validatePostUniqueName    bool                      //default true, POST will validate that the name is unique
 	validatePostMandatoryName bool                      //default false, POST will validate that the name exists
@@ -65,6 +66,7 @@ func newRouterOptions[T types.DocContent]() *routerOptions[T] {
 		servePut:                  true,
 		serveDelete:               true,
 		serveBulkDelete:           true,
+		serveDeleteByQuery:        true,
 		validatePostUniqueName:    true,
 		validatePutGUID:           true,
 		serveGetNamesList:         true,
@@ -136,6 +138,9 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 		}
 		if opts.serveBulkDelete {
 			routerGroup.DELETE(bulkSuffix, HandleBulkDeleteWithGUIDs[T])
+		}
+		if opts.serveDeleteByQuery {
+			routerGroup.DELETE(querySuffix, HandleDeleteByQuery[T])
 		}
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
 	}
@@ -317,6 +322,13 @@ func (b *RouterOptionsBuilder[T]) WithServeDelete(serveDelete bool) *RouterOptio
 func (b *RouterOptionsBuilder[T]) WithServeBulkDelete(serveBulkDelete bool) *RouterOptionsBuilder[T] {
 	b.options = append(b.options, func(opts *routerOptions[T]) {
 		opts.serveBulkDelete = serveBulkDelete
+	})
+	return b
+}
+
+func (b *RouterOptionsBuilder[T]) WithServeDeleteByQuery(serveDeleteByQuery bool) *RouterOptionsBuilder[T] {
+	b.options = append(b.options, func(opts *routerOptions[T]) {
+		opts.serveDeleteByQuery = serveDeleteByQuery
 	})
 	return b
 }
