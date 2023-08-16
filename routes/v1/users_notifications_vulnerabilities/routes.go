@@ -9,11 +9,11 @@ import (
 )
 
 var schema = types.SchemaInfo{
-	ArrayPaths: []string{"workloads", "images"},
+	ArrayPaths: []string{"workloads", "images", "wlids"},
 }
 
 func AddRoutes(g *gin.Engine) {
-	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.VulnerabilityNotification]().
+	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.AggregatedVulnerability]().
 		WithPath(consts.UsersNotificationsVulnerabilitiesPath).
 		WithDBCollection(consts.UsersNotificationsVulnerabilitiesCollection).
 		WithV2ListSearch(true).

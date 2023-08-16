@@ -19,18 +19,18 @@ import (
 var vulnerabilitiesDriftsBytes []byte
 
 var driftCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
-	return p.String() == "VulnerabilityNotification.GUID" || p.String() == "VulnerabilityNotification.UpdatedTime" || p.String() == "VulnerabilityNotification.CreationTime"
+	return p.String() == "AggregatedVulnerability.GUID" || p.String() == "AggregatedVulnerability.UpdatedTime" || p.String() == "AggregatedVulnerability.CreationTime"
 }, cmp.Ignore())
 
 func (suite *MainTestSuite) TestUsersNotificationsVulnerabilities() {
-	docs, _ := loadJson[*types.VulnerabilityNotification](vulnerabilitiesDriftsBytes)
-	modifyFunc := func(doc *types.VulnerabilityNotification) *types.VulnerabilityNotification {
+	docs, _ := loadJson[*types.AggregatedVulnerability](vulnerabilitiesDriftsBytes)
+	modifyFunc := func(doc *types.AggregatedVulnerability) *types.AggregatedVulnerability {
 		newImage := "image-" + uuid.New().String()
 		doc.Images = append(doc.Images, newImage)
 		return doc
 	}
 
-	testOpts := testOptions[*types.VulnerabilityNotification]{
+	testOpts := testOptions[*types.AggregatedVulnerability]{
 		uniqueName:    false,
 		mandatoryName: false,
 	}

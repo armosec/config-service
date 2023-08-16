@@ -36,7 +36,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *AttackChain | *VulnerabilityNotification
+		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *AttackChain | *AggregatedVulnerability
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -55,21 +55,21 @@ type DocContent interface {
 
 // DocContent implementations
 
-type VulnerabilityNotification struct {
-	notifications.VulnerabilityNotification `json:",inline" bson:",inline"`
+type AggregatedVulnerability struct {
+	notifications.AggregatedVulnerability `json:",inline" bson:",inline"`
 	//needed only for tests
 	Name string `json:"name,omitempty" bson:"name,omitempty"`
 }
 
-func (v *VulnerabilityNotification) GetGUID() string {
+func (v *AggregatedVulnerability) GetGUID() string {
 	return v.GUID
 }
 
-func (v *VulnerabilityNotification) SetGUID(guid string) {
+func (v *AggregatedVulnerability) SetGUID(guid string) {
 	v.GUID = guid
 }
 
-func (v *VulnerabilityNotification) GetCreationTime() *time.Time {
+func (v *AggregatedVulnerability) GetCreationTime() *time.Time {
 	if v.CreationTime == "" {
 		return nil
 	}
@@ -80,7 +80,7 @@ func (v *VulnerabilityNotification) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
-func (v *VulnerabilityNotification) SetUpdatedTime(updatedTime *time.Time) {
+func (v *AggregatedVulnerability) SetUpdatedTime(updatedTime *time.Time) {
 	if updatedTime == nil {
 		v.UpdatedTime = time.Now().UTC().Format(time.RFC3339)
 		return
@@ -88,7 +88,7 @@ func (v *VulnerabilityNotification) SetUpdatedTime(updatedTime *time.Time) {
 	v.UpdatedTime = updatedTime.UTC().Format(time.RFC3339)
 }
 
-func (v *VulnerabilityNotification) GetUpdatedTime() *time.Time {
+func (v *AggregatedVulnerability) GetUpdatedTime() *time.Time {
 	if v.UpdatedTime == "" {
 		return nil
 	}
@@ -98,24 +98,24 @@ func (v *VulnerabilityNotification) GetUpdatedTime() *time.Time {
 	}
 	return &updatedTime
 }
-func (c *VulnerabilityNotification) GetReadOnlyFields() []string {
+func (c *AggregatedVulnerability) GetReadOnlyFields() []string {
 	return commonReadOnlyFieldsV1
 }
 
-func (v *VulnerabilityNotification) InitNew() {
+func (v *AggregatedVulnerability) InitNew() {
 	v.CreationTime = time.Now().UTC().Format(time.RFC3339)
 }
-func (v *VulnerabilityNotification) GetName() string {
+func (v *AggregatedVulnerability) GetName() string {
 	return v.Name
 }
 
-func (v *VulnerabilityNotification) SetName(name string) {
+func (v *AggregatedVulnerability) SetName(name string) {
 	v.Name = name
 }
 
-func (v *VulnerabilityNotification) GetAttributes() map[string]interface{} { return nil }
+func (v *AggregatedVulnerability) GetAttributes() map[string]interface{} { return nil }
 
-func (v *VulnerabilityNotification) SetAttributes(attributes map[string]interface{}) {}
+func (v *AggregatedVulnerability) SetAttributes(attributes map[string]interface{}) {}
 
 type CollaborationConfig notifications.CollaborationConfig
 
