@@ -83,11 +83,6 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 	consts.UsersNotificationsVulnerabilitiesCollection: {
 		{
 			Keys: bson.D{
-				{Key: "guid", Value: 1},
-			},
-		},
-		{
-			Keys: bson.D{
 				{Key: "cveID", Value: 1},
 			},
 		},
