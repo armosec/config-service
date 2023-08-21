@@ -1,6 +1,6 @@
 module config-service
 
-go 1.18
+go 1.19
 
 require (
 	github.com/armosec/armoapi-go v0.0.227
