@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestIsArrayPath(t *testing.T) {
+func TestGetArrayDetails(t *testing.T) {
 	tests := []struct {
 		name          string
 		arrayPaths    []string
@@ -13,6 +13,30 @@ func TestIsArrayPath(t *testing.T) {
 		wantArrayPath string
 		wantSubPath   string
 	}{
+		{
+			name:          "empty array ",
+			arrayPaths:    []string{},
+			path:          "users",
+			wantIsArray:   false,
+			wantArrayPath: "",
+			wantSubPath:   "",
+		},
+		{
+			name:          "empty array & path",
+			arrayPaths:    []string{},
+			path:          "",
+			wantIsArray:   false,
+			wantArrayPath: "",
+			wantSubPath:   "",
+		},
+		{
+			name:          "empy path",
+			arrayPaths:    []string{"users", "orders"},
+			path:          "",
+			wantIsArray:   false,
+			wantArrayPath: "",
+			wantSubPath:   "",
+		},
 		{
 			name:          "path matches array path",
 			arrayPaths:    []string{"users", "orders"},
@@ -44,7 +68,7 @@ func TestIsArrayPath(t *testing.T) {
 			s := &SchemaInfo{
 				ArrayPaths: tt.arrayPaths,
 			}
-			gotIsArray, gotArrayPath, gotSubPath := s.IsArrayPath(tt.path)
+			gotIsArray, gotArrayPath, gotSubPath := s.GetArrayDetails(tt.path)
 			if gotIsArray != tt.wantIsArray {
 				t.Errorf("Test name: %s - IsArrayPath() gotIsArray = %v, want %v", tt.name, gotIsArray, tt.wantIsArray)
 			}

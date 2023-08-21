@@ -15,18 +15,11 @@ type SchemaInfo struct {
 	ArrayPaths []string `json:"arrayPaths,omitempty"`
 }
 
-func GetAPIInfo(apiName string) *APIInfo {
-	if apiInfo, ok := apisInfo[apiName]; ok {
-		return apiInfo
-	}
-	return nil
-}
-
 func SetAPIInfo(apiName string, apiInfo *APIInfo) {
 	apisInfo[apiName] = apiInfo
 }
 
-func (s *SchemaInfo) IsArrayPath(path string) (isArray bool, arrayPath, subPath string) {
+func (s *SchemaInfo) GetArrayDetails(path string) (isArray bool, arrayPath, subPath string) {
 	for _, ap := range s.ArrayPaths {
 		if strings.HasPrefix(path, ap) {
 			isArray = true

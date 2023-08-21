@@ -102,7 +102,7 @@ func AggregateWithTemplate[T any](ctx context.Context, limit, cursor int, collec
 }
 
 func uniqueValuePipeline(field string, match bson.D, skip, limit int64, schemaInfo types.SchemaInfo) mongoDB.Pipeline {
-	isArray, arrayPath, _ := schemaInfo.IsArrayPath(field)
+	isArray, arrayPath, _ := schemaInfo.GetArrayDetails(field)
 	filedRef := "$" + field
 	pipeline := mongoDB.Pipeline{
 		{{Key: "$match", Value: match}},
