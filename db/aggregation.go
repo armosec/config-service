@@ -151,7 +151,7 @@ func addUniqueValuesResult(aggregatedResults *armotypes.UniqueValuesResponseV2, 
 	aggregatedResults.FieldsCount[field] = []armotypes.UniqueValuesResponseFieldsCount{}
 	for _, count := range result.Count {
 		aggregatedResults.FieldsCount[field] = append(aggregatedResults.FieldsCount[field], armotypes.UniqueValuesResponseFieldsCount{
-			Field: count.Key,
+			Field: utils.Interface2String(count.Key),
 			Count: count.Count,
 		})
 	}

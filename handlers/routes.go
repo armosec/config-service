@@ -183,6 +183,7 @@ func AddPolicyRoutes[T types.DocContent](g *gin.Engine, path, dbCollection strin
 		WithDeleteByName(true).
 		WithValidatePostUniqueName(true).
 		WithValidatePutGUID(true).
+		WithV2ListSearch(true).
 		Get()...)
 }
 
