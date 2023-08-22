@@ -18,7 +18,6 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			Keys: bson.D{
 				{Key: "guid", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
 		},
 	},
 	consts.UsersNotificationsCacheCollection: {
@@ -26,19 +25,16 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			Keys: bson.D{
 				{Key: "name", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
 		},
 		{
 			Keys: bson.D{
 				{Key: "customers", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
 		},
 		{
 			Keys: bson.D{
 				{Key: "dataType", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
 		},
 		{
 			Keys: bson.D{
@@ -52,43 +48,58 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			Keys: bson.D{
 				{Key: "guid", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
 		},
 		{
 			Keys: bson.D{
 				{Key: "name", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
 		},
 		{
 			Keys: bson.D{
 				{Key: "customers", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
 		},
 		{
 			Keys: bson.D{
 				{Key: "attackChainID", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
 		},
 		{
 			Keys: bson.D{
 				{Key: "clusterName", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
 		},
 		{
 			Keys: bson.D{
 				{Key: "latestReportGUID", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
 		},
 		{
 			Keys: bson.D{
 				{Key: "uiStatus.processingStatus", Value: 1},
 			},
-			Options: options.Index().SetBackground(true),
+		},
+	},
+	consts.UsersNotificationsVulnerabilitiesCollection: {
+		{
+			Keys: bson.D{
+				{Key: "cveID", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "cluster", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "namespace", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "notificationType", Value: 1},
+			},
 		},
 	},
 }
@@ -99,13 +110,11 @@ var defaultIndex = []mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "name", Value: 1},
 		},
-		Options: options.Index().SetBackground(true),
 	},
 	{
 		Keys: bson.D{
 			{Key: "customers", Value: 1},
 		},
-		Options: options.Index().SetBackground(true),
 	},
 }
 

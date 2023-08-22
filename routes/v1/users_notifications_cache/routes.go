@@ -12,7 +12,7 @@ import (
 const defaultTTL = time.Hour * 24 * 90 // 90 days
 
 func AddRoutes(g *gin.Engine) {
-	ttlValidator := handlers.ValidateCacheTTL(defaultTTL, 0)
+	ttlValidator := validateCacheTTL(defaultTTL, 0)
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.Cache]().
 		WithPath(consts.UsersNotificationsCachePath).
 		WithDBCollection(consts.UsersNotificationsCacheCollection).
@@ -22,4 +22,17 @@ func AddRoutes(g *gin.Engine) {
 		WithPostValidators(ttlValidator).
 		WithPutValidators(ttlValidator).
 		Get()...)
+}
+
+func validateCacheTTL(defaultTTL, maxTTL time.Duration) func(c *gin.Context, docs []*types.Cache) ([]*types.Cache, bool) {
+	return func(c *gin.Context, docs []*types.Cache) ([]*types.Cache, bool) {
+		for i := range docs {
+			if docs[i].ExpiryTime.IsZero() {
+				docs[i].SetTTL(defaultTTL)
+			} else if maxTTL > 0 && docs[i].ExpiryTime.Sub(time.Now()) > maxTTL {
+				docs[i].SetTTL(maxTTL)
+			}
+		}
+		return docs, true
+	}
 }

@@ -177,9 +177,13 @@ func AdminAggregate[T any](c context.Context, findOps *FindOptions) (*armotypes.
 	for _, field := range findOps.group {
 		field := field
 		fieldFilter := NewFilterBuilder().WithFilter(findOps.filter).AddExists(field, true)
-
 		errGroup.Go(func() error {
-			cursor, err := mongo.GetReadCollection(collection).Aggregate(ctx, uniqueValuePipeline(field, fieldFilter.get(), findOps.limit))
+			cursor, err := mongo.GetReadCollection(collection).Aggregate(ctx,
+				uniqueValuePipeline(field,
+					fieldFilter.get(),
+					findOps.skip,
+					findOps.limit,
+					getSchemaFromContext(c)))
 			if err != nil {
 				return fmt.Errorf("failed to aggregate field %s: %w", field, err)
 			}
@@ -592,6 +596,15 @@ func ReadContext(c context.Context) (collection, customerGUID string, err error)
 		err = multierror.Append(err, errGuid)
 	}
 	return collection, customerGUID, err
+}
+
+func getSchemaFromContext(c context.Context) types.SchemaInfo {
+	if val := c.Value(consts.SchemaInfo); val != nil {
+		if schema, ok := val.(types.SchemaInfo); ok {
+			return schema
+		}
+	}
+	return types.SchemaInfo{}
 }
 
 func readCustomerGUID(c context.Context) (customerGUID string, err error) {

@@ -11,7 +11,7 @@ type countResult struct {
 type aggregateResult struct {
 	Values []interface{} `bson:"values"`
 	Count  []struct {
-		Key   string `bson:"key"`
-		Count int64  `bson:"count"`
+		Key   interface{} `bson:"key"`
+		Count int64       `bson:"count"`
 	} `bson:"count"`
 }

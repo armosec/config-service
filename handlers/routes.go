@@ -5,6 +5,7 @@ import (
 	"config-service/types"
 	"config-service/utils/consts"
 	"fmt"
+	"reflect"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,7 @@ type routerOptions[T types.DocContent] struct {
 	servePut                  bool                      //default true, serve PUT /<path> to update document by GUID in body and PUT /<path>/<GUID> to update document by GUID in path
 	serveDelete               bool                      //default true, serve DELETE  /<path>/<GUID> to delete document by GUID in path
 	serveBulkDelete           bool                      //default true, serve DELETE /<path>/bulk with list of GUIDs in body or query to delete documents by GUIDs
+	serveDeleteByQuery        bool                      //default true, serve DELETE /<path>/query with V2ListRequest in body - all documents matching the query will be deleted
 	serveDeleteByName         bool                      //default false, when true, DELETE will check for name param and will delete the document by name
 	validatePostUniqueName    bool                      //default true, POST will validate that the name is unique
 	validatePostMandatoryName bool                      //default false, POST will validate that the name exists
@@ -35,6 +37,7 @@ type routerOptions[T types.DocContent] struct {
 	responseSender            ResponseSender[T]         //default nil, when set, replace the default response sender
 	putFields                 []string                  //default nil, when set, PUT will update only the specified fields
 	containersHandlers        []containerHandlerOptions //default nil, list of container handlers to put and remove items from document's containers
+	schemaInfo                types.SchemaInfo          //default nil, when set, the schema info will be used for queries (e.g. identify arrays)
 }
 
 type ContainerType string
@@ -63,6 +66,7 @@ func newRouterOptions[T types.DocContent]() *routerOptions[T] {
 		servePut:                  true,
 		serveDelete:               true,
 		serveBulkDelete:           true,
+		serveDeleteByQuery:        true,
 		validatePostUniqueName:    true,
 		validatePutGUID:           true,
 		serveGetNamesList:         true,
@@ -135,11 +139,15 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 		if opts.serveBulkDelete {
 			routerGroup.DELETE(bulkSuffix, HandleBulkDeleteWithGUIDs[T])
 		}
+		if opts.serveDeleteByQuery {
+			routerGroup.DELETE(querySuffix, HandleDeleteByQuery[T])
+		}
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
 	}
 	if opts.servePostV2ListRequests {
-		routerGroup.POST(querySuffix, HandlePostV2ListRequest[T])
-		routerGroup.POST(uniqueValuesSuffix, HandlePostUniqueValuesRequestV2[T])
+		putSchemaInContext := SchemaContextMiddleware(opts.schemaInfo)
+		routerGroup.POST(querySuffix, putSchemaInContext, HandlePostV2ListRequest[T])
+		routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2[T])
 
 	}
 	//add array handlers
@@ -175,6 +183,7 @@ func AddPolicyRoutes[T types.DocContent](g *gin.Engine, path, dbCollection strin
 		WithDeleteByName(true).
 		WithValidatePostUniqueName(true).
 		WithValidatePutGUID(true).
+		WithV2ListSearch(true).
 		Get()...)
 }
 
@@ -202,6 +211,16 @@ func (opts *routerOptions[T]) validate() error {
 	}
 	return nil
 }
+func initAPIInfo[T types.DocContent](options routerOptions[T]) {
+	t := reflect.TypeOf((*T)(nil)).Elem()
+	apiInfo := types.APIInfo{
+		BasePath:     options.path,
+		DBCollection: options.dbCollection,
+		Type:         t.Name(),
+		Schema:       options.schemaInfo,
+	}
+	types.SetAPIInfo(options.path, &apiInfo)
+}
 
 type RouterOption[T types.DocContent] func(*routerOptions[T])
 
@@ -220,6 +239,13 @@ func (b *RouterOptionsBuilder[T]) Get() []RouterOption[T] {
 func (b *RouterOptionsBuilder[T]) WithPutFields(fields []string) *RouterOptionsBuilder[T] {
 	b.options = append(b.options, func(opts *routerOptions[T]) {
 		opts.putFields = fields
+	})
+	return b
+}
+
+func (b *RouterOptionsBuilder[T]) WithSchemaInfo(schemaInfo types.SchemaInfo) *RouterOptionsBuilder[T] {
+	b.options = append(b.options, func(opts *routerOptions[T]) {
+		opts.schemaInfo = schemaInfo
 	})
 	return b
 }
@@ -297,6 +323,13 @@ func (b *RouterOptionsBuilder[T]) WithServeDelete(serveDelete bool) *RouterOptio
 func (b *RouterOptionsBuilder[T]) WithServeBulkDelete(serveBulkDelete bool) *RouterOptionsBuilder[T] {
 	b.options = append(b.options, func(opts *routerOptions[T]) {
 		opts.serveBulkDelete = serveBulkDelete
+	})
+	return b
+}
+
+func (b *RouterOptionsBuilder[T]) WithServeDeleteByQuery(serveDeleteByQuery bool) *RouterOptionsBuilder[T] {
+	b.options = append(b.options, func(opts *routerOptions[T]) {
+		opts.serveDeleteByQuery = serveDeleteByQuery
 	})
 	return b
 }

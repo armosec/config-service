@@ -18,6 +18,13 @@ func DBContextMiddleware(collectionName string) gin.HandlerFunc {
 	}
 }
 
+func SchemaContextMiddleware(schema types.SchemaInfo) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set(consts.SchemaInfo, schema)
+		c.Next()
+	}
+}
+
 func PutFieldsContextMiddleware(fields []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set(consts.PutDocFields, fields)

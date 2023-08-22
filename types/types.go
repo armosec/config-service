@@ -36,7 +36,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *AttackChain
+		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *AttackChain | *AggregatedVulnerability
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -54,6 +54,68 @@ type DocContent interface {
 // redefine types for Doc Content implementations
 
 // DocContent implementations
+
+type AggregatedVulnerability struct {
+	notifications.AggregatedVulnerability `json:",inline" bson:",inline"`
+	//needed only for tests
+	Name string `json:"name,omitempty" bson:"name,omitempty"`
+}
+
+func (v *AggregatedVulnerability) GetGUID() string {
+	return v.GUID
+}
+
+func (v *AggregatedVulnerability) SetGUID(guid string) {
+	v.GUID = guid
+}
+
+func (v *AggregatedVulnerability) GetCreationTime() *time.Time {
+	if v.CreationTime == "" {
+		return nil
+	}
+	creationTime, err := time.Parse(time.RFC3339, v.CreationTime)
+	if err != nil {
+		return nil
+	}
+	return &creationTime
+}
+
+func (v *AggregatedVulnerability) SetUpdatedTime(updatedTime *time.Time) {
+	if updatedTime == nil {
+		v.UpdatedTime = time.Now().UTC().Format(time.RFC3339)
+		return
+	}
+	v.UpdatedTime = updatedTime.UTC().Format(time.RFC3339)
+}
+
+func (v *AggregatedVulnerability) GetUpdatedTime() *time.Time {
+	if v.UpdatedTime == "" {
+		return nil
+	}
+	updatedTime, err := time.Parse(time.RFC3339, v.UpdatedTime)
+	if err != nil {
+		return nil
+	}
+	return &updatedTime
+}
+func (c *AggregatedVulnerability) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsV1
+}
+
+func (v *AggregatedVulnerability) InitNew() {
+	v.CreationTime = time.Now().UTC().Format(time.RFC3339)
+}
+func (v *AggregatedVulnerability) GetName() string {
+	return v.Name
+}
+
+func (v *AggregatedVulnerability) SetName(name string) {
+	v.Name = name
+}
+
+func (v *AggregatedVulnerability) GetAttributes() map[string]interface{} { return nil }
+
+func (v *AggregatedVulnerability) SetAttributes(attributes map[string]interface{}) {}
 
 type CollaborationConfig notifications.CollaborationConfig
 

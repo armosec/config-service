@@ -2,6 +2,7 @@ package db
 
 import (
 	"config-service/db/mongo"
+	"config-service/types"
 	"config-service/utils"
 	"context"
 	_ "embed"
@@ -100,29 +101,46 @@ func AggregateWithTemplate[T any](ctx context.Context, limit, cursor int, collec
 	return &results, nil
 }
 
-func uniqueValuePipeline(field string, match bson.D, limit int64) mongoDB.Pipeline {
+func uniqueValuePipeline(field string, match bson.D, skip, limit int64, schemaInfo types.SchemaInfo) mongoDB.Pipeline {
+	isArray, arrayPath, _ := schemaInfo.GetArrayDetails(field)
 	filedRef := "$" + field
-	return mongoDB.Pipeline{
+	pipeline := mongoDB.Pipeline{
 		{{Key: "$match", Value: match}},
-		{{Key: "$group", Value: bson.D{
+	}
+	if isArray {
+		pipeline = append(pipeline,
+			bson.D{{Key: "$unwind", Value: "$" + arrayPath}},
+			//after unwind we need to match again
+			bson.D{{Key: "$match", Value: match}},
+		)
+	}
+
+	pipeline = append(pipeline,
+		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: filedRef},
 			{Key: "count", Value: bson.D{{Key: "$sum", Value: 1}}},
 		}}},
-		{{Key: "$sort", Value: bson.D{
+		bson.D{{Key: "$sort", Value: bson.D{
 			{Key: "_id", Value: 1},
 		}}},
-		{{Key: "$limit", Value: limit}},
-		{{Key: "$group", Value: bson.D{
+	)
+	if skip > 0 {
+		pipeline = append(pipeline, bson.D{{Key: "$skip", Value: skip}})
+	}
+	pipeline = append(pipeline,
+		bson.D{{Key: "$limit", Value: limit}},
+		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: nil},
 			{Key: "values", Value: bson.D{{Key: "$push", Value: "$_id"}}},
 			{Key: "count", Value: bson.D{{Key: "$push", Value: bson.D{{Key: "key", Value: "$_id"}, {Key: "count", Value: "$count"}}}}},
 		}}},
-		{{Key: "$project", Value: bson.D{
+		bson.D{{Key: "$project", Value: bson.D{
 			{Key: "_id", Value: 0},
 			{Key: "values", Value: 1},
 			{Key: "count", Value: 1},
 		}}},
-	}
+	)
+	return pipeline
 }
 
 func addUniqueValuesResult(aggregatedResults *armotypes.UniqueValuesResponseV2, field string, result aggregateResult) {
@@ -133,7 +151,7 @@ func addUniqueValuesResult(aggregatedResults *armotypes.UniqueValuesResponseV2, 
 	aggregatedResults.FieldsCount[field] = []armotypes.UniqueValuesResponseFieldsCount{}
 	for _, count := range result.Count {
 		aggregatedResults.FieldsCount[field] = append(aggregatedResults.FieldsCount[field], armotypes.UniqueValuesResponseFieldsCount{
-			Field: count.Key,
+			Field: utils.Interface2String(count.Key),
 			Count: count.Count,
 		})
 	}

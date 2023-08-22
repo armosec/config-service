@@ -204,7 +204,6 @@ func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-
 func HandlePostUniqueValuesRequestV2[T types.DocContent](c *gin.Context) {
 	defer log.LogNTraceEnterExit("HandlePostV2ListRequest", c)()
 	var req armotypes.UniqueValuesRequestV2
@@ -280,6 +279,28 @@ func HandleDeleteDoc[T types.DocContent](c *gin.Context) {
 		return
 	}
 	DeleteDocByGUIDHandler[T](c, guid)
+}
+
+func HandleDeleteByQuery[T types.DocContent](c *gin.Context) {
+	defer log.LogNTraceEnterExit("HandleDeleteByQuery", c)()
+	var req armotypes.V2ListRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		ResponseFailedToBindJson(c, err)
+		return
+	}
+	findOpts, err := v2List2FindOptions(req)
+	if err != nil {
+		ResponseBadRequest(c, err.Error())
+		return
+	}
+	filter := findOpts.Filter()
+	if deletedCount, err := db.BulkDelete[T](c, *filter); err != nil {
+	} else if deletedCount == 0 {
+		ResponseDocumentNotFound(c)
+	} else {
+		c.JSON(http.StatusOK, gin.H{"deletedCount": deletedCount})
+	}
 }
 
 // HandleBulkDeleteWithGUIDs  - delete by guids array in query or body
