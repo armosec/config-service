@@ -7,6 +7,7 @@ import (
 	"config-service/utils/consts"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/smithy-go/ptr"
 	"net/http"
 	"time"
 
@@ -50,6 +51,226 @@ func (suite *MainTestSuite) TestCluster() {
 	}
 
 	commonTest(suite, consts.ClusterPath, clusters, modifyFunc, newClusterCompareFilter)
+
+	projectedDocs := []*types.Cluster{
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "arn-aws-eks-eu-west-1-221581667315-cluster-deel-dev-test",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "bez",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "moshe-super-cluster",
+			},
+		},
+	}
+
+	searchQueries := []searchTest{
+		{
+			testName:        "get all",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest:     armotypes.V2ListRequest{},
+		},
+		{
+			testName:        "get first page",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				PageSize: ptr.Int(2),
+				PageNum:  ptr.Int(0),
+			},
+		},
+		{
+			testName:        "get multiple names",
+			expectedIndexes: []int{1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "bez,moshe-super-cluster",
+					},
+				},
+			},
+		},
+
+		//field or match
+		{
+			testName:        "field or match",
+			expectedIndexes: []int{1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "bez",
+					},
+				},
+			},
+		},
+		//fields and match
+		{
+			testName:        "fields and match",
+			expectedIndexes: []int{1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attributes.kind": "k8s",
+						"name":            "bez",
+					},
+				},
+			},
+		},
+
+		//filters exist operator
+		{
+			testName:        "filters exist operator",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attributes.kind": "|exists",
+					},
+				},
+			},
+		},
+		//like match
+		{
+			testName:        "like ignorecase match",
+			expectedIndexes: []int{1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "BeZ|like&ignorecase",
+					},
+				},
+			},
+		},
+		{
+			testName:        "like with multi results",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attributes.kind": "k8|like",
+					},
+				},
+			},
+		},
+		//projection test
+		{
+			testName:         "projection test",
+			expectedIndexes:  []int{0, 1, 2},
+			projectedResults: true,
+			listRequest: armotypes.V2ListRequest{
+				OrderBy:    "name:asc",
+				FieldsList: []string{"name"},
+				InnerFilters: []map[string]string{
+					{
+						"attributes.kind": "k8s",
+					},
+				},
+			},
+		},
+		//field or match
+		{
+			testName:        "attributes.workerNodes.max = 6 query match test",
+			expectedIndexes: []int{1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attributes.workerNodes.max": "6",
+					},
+				},
+			},
+		},
+		{
+			testName:        "attributes.clusterAPIServerInfo.platform = linux/amd64 query match test",
+			expectedIndexes: []int{1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attributes.clusterAPIServerInfo.platform": "linux/amd64",
+					},
+				},
+			},
+		},
+	}
+
+	testPostV2ListRequest(suite, consts.ClusterPath, clusters, projectedDocs, searchQueries, newClusterCompareFilter, ignoreTime)
+
+	uniqueValues := []uniqueValueTest{
+		{
+			testName: "unique names",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name": {"arn-aws-eks-eu-west-1-221581667315-cluster-deel-dev-test", "bez", "moshe-super-cluster"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+
+							Field: "arn-aws-eks-eu-west-1-221581667315-cluster-deel-dev-test",
+							Count: 1,
+						},
+						{
+							Field: "bez",
+							Count: 1,
+						},
+						{
+							Field: "moshe-super-cluster",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique names with filter",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"attributes.clusterAPIServerInfo.platform": "linux/amd64",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name": {"bez", "moshe-super-cluster"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+							Field: "bez",
+							Count: 1,
+						},
+						{
+							Field: "moshe-super-cluster",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testUniqueValues(suite, consts.ClusterPath, clusters, uniqueValues, newClusterCompareFilter, ignoreTime)
 
 	testPartialUpdate(suite, consts.ClusterPath, &types.Cluster{}, newClusterCompareFilter)
 
