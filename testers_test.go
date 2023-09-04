@@ -24,6 +24,7 @@ import (
 type testOptions[T any] struct {
 	uniqueName    bool
 	mandatoryName bool
+	renameAllowed bool
 	customGUID    bool
 	skipPutTests  bool
 	clondeDocFunc *func(T) T
@@ -34,6 +35,7 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 		suite.FailNow("commonTest: need at least 3 documents")
 	}
 	doc1 := testDocs[0]
+	doc2 := testDocs[1]
 	documents := testDocs[1:]
 
 	var cloneDocFun func(T) T
@@ -124,18 +126,39 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 		suite.NotNil(doc1.GetUpdatedTime(), "updated time should not be nil")
 		suite.True(updateTime.Before(*doc1.GetUpdatedTime()) || updateTime.Equal(*doc1.GetUpdatedTime()), "update time is not recent")
 
-		//test changed name - should be ignored
+		//test changed name
+		doc1name := doc1.GetName()
 		changedNamedDoc := cloneDocFun(doc1)
 		changedNamedDoc.SetName("new_name")
+
 		w := suite.doRequest(http.MethodPut, path, changedNamedDoc)
 		suite.Equal(http.StatusOK, w.Code)
 		response, err := decodeResponseArray[T](w)
-		expectedResponse := []T{doc1, doc1}
 		if err != nil {
 			suite.FailNow(err.Error())
 		}
+		var expectedResponse []T
+		if !testOptions.renameAllowed {
+			//rename should be ignored
+			expectedResponse = []T{doc1, doc1}
+		} else { //rename allowed
+			expectedResponse = []T{doc1, changedNamedDoc}
+			doc1 = changedNamedDoc
+		}
 		diff := cmp.Diff(response, expectedResponse, compareNewOpts...)
 		suite.Equal("", diff)
+
+		if testOptions.renameAllowed && testOptions.uniqueName {
+			changedNamedDoc.SetName(doc2.GetName())
+			//put doc with existing name should fail
+			testBadRequest(suite, http.MethodPut, path, errorNameExist(doc2.GetName()), &changedNamedDoc, http.StatusBadRequest)
+			changedNamedDoc.SetName("")
+			testBadRequest(suite, http.MethodPut, path, errorMissingName, &changedNamedDoc, http.StatusBadRequest)
+			//restore name
+			doc1.SetName(doc1name)
+			changedNamedDoc.SetName("new_name")
+			doc1 = testPutDoc(suite, path, changedNamedDoc, doc1, compareNewOpts...)
+		}
 
 		//test put with guid in path
 		oldDoc1 = cloneDocFun(doc1)
@@ -150,6 +173,7 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 
 		//not existing doc should fail
 		noneExistingDoc := cloneDocFun(doc1)
+		noneExistingDoc.SetName("not_exist")
 		noneExistingDoc.SetGUID("")
 		noneExistingDoc.SetGUID("not_exist")
 		testBadRequest(suite, http.MethodPut, path, errorDocumentNotFound, &noneExistingDoc, http.StatusNotFound)
@@ -219,7 +243,9 @@ func testPartialUpdate[T types.DocContent](suite *MainTestSuite, path string, em
 	fullDoc = testPostDoc(suite, path, fullDoc, compareOpts...)
 	partialDoc.SetGUID(fullDoc.GetGUID())
 	expectedFullDoc := Clone(fullDoc)
-	updatedDoc := testPutPartialDoc(suite, path, fullDoc, partialDoc, expectedFullDoc, newClusterCompareFilter)
+	partialCmpOpts := []cmp.Option{newClusterCompareFilter}
+	partialCmpOpts = append(partialCmpOpts, compareOpts...)
+	updatedDoc := testPutPartialDoc(suite, path, fullDoc, partialDoc, expectedFullDoc, partialCmpOpts...)
 	testDeleteDocByGUID(suite, path, updatedDoc, compareOpts...)
 }
 

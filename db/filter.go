@@ -150,6 +150,19 @@ func (f *FilterBuilder) AddOr(filters ...*FilterBuilder) *FilterBuilder {
 	return f
 }
 
+func (f *FilterBuilder) AddAnd(filters ...*FilterBuilder) *FilterBuilder {
+	orM := []bson.M{}
+	for _, filter := range filters {
+		m := bson.M{}
+		for i := range filter.filter {
+			m[filter.filter[i].Key] = filter.filter[i].Value
+		}
+		orM = append(orM, m)
+	}
+	f.filter = bson.D{{Key: "$and", Value: orM}}
+	return f
+}
+
 func (f *FilterBuilder) WithElementMatch(element interface{}) *FilterBuilder {
 	f.filter = append(f.filter, bson.E{Key: "$elemMatch", Value: element})
 	return f

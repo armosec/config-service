@@ -11,5 +11,5 @@ import (
 func AddRoutes(g *gin.Engine) {
 	handlers.AddPolicyRoutes[*types.CollaborationConfig](g,
 		consts.CollaborationConfigPath,
-		consts.CollaborationConfigCollection, handlers.FlatQueryConfig())
+		consts.CollaborationConfigCollection, handlers.FlatQueryConfig(), true)
 }
