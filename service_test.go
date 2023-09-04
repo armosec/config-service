@@ -51,6 +51,153 @@ func (suite *MainTestSuite) TestCluster() {
 
 	commonTest(suite, consts.ClusterPath, clusters, modifyFunc, newClusterCompareFilter)
 
+	projectedDocs := []*types.Cluster{
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "arn-aws-eks-eu-west-1-221581667315-cluster-deel-dev-test",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "bez",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "moshe-super-cluster",
+			},
+		},
+	}
+
+	searchQueries := []searchTest{
+		{
+			testName:        "get all",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest:     armotypes.V2ListRequest{},
+		},
+		{
+			testName:        "get multiple names",
+			expectedIndexes: []int{1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "bez,moshe-super-cluster",
+					},
+				},
+			},
+		},
+
+		//field or match
+		{
+			testName:        "field or match",
+			expectedIndexes: []int{1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "bez",
+					},
+				},
+			},
+		},
+		//fields and match
+		{
+			testName:        "fields and match",
+			expectedIndexes: []int{1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attributes.kind": "k8s",
+						"name":            "bez",
+					},
+				},
+			},
+		},
+
+		//filters exist operator
+		{
+			testName:        "filters exist operator",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attributes.kind": "|exists",
+					},
+				},
+			},
+		},
+		//like match
+		{
+			testName:        "like ignorecase match",
+			expectedIndexes: []int{1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "BeZ|like&ignorecase",
+					},
+				},
+			},
+		},
+		{
+			testName:        "like with multi results",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attributes.kind": "k8|like",
+					},
+				},
+			},
+		},
+		//projection test
+		{
+			testName:         "projection test",
+			expectedIndexes:  []int{0, 1, 2},
+			projectedResults: true,
+			listRequest: armotypes.V2ListRequest{
+				OrderBy:    "name:asc",
+				FieldsList: []string{"name"},
+				InnerFilters: []map[string]string{
+					{
+						"attributes.kind": "k8s",
+					},
+				},
+			},
+		},
+		//field or match
+		{
+			testName:        "attributes.workerNodes.max = 6 query match test",
+			expectedIndexes: []int{1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attributes.workerNodes.max": "6",
+					},
+				},
+			},
+		},
+		{
+			testName:        "attributes.clusterAPIServerInfo.platform = linux/amd64 query match test",
+			expectedIndexes: []int{1, 2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"attributes.clusterAPIServerInfo.platform": "linux/amd64",
+					},
+				},
+			},
+		},
+	}
+
+	testPostV2ListRequest(suite, consts.ClusterPath, clusters, projectedDocs, searchQueries, newClusterCompareFilter, ignoreTime)
+
 	testPartialUpdate(suite, consts.ClusterPath, &types.Cluster{}, newClusterCompareFilter)
 
 	testGetByName(suite, consts.ClusterPath, "name", clusters, newClusterCompareFilter, ignoreTime)
