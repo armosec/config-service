@@ -7,6 +7,7 @@ import (
 	"config-service/utils/consts"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/smithy-go/ptr"
 	"net/http"
 	"time"
 
@@ -74,6 +75,14 @@ func (suite *MainTestSuite) TestCluster() {
 			testName:        "get all",
 			expectedIndexes: []int{0, 1, 2},
 			listRequest:     armotypes.V2ListRequest{},
+		},
+		{
+			testName:        "get first page",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				PageSize: ptr.Int(2),
+				PageNum:  ptr.Int(0),
+			},
 		},
 		{
 			testName:        "get multiple names",
@@ -197,6 +206,71 @@ func (suite *MainTestSuite) TestCluster() {
 	}
 
 	testPostV2ListRequest(suite, consts.ClusterPath, clusters, projectedDocs, searchQueries, newClusterCompareFilter, ignoreTime)
+
+	uniqueValues := []uniqueValueTest{
+		{
+			testName: "unique names",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name": {"arn-aws-eks-eu-west-1-221581667315-cluster-deel-dev-test", "bez", "moshe-super-cluster"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+
+							Field: "arn-aws-eks-eu-west-1-221581667315-cluster-deel-dev-test",
+							Count: 1,
+						},
+						{
+							Field: "bez",
+							Count: 1,
+						},
+						{
+							Field: "moshe-super-cluster",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique names with filter",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"attributes.clusterAPIServerInfo.platform": "linux/amd64",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name": {"bez", "moshe-super-cluster"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+							Field: "bez",
+							Count: 1,
+						},
+						{
+							Field: "moshe-super-cluster",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testUniqueValues(suite, consts.ClusterPath, clusters, uniqueValues, newClusterCompareFilter, ignoreTime)
 
 	testPartialUpdate(suite, consts.ClusterPath, &types.Cluster{}, newClusterCompareFilter)
 
