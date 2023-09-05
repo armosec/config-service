@@ -120,7 +120,7 @@ func (v *AggregatedVulnerability) SetAttributes(attributes map[string]interface{
 type CollaborationConfig notifications.CollaborationConfig
 
 func (p *CollaborationConfig) GetReadOnlyFields() []string {
-	return commonReadOnlyFieldsV1
+	return commonReadOnlyFieldsAllowRename
 }
 func (p *CollaborationConfig) InitNew() {
 	p.CreationTime = time.Now().UTC().Format(time.RFC3339)
@@ -391,8 +391,10 @@ func (c *AttackChain) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
-var commonReadOnlyFields = []string{consts.IdField, consts.NameField, consts.GUIDField}
+var baseReadOnlyFields = []string{consts.IdField, consts.GUIDField}
+var commonReadOnlyFields = append([]string{consts.NameField}, baseReadOnlyFields...)
 var commonReadOnlyFieldsV1 = append([]string{"creationTime"}, commonReadOnlyFields...)
+var commonReadOnlyFieldsAllowRename = append([]string{"creationTime"}, baseReadOnlyFields...)
 var clusterReadOnlyFields = append([]string{"subscription_date"}, commonReadOnlyFields...)
 var repositoryReadOnlyFields = append([]string{"creationDate", "provider", "owner", "repoName", "branchName"}, commonReadOnlyFields...)
 var croneJobReadOnlyFields = append([]string{"creationTime", "clusterName", "registryName"}, commonReadOnlyFields...)

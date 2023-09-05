@@ -23,6 +23,11 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 	consts.UsersNotificationsCacheCollection: {
 		{
 			Keys: bson.D{
+				{Key: "guid", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
 				{Key: "name", Value: 1},
 			},
 		},
@@ -101,11 +106,43 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 				{Key: "notificationType", Value: 1},
 			},
 		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+			},
+		},
+	},
+	consts.CollaborationConfigCollection: {
+		{
+			Keys: bson.D{
+				{Key: "guid", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "name", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "provider", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+			},
+		},
 	},
 }
 
 // defaultIndex is the default index for all collections unless overridden in collectionIndexes
 var defaultIndex = []mongo.IndexModel{
+	{
+		Keys: bson.D{
+			{Key: "guid", Value: 1},
+		},
+	},
 	{
 		Keys: bson.D{
 			{Key: "name", Value: 1},

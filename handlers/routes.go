@@ -27,6 +27,7 @@ type routerOptions[T types.DocContent] struct {
 	serveDeleteByName         bool                      //default false, when true, DELETE will check for name param and will delete the document by name
 	validatePostUniqueName    bool                      //default true, POST will validate that the name is unique
 	validatePostMandatoryName bool                      //default false, POST will validate that the name exists
+	validatePutUniqueName     bool                      //default false, if element allows rename PUT will validate that the name is not empty and unique
 	validatePutGUID           bool                      //default true, PUT will validate GUID existence in body or path
 	nameQueryParam            string                    //default empty, the param name that indicates query by name (e.g. clusterName) when set GET will check for this param and will return the document by name
 	QueryConfig               *QueryParamsConfig        //default nil, when set, GET will check for the specified query params and will return the documents by the query params
@@ -128,6 +129,9 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 		if opts.uniqueShortName != nil {
 			putValidators = append(putValidators, ValidatePutAttributerShortName[T])
 		}
+		if opts.validatePutUniqueName {
+			putValidators = append(putValidators, ValidateUniqueValues(NameKeyGetter[T]))
+		}
 		putValidators = append(putValidators, opts.putValidators...)
 		routerGroup.PUT("", HandlePutDocWithValidation(putValidators...)...)
 		routerGroup.PUT("/:"+consts.GUIDField, HandlePutDocWithValidation(putValidators...)...)
@@ -173,7 +177,7 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 }
 
 // Common router config for policies
-func AddPolicyRoutes[T types.DocContent](g *gin.Engine, path, dbCollection string, paramConf *QueryParamsConfig) *gin.RouterGroup {
+func AddPolicyRoutes[T types.DocContent](g *gin.Engine, path, dbCollection string, paramConf *QueryParamsConfig, allowRename bool) *gin.RouterGroup {
 	return AddRoutes(g, NewRouterOptionsBuilder[T]().
 		WithPath(path).
 		WithDBCollection(dbCollection).
@@ -184,6 +188,7 @@ func AddPolicyRoutes[T types.DocContent](g *gin.Engine, path, dbCollection strin
 		WithValidatePostUniqueName(true).
 		WithValidatePutGUID(true).
 		WithV2ListSearch(true).
+		WithValidatePutUniqueName(allowRename).
 		Get()...)
 }
 
@@ -386,6 +391,13 @@ func (b *RouterOptionsBuilder[T]) WithValidatePostUniqueName(validatePostUniqueN
 func (b *RouterOptionsBuilder[T]) WithValidatePostMandatoryName(validatePostMandatoryName bool) *RouterOptionsBuilder[T] {
 	b.options = append(b.options, func(opts *routerOptions[T]) {
 		opts.validatePostMandatoryName = validatePostMandatoryName
+	})
+	return b
+}
+
+func (b *RouterOptionsBuilder[T]) WithValidatePutUniqueName(validatePutUniqueName bool) *RouterOptionsBuilder[T] {
+	b.options = append(b.options, func(opts *routerOptions[T]) {
+		opts.validatePutUniqueName = validatePutUniqueName
 	})
 	return b
 }

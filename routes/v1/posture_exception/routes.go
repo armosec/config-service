@@ -27,5 +27,5 @@ func AddRoutes(g *gin.Engine) {
 	}
 	handlers.AddPolicyRoutes[*types.PostureExceptionPolicy](g,
 		consts.PostureExceptionPolicyPath,
-		consts.PostureExceptionPolicyCollection, queryParamsConfig)
+		consts.PostureExceptionPolicyCollection, queryParamsConfig, false)
 }

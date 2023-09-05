@@ -305,6 +305,10 @@ var commonCmpFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	return p.String() == "PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" || p.String() == "CreationDate" || p.String() == "PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
 }, cmp.Ignore())
 
+var ignoreName = cmp.FilterPath(func(p cmp.Path) bool {
+	return p.String() == "PortalBase.Name"
+}, cmp.Ignore())
+
 func (suite *MainTestSuite) TestPostureException() {
 	posturePolicies, _ := loadJson[*types.PostureExceptionPolicy](posturePoliciesJson)
 
@@ -382,7 +386,14 @@ func (suite *MainTestSuite) TestCollaborationConfigs() {
 		return policy
 	}
 
-	commonTest(suite, consts.CollaborationConfigPath, collaborations, modifyFunc, commonCmpFilter)
+	testOptions := testOptions[*types.CollaborationConfig]{
+		mandatoryName: true,
+		uniqueName:    true,
+		renameAllowed: true,
+		customGUID:    false,
+	}
+
+	commonTestWithOptions(suite, consts.CollaborationConfigPath, collaborations, modifyFunc, testOptions, commonCmpFilter)
 
 	getQueries := []queryTest[*types.CollaborationConfig]{
 		{
@@ -399,7 +410,7 @@ func (suite *MainTestSuite) TestCollaborationConfigs() {
 		},
 	}
 	testGetDeleteByNameAndQuery(suite, consts.CollaborationConfigPath, consts.PolicyNameParam, collaborations, getQueries, commonCmpFilter)
-	testPartialUpdate(suite, consts.CollaborationConfigPath, &types.CollaborationConfig{}, commonCmpFilter)
+	testPartialUpdate(suite, consts.CollaborationConfigPath, &types.CollaborationConfig{PortalBase: armotypes.PortalBase{Name: "collabPartial"}}, commonCmpFilter, ignoreName)
 }
 
 //go:embed test_data/vulnerabilityPolicies.json

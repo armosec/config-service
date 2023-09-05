@@ -34,31 +34,17 @@ func ValidateUniqueValues[T types.DocContent](uniqueKeyValues ...UniqueKeyValueI
 	return func(c *gin.Context, docs []T) ([]T, bool) {
 		findOpts := db.NewFindOptions()
 		keys2Values := map[string][]string{}
-		for _, uniqueKeyValue := range uniqueKeyValues {
-			key, mandatory, valueGetter := uniqueKeyValue()
-			values := []string{}
-			for _, doc := range docs {
-				value := valueGetter(doc)
-				if mandatory && value == "" {
-					ResponseMissingKey(c, key)
-					return nil, false
-				}
-				if slices.Contains(values, value) {
-					ResponseDuplicateKey(c, key, value)
-					return nil, false
-				}
-				values = append(values, value)
+		switch c.Request.Method {
+		case "POST":
+			if !buildValidateUniqueValuesPostQuery[T](c, docs, findOpts, keys2Values, uniqueKeyValues...) {
+				return nil, false
 			}
-			if findOpts.Filter().Len() > 0 {
-				findOpts.Filter().WarpOr()
+		case "PUT":
+			if !buildValidateUniqueValuesPutQuery[T](c, docs, findOpts, keys2Values, uniqueKeyValues...) {
+				return nil, false
 			}
-			if len(docs) > 1 {
-				findOpts.Filter().WithIn(key, values)
-			} else {
-				findOpts.Filter().WithValue(key, values[0])
-			}
-			findOpts.Projection().Include(key)
-			keys2Values[key] = values
+		default:
+			ResponseBadRequest(c, "method not supported")
 		}
 
 		if existingDocs, err := db.FindForCustomer[T](c, findOpts); err != nil {
@@ -81,6 +67,75 @@ func ValidateUniqueValues[T types.DocContent](uniqueKeyValues ...UniqueKeyValueI
 		}
 		return docs, true
 	}
+}
+
+func buildValidateUniqueValuesPostQuery[T types.DocContent](c *gin.Context, docs []T, findOpts *db.FindOptions, keys2Values map[string][]string, uniqueKeyValues ...UniqueKeyValueInfo[T]) bool {
+	for _, uniqueKeyValue := range uniqueKeyValues {
+		key, mandatory, valueGetter := uniqueKeyValue()
+		values := []string{}
+		for _, doc := range docs {
+			value := valueGetter(doc)
+			if mandatory && value == "" {
+				ResponseMissingKey(c, key)
+				return false
+			}
+			if slices.Contains(values, value) {
+				ResponseDuplicateKey(c, key, value)
+				return false
+			}
+			values = append(values, value)
+		}
+		if findOpts.Filter().Len() > 0 {
+			findOpts.Filter().WarpOr()
+		}
+		if len(docs) > 1 {
+			findOpts.Filter().WithIn(key, values)
+		} else {
+			findOpts.Filter().WithValue(key, values[0])
+		}
+		findOpts.Projection().Include(key)
+		keys2Values[key] = values
+	}
+	return true
+}
+
+func buildValidateUniqueValuesPutQuery[T types.DocContent](c *gin.Context, docs []T, findOpts *db.FindOptions, keys2Values map[string][]string, uniqueKeyValues ...UniqueKeyValueInfo[T]) bool {
+	for _, uniqueKeyValue := range uniqueKeyValues {
+		key, mandatory, valueGetter := uniqueKeyValue()
+		value2Id := map[string]string{}
+		for _, doc := range docs {
+			value := valueGetter(doc)
+			if mandatory && value == "" {
+				ResponseMissingKey(c, key)
+				return false
+			}
+			if _, ok := value2Id[value]; ok {
+				ResponseDuplicateKey(c, key, value)
+				return false
+			}
+			value2Id[value] = doc.GetGUID()
+		}
+		if findOpts.Filter().Len() > 0 {
+			findOpts.Filter().WarpOr()
+		}
+		keyFilters := db.NewFilterBuilder()
+		for value, guid := range value2Id {
+			keyFilters.AddAnd(db.NewFilterBuilder().WithValue(key, value).WithNotEqual(consts.GUIDField, guid))
+		}
+		if keyFilters.Len() > 1 {
+			keyFilters.WarpOr()
+		}
+		findOpts.Filter().WithFilter(keyFilters)
+		findOpts.Projection().Include(key)
+		values := make([]string, len(value2Id))
+		i := 0
+		for value := range value2Id {
+			values[i] = value
+			i++
+		}
+		keys2Values[key] = values
+	}
+	return true
 }
 
 func NameKeyGetter[T types.DocContent]() (key string, mandatory bool, valueGetter func(T) string) {
