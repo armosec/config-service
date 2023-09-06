@@ -19,8 +19,8 @@ type SchemaInfo struct {
 	ArrayPaths []string `json:"arrayPaths,omitempty"`
 }
 
-func SetAPIInfo(apiName string, apiInfo APIInfo) {
-	path2apiInfo[apiName] = apiInfo
+func SetAPIInfo(path string, apiInfo APIInfo) {
+	path2apiInfo[path] = apiInfo
 }
 
 func GetAPIInfo(path string) *APIInfo {
