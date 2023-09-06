@@ -42,6 +42,40 @@ func AddRoutes(g *gin.Engine) {
 	admin.GET("/customers", handlers.DBContextMiddleware(consts.CustomersCollection), getCustomers)
 	//add delete customers data route
 	admin.DELETE("/customers", deleteAllCustomerData)
+
+	//Post V2 list query on other collections
+	admin.POST("/:path/query", adminSearchCollection)
+	//uniqueValues
+	admin.POST("/:path/uniqueValues", adminAggregateCollection)
+}
+
+func adminSearchCollection(c *gin.Context) {
+	path := "/" + c.Param("path")
+	apiInfo := types.GetAPIInfo(path)
+	if apiInfo == nil {
+		handlers.ResponseBadRequest(c, fmt.Sprintf("unknown path %s - available paths are %v", path, types.GetAllPaths()))
+		return
+	}
+	queryHandler := handlers.GetAdminQueryHandler(apiInfo.DBCollection)
+	if queryHandler == nil {
+		handlers.ResponseInternalServerError(c, "query handler is nil", fmt.Errorf("no query handler for path %s", path))
+		return
+	}
+	//set the path collection
+	c.Set(consts.Collection, apiInfo.DBCollection)
+	queryHandler(c)
+}
+
+func adminAggregateCollection(c *gin.Context) {
+	path := "/" + c.Param("path")
+	apiInfo := types.GetAPIInfo(path)
+	if apiInfo == nil {
+		handlers.ResponseBadRequest(c, fmt.Sprintf("unknown path %s - available paths are %v", path, types.GetAllPaths()))
+		return
+	}
+	//set the path collection
+	c.Set(consts.Collection, apiInfo.DBCollection)
+	handlers.HandleAdminPostUniqueValuesRequestV2(c)
 }
 
 func getCustomers(c *gin.Context) {

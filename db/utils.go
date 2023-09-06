@@ -149,17 +149,17 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 	return searchRes, nil
 }
 
-func AggregateForCustomer[T any](c context.Context, findOps *FindOptions) (*armotypes.UniqueValuesResponseV2, error) {
+func AggregateForCustomer(c context.Context, findOps *FindOptions) (*armotypes.UniqueValuesResponseV2, error) {
 	defer log.LogNTraceEnterExit(fmt.Sprintf("AggregateForCustomer %+v", findOps), c)()
 	if findOps == nil {
 		findOps = &FindOptions{}
 	}
 	findOps.Filter().WithNotDeleteForCustomer(c)
-	return AdminAggregate[T](c, findOps)
+	return AdminAggregate(c, findOps)
 }
 
 // AdminAggregate search for docs of all customers (unless filtered by caller) and return aggregated result
-func AdminAggregate[T any](c context.Context, findOps *FindOptions) (*armotypes.UniqueValuesResponseV2, error) {
+func AdminAggregate(c context.Context, findOps *FindOptions) (*armotypes.UniqueValuesResponseV2, error) {
 	defer log.LogNTraceEnterExit(fmt.Sprintf("AdminAggregate %+v", findOps), c)()
 	collection, _, err := ReadContext(c)
 	if err != nil {
