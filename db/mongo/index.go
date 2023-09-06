@@ -155,7 +155,7 @@ var defaultIndex = []mongo.IndexModel{
 	},
 }
 
-func CreateIndexes() error {
+func createIndexes() error {
 	zap.L().Info("creating indexes on mongo")
 	collections, err := ListCollectionNames(context.Background())
 	if err != nil {

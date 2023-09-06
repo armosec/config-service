@@ -129,11 +129,8 @@ func (suite *MainTestSuite) TearDownTest() {
 	for _, collection := range collections {
 		if collection != consts.CustomerConfigCollection {
 			mongo.GetWriteCollection(collection).Drop(context.Background())
+			mongo.IndexCollection(collection)
 		}
-	}
-	//recreate indexes
-	if err := mongo.CreateIndexes(); err != nil {
-		suite.FailNow("failed to create indexes", err.Error())
 	}
 }
 func (suite *MainTestSuite) TearDownSuite() {
