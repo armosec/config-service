@@ -23,8 +23,8 @@ func SetAPIInfo(apiName string, apiInfo APIInfo) {
 	path2apiInfo[apiName] = apiInfo
 }
 
-func GetAPIInfo(apiName string) *APIInfo {
-	if apiInfo, ok := path2apiInfo[apiName]; ok {
+func GetAPIInfo(path string) *APIInfo {
+	if apiInfo, ok := path2apiInfo[path]; ok {
 		return ptr.To(apiInfo)
 	}
 	return nil
