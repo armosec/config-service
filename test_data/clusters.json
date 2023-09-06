@@ -1,5 +1,41 @@
 [
     {
+        "guid": "19906310-0469-4bba-9370-fe3dbdbc4bbd",
+        "name": "arn-aws-eks-eu-west-1-221581667315-cluster-deel-dev-test",
+        "attributes": {
+            "alias": "A",
+            "clusterAPIServerInfo": {
+                "buildDate": "2022-01-25T21:19:12Z",
+                "compiler": "gc",
+                "gitCommit": "816c97ab8cff8a1c72eccca1026f7820e93e0d25",
+                "gitTreeState": "clean",
+                "gitVersion": "v1.23.3",
+                "goVersion": "go1.17.6",
+                "major": "1",
+                "minor": "23",
+                "platform": "linux/arm64"
+            },
+            "clusterCloudProvider": "eks",
+            "contextName": "arn-aws-eks-eu-west-1-221581667315-cluster-deel-dev-test",
+            "createdBy": "armo-aggregator",
+            "description": "created by Kubescape automatically",
+            "kind": "k8s",
+            "kubescapeVersion": "",
+            "numberOfWorkerNodes": 1,
+            "workerNodes": {
+                "lastReportDate": "2022-06-22T11:50:18Z",
+                "lastReportGUID": "0a801812-2777-4886-a64e-9a731a41c1c3",
+                "lastReported": 1,
+                "max": 1,
+                "maxPerMonth": 1,
+                "maxPerMonthReportGUID": "0a801812-2777-4886-a64e-9a731a41c1c3",
+                "maxReportGUID": "0a801812-2777-4886-a64e-9a731a41c1c3"
+            }
+        },
+        "subscription_date": "2022-06-22T11:35:19.895448",
+        "last_login_date": ""
+    },
+    {
         "guid": "3f70100a-b69c-445a-9e50-66d80912217e",
         "name": "bez",
         "attributes": {
@@ -68,42 +104,6 @@
             }
         },
         "subscription_date": "2022-05-11T10:54:56.893486",
-        "last_login_date": ""
-    },
-    {
-        "guid": "19906310-0469-4bba-9370-fe3dbdbc4bbd",
-        "name": "arn-aws-eks-eu-west-1-221581667315-cluster-deel-dev-test",
-        "attributes": {
-            "alias": "A",
-            "clusterAPIServerInfo": {
-                "buildDate": "2022-01-25T21:19:12Z",
-                "compiler": "gc",
-                "gitCommit": "816c97ab8cff8a1c72eccca1026f7820e93e0d25",
-                "gitTreeState": "clean",
-                "gitVersion": "v1.23.3",
-                "goVersion": "go1.17.6",
-                "major": "1",
-                "minor": "23",
-                "platform": "linux/arm64"
-            },
-            "clusterCloudProvider": "eks",
-            "contextName": "arn-aws-eks-eu-west-1-221581667315-cluster-deel-dev-test",
-            "createdBy": "armo-aggregator",
-            "description": "created by Kubescape automatically",
-            "kind": "k8s",
-            "kubescapeVersion": "",
-            "numberOfWorkerNodes": 1,
-            "workerNodes": {
-                "lastReportDate": "2022-06-22T11:50:18Z",
-                "lastReportGUID": "0a801812-2777-4886-a64e-9a731a41c1c3",
-                "lastReported": 1,
-                "max": 1,
-                "maxPerMonth": 1,
-                "maxPerMonthReportGUID": "0a801812-2777-4886-a64e-9a731a41c1c3",
-                "maxReportGUID": "0a801812-2777-4886-a64e-9a731a41c1c3"
-            }
-        },
-        "subscription_date": "2022-06-22T11:35:19.895448",
         "last_login_date": ""
     }
 ]
