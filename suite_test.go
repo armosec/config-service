@@ -131,6 +131,10 @@ func (suite *MainTestSuite) TearDownTest() {
 			mongo.GetWriteCollection(collection).Drop(context.Background())
 		}
 	}
+	//recreate indexes
+	if err := mongo.CreateIndexes(); err != nil {
+		suite.FailNow("failed to create indexes", err.Error())
+	}
 }
 func (suite *MainTestSuite) TearDownSuite() {
 	suite.shutdownFunc()
