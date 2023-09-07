@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (suite *MainTestSuite) TestAdminAndUsers() {
+func (suite *MainTestSuite) TestAdminMultipleCustomers() {
 	const (
 		user1 = "user1-guid"
 		user2 = "f5f360bb-c233-4c33-a9af-5692e7795d61"
@@ -89,12 +89,40 @@ func (suite *MainTestSuite) TestAdminAndUsers() {
 	}
 	//login as admin
 	suite.loginAsAdmin("a-admin-guid")
+
+	//search all users cluster with v2 list query
+	queryClustersPath := fmt.Sprintf("%s%s/query", consts.AdminPath, consts.ClusterPath)
+	v2ListReq := armotypes.V2ListRequest{}
+	w := suite.doRequest(http.MethodPost, queryClustersPath, &v2ListReq)
+	suite.Equal(http.StatusOK, w.Code)
+	resp, err := decodeResponse[*armotypes.V2ListResponseGeneric[[]armotypes.PortalCluster]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(9, resp.Total.Value)
+	suite.Equal(9, len(resp.Response))
+
+	//get all users frameworks names with unique values query
+	queryFrameWorkPath := fmt.Sprintf("%s%s/uniqueValues", consts.AdminPath, consts.FrameworkPath)
+	uniqueValuesReq := armotypes.UniqueValuesRequestV2{
+		Fields: map[string]string{
+			"name": "",
+		},
+	}
+	w = suite.doRequest(http.MethodPost, queryFrameWorkPath, &uniqueValuesReq)
+	suite.Equal(http.StatusOK, w.Code)
+	uniqueValuesResp, err := decodeResponse[*armotypes.UniqueValuesResponseV2](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(3, len(uniqueValuesResp.Fields["name"]))
+
 	//delete users2 and users3 data
 	deleteUsersUrls := fmt.Sprintf("%s/customers?%s=%s&%s=%s", consts.AdminPath, consts.CustomersParam, user2, consts.CustomersParam, user3)
 	type deletedResponse struct {
 		Deleted int64 `json:"deleted"`
 	}
-	w := suite.doRequest(http.MethodDelete, deleteUsersUrls, nil)
+	w = suite.doRequest(http.MethodDelete, deleteUsersUrls, nil)
 	suite.Equal(http.StatusOK, w.Code)
 	response, err := decodeResponse[*deletedResponse](w)
 	if err != nil {

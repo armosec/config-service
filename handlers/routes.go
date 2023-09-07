@@ -5,7 +5,6 @@ import (
 	"config-service/types"
 	"config-service/utils/consts"
 	"fmt"
-	"reflect"
 
 	"github.com/gin-gonic/gin"
 )
@@ -87,6 +86,7 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 	if err := db.ValidateCollection(opts.dbCollection); err != nil {
 		panic(err)
 	}
+	addRouteInfo(opts)
 	routerGroup := g.Group(opts.path)
 	//add middleware
 	routerGroup.Use(DBContextMiddleware(opts.dbCollection))
@@ -151,7 +151,7 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 	if opts.servePostV2ListRequests {
 		putSchemaInContext := SchemaContextMiddleware(opts.schemaInfo)
 		routerGroup.POST(querySuffix, putSchemaInContext, HandlePostV2ListRequest[T])
-		routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2[T])
+		routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2)
 
 	}
 	//add array handlers
@@ -216,15 +216,24 @@ func (opts *routerOptions[T]) validate() error {
 	}
 	return nil
 }
-func initAPIInfo[T types.DocContent](options routerOptions[T]) {
-	t := reflect.TypeOf((*T)(nil)).Elem()
+
+// map of collection name to admin query handler
+var coll2AdminQueryHandler = map[string]gin.HandlerFunc{}
+
+func GetAdminQueryHandler(collection string) gin.HandlerFunc {
+	return coll2AdminQueryHandler[collection]
+}
+
+// keep the api info for each route
+func addRouteInfo[T types.DocContent](options *routerOptions[T]) {
 	apiInfo := types.APIInfo{
 		BasePath:     options.path,
 		DBCollection: options.dbCollection,
-		Type:         t.Name(),
 		Schema:       options.schemaInfo,
 	}
-	types.SetAPIInfo(options.path, &apiInfo)
+	types.SetAPIInfo(options.path, apiInfo)
+	//keep the admin query handler for this route
+	coll2AdminQueryHandler[options.dbCollection] = HandleAdminPostV2ListRequest[T]
 }
 
 type RouterOption[T types.DocContent] func(*routerOptions[T])

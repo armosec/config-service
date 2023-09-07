@@ -120,6 +120,19 @@ func (suite *MainTestSuite) loginAsAdmin(customerGUID string) {
 	suite.authCustomerGUID = customerGUID
 }
 
+func (suite *MainTestSuite) TearDownTest() {
+	//drop all collections except customer config
+	collections, err := mongo.ListCollectionNames(context.Background())
+	if err != nil {
+		suite.FailNow("failed to list collections", err.Error())
+	}
+	for _, collection := range collections {
+		if collection != consts.CustomerConfigCollection {
+			mongo.GetWriteCollection(collection).Drop(context.Background())
+			mongo.IndexCollection(collection)
+		}
+	}
+}
 func (suite *MainTestSuite) TearDownSuite() {
 	suite.shutdownFunc()
 	exec.Command("/bin/sh", "-c", mongoStopCommand).Run()
