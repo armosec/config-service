@@ -217,8 +217,14 @@ func (opts *routerOptions[T]) validate() error {
 	return nil
 }
 
+// map of collection name to admin query handler
 var coll2AdminQueryHandler = map[string]gin.HandlerFunc{}
 
+func GetAdminQueryHandler(collection string) gin.HandlerFunc {
+	return coll2AdminQueryHandler[collection]
+}
+
+// keep the api info for each route
 func addRouteInfo[T types.DocContent](options *routerOptions[T]) {
 	apiInfo := types.APIInfo{
 		BasePath:     options.path,
@@ -226,12 +232,8 @@ func addRouteInfo[T types.DocContent](options *routerOptions[T]) {
 		Schema:       options.schemaInfo,
 	}
 	types.SetAPIInfo(options.path, apiInfo)
-
+	//keep the admin query handler for this route
 	coll2AdminQueryHandler[options.dbCollection] = HandleAdminPostV2ListRequest[T]
-}
-
-func GetAdminQueryHandler(collection string) gin.HandlerFunc {
-	return coll2AdminQueryHandler[collection]
 }
 
 type RouterOption[T types.DocContent] func(*routerOptions[T])

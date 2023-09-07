@@ -204,29 +204,8 @@ func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func HandleAdminPostV2ListRequest[T types.DocContent](c *gin.Context) {
-	defer log.LogNTraceEnterExit("HandlePostV2ListRequest", c)()
-	var req armotypes.V2ListRequest
-	err := c.BindJSON(&req)
-	if err != nil {
-		ResponseFailedToBindJson(c, err)
-		return
-	}
-	findOpts, err := v2List2FindOptions(req)
-	if err != nil {
-		ResponseBadRequest(c, err.Error())
-		return
-	}
-	result, err := db.AdminFindPaginated[T](c, findOpts)
-	if err != nil {
-		ResponseInternalServerError(c, "failed to search documents", err)
-		return
-	}
-	c.JSON(http.StatusOK, result)
-}
-
 func HandlePostUniqueValuesRequestV2(c *gin.Context) {
-	defer log.LogNTraceEnterExit("HandlePostV2ListRequest", c)()
+	defer log.LogNTraceEnterExit("HandlePostUniqueValuesRequestV2", c)()
 	var req armotypes.UniqueValuesRequestV2
 	err := c.BindJSON(&req)
 	if err != nil {
@@ -246,8 +225,30 @@ func HandlePostUniqueValuesRequestV2(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// ///////////////////////// Admin handlers ///////////////////////////
+func HandleAdminPostV2ListRequest[T types.DocContent](c *gin.Context) {
+	defer log.LogNTraceEnterExit("HandleAdminPostV2ListRequest", c)()
+	var req armotypes.V2ListRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		ResponseFailedToBindJson(c, err)
+		return
+	}
+	findOpts, err := v2List2FindOptions(req)
+	if err != nil {
+		ResponseBadRequest(c, err.Error())
+		return
+	}
+	result, err := db.AdminFindPaginated[T](c, findOpts)
+	if err != nil {
+		ResponseInternalServerError(c, "failed to search documents", err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 func HandleAdminPostUniqueValuesRequestV2(c *gin.Context) {
-	defer log.LogNTraceEnterExit("HandlePostV2ListRequest", c)()
+	defer log.LogNTraceEnterExit("HandleAdminPostUniqueValuesRequestV2", c)()
 	var req armotypes.UniqueValuesRequestV2
 	err := c.BindJSON(&req)
 	if err != nil {

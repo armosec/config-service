@@ -11,7 +11,6 @@ var path2apiInfo = map[string]APIInfo{}
 type APIInfo struct {
 	BasePath     string     `json:"basePath"`
 	DBCollection string     `json:"dbCollection"`
-	Type         string     `json:"type"`
 	Schema       SchemaInfo `json:"schema"`
 }
 
