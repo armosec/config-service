@@ -7,9 +7,10 @@ import (
 	"config-service/utils/consts"
 	"encoding/json"
 	"fmt"
-	"github.com/aws/smithy-go/ptr"
 	"net/http"
 	"time"
+
+	"github.com/aws/smithy-go/ptr"
 
 	_ "embed"
 
@@ -1182,19 +1183,18 @@ func (suite *MainTestSuite) TestActiveSubscription() {
 	suite.Truef(updatedCustomer.GetUpdatedTime().After(timeBeforeUpdate), "update time should be updated")
 }
 
-//go:embed test_data/attack-chain-configs.json
-var attackChainConfigsJson []byte
+//go:embed test_data/attack-chain-states.json
+var attackChainStatesJson []byte
 
-func (suite *MainTestSuite) TestAttackChainsConfigs() {
-	attackChainConfigs, _ := loadJson[*types.AttackChain](attackChainConfigsJson)
+func (suite *MainTestSuite) TestAttackChainsStates() {
+	attackChainStates, _ := loadJson[*types.ClusterAttackChainState](attackChainStatesJson)
 
-	cloneDocFunc := func(doc *types.AttackChain) *types.AttackChain {
+	cloneDocFunc := func(doc *types.ClusterAttackChainState) *types.ClusterAttackChainState {
 		docCloned := Clone(doc)
-		docCloned.AttackChainID = fmt.Sprintf("%d", time.Now().Unix())
 		return docCloned
 	}
 
-	testOpts := testOptions[*types.AttackChain]{
+	testOpts := testOptions[*types.ClusterAttackChainState]{
 		uniqueName:    false,
 		mandatoryName: true,
 		customGUID:    true,
@@ -1202,9 +1202,9 @@ func (suite *MainTestSuite) TestAttackChainsConfigs() {
 		clondeDocFunc: &cloneDocFunc,
 	}
 
-	commonTestWithOptions(suite, consts.AttackChainsPath, attackChainConfigs, nil, testOpts, commonCmpFilter, ignoreTime)
+	commonTestWithOptions(suite, consts.AttackChainsPath, attackChainStates, nil, testOpts, commonCmpFilter, ignoreTime)
 
-	projectedDocs := []*types.AttackChain{
+	projectedDocs := []*types.ClusterAttackChainState{
 		{
 			PortalBase: armotypes.PortalBase{
 				Name: "aaa",
@@ -1223,20 +1223,6 @@ func (suite *MainTestSuite) TestAttackChainsConfigs() {
 	}
 
 	searchQueries := []searchTest{
-		//field or match
-		{
-			testName:        "field or match",
-			expectedIndexes: []int{0},
-			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
-				InnerFilters: []map[string]string{
-					{
-						"attackChainID": "aHASBDhsaNj",
-					},
-				},
-			},
-		},
-
 		//same field or match in descending order
 		{
 			testName:        "same field or match in descending order",
@@ -1335,68 +1321,39 @@ func (suite *MainTestSuite) TestAttackChainsConfigs() {
 				},
 			},
 		},
-		//field or match
-		{
-			testName:        "uiStatus.processingStatus = processing query match test",
-			expectedIndexes: []int{2},
-			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
-				InnerFilters: []map[string]string{
-					{
-						"uiStatus.processingStatus": "processing",
-					},
-				},
-			},
-		},
-		{
-			testName:        "uiStatus.processingStatus = done query match test",
-			expectedIndexes: []int{0, 1},
-			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
-				InnerFilters: []map[string]string{
-					{
-						"uiStatus.processingStatus": "done",
-					},
-				},
-			},
-		},
 	}
 
-	testPostV2ListRequest(suite, consts.AttackChainsPath, attackChainConfigs, projectedDocs, searchQueries, commonCmpFilter, ignoreTime)
+	testPostV2ListRequest(suite, consts.AttackChainsPath, attackChainStates, projectedDocs, searchQueries, commonCmpFilter, ignoreTime)
 
 	//add some docs for unique values tests
-	moreDocs := []*types.AttackChain{
+	moreDocs := []*types.ClusterAttackChainState{
 		{
 			PortalBase: armotypes.PortalBase{
 				GUID: "11111",
 				Name: "aaa",
 			},
-			ClusterName:   "minikube-a",
-			AttackChainID: "12312312312312",
+			ClusterName: "minikube-a",
 		},
 		{
 			PortalBase: armotypes.PortalBase{
 				GUID: "11111121",
 				Name: "bbb",
 			},
-			ClusterName:   "minikube-b",
-			AttackChainID: "12312312312312xxx",
+			ClusterName: "minikube-b",
 		},
 		{
 			PortalBase: armotypes.PortalBase{
 				GUID: "1132111",
 				Name: "ccc",
 			},
-			ClusterName:   "minikube-a",
-			AttackChainID: "12312312312312aaaa",
+			ClusterName: "minikube-a",
 		},
 		{
 			PortalBase: armotypes.PortalBase{
 				GUID: "223",
 				Name: "aaa",
 			},
-			ClusterName:   "minikube-b",
-			AttackChainID: "12312312312312wwww",
+			ClusterName: "minikube-b",
 		},
 
 		{
@@ -1404,11 +1361,10 @@ func (suite *MainTestSuite) TestAttackChainsConfigs() {
 				GUID: "223x",
 				Name: "ddd",
 			},
-			ClusterName:   "minikube-d",
-			AttackChainID: "12312312312312pppp",
+			ClusterName: "minikube-d",
 		},
 	}
-	attackChainConfigs = append(attackChainConfigs, moreDocs...)
+	attackChainStates = append(attackChainStates, moreDocs...)
 
 	uniqueValues := []uniqueValueTest{
 		{
@@ -1534,15 +1490,14 @@ func (suite *MainTestSuite) TestAttackChainsConfigs() {
 		},
 	}
 
-	testUniqueValues(suite, consts.AttackChainsPath, attackChainConfigs, uniqueValues, commonCmpFilter, ignoreTime)
+	testUniqueValues(suite, consts.AttackChainsPath, attackChainStates, uniqueValues, commonCmpFilter, ignoreTime)
 
 	//Post must require attack chain object with defined AttackChainId
-	attackChainWithoutAttackChainId := types.AttackChain{
+	attackChainWithoutAttackChainId := types.ClusterAttackChainState{
 		PortalBase: armotypes.PortalBase{
 			GUID: "xxxx",
 			Name: "test-name",
 		},
-		AttackChainID: "",
 	}
 	badRequestResponse := struct {
 		error string
@@ -1556,22 +1511,15 @@ func (suite *MainTestSuite) TestAttackChainsConfigs() {
 
 	//Put request custom test
 
-	attackChainConfigBeforeUpdate := types.AttackChain{
+	attackChainConfigBeforeUpdate := types.ClusterAttackChainState{
 		PortalBase: armotypes.PortalBase{
 			Name: "test-name-1",
 			GUID: "ndjsa2135s",
-		},
-		AttackChainID: "ndjsa2135s",
-		UIStatus: &armotypes.AttackChainUIStatus{
-			FirstSeen:        "2022-04-28T14:59:44.147901",
-			ProcessingStatus: "processing",
 		},
 	}
 	testPostDoc(suite, consts.AttackChainsPath, &attackChainConfigBeforeUpdate, commonCmpFilter, ignoreTime)
 
 	attackChainConfigAfterUpdate := Clone(attackChainConfigBeforeUpdate)
-	attackChainConfigAfterUpdate.UIStatus.ProcessingStatus = "done"
-	attackChainConfigAfterUpdate.UIStatus.ViewedMainScreen = "2022-04-29T14:59:44.147901"
 	expectedAttackChainConfigAfterUpdate := Clone(attackChainConfigAfterUpdate)
 
 	testPutPartialDoc(suite, consts.AttackChainsPath, attackChainConfigBeforeUpdate, attackChainConfigAfterUpdate, expectedAttackChainConfigAfterUpdate, commonCmpFilter, ignoreTime)

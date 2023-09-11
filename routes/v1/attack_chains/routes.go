@@ -9,13 +9,12 @@ import (
 )
 
 func AddRoutes(g *gin.Engine) {
-	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.AttackChain]().
+	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.ClusterAttackChainState]().
 		WithPath(consts.AttackChainsPath).
 		WithDBCollection(consts.AttackChainsCollection).
 		WithV2ListSearch(true).
 		WithGetNamesList(false).
 		WithValidatePostUniqueName(false).
 		WithValidatePostMandatoryName(true).
-		WithPostValidators(validateAttackChainId).
 		Get()...)
 }

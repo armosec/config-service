@@ -66,22 +66,17 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 		},
 		{
 			Keys: bson.D{
-				{Key: "attackChainID", Value: 1},
-			},
-		},
-		{
-			Keys: bson.D{
 				{Key: "clusterName", Value: 1},
 			},
 		},
 		{
 			Keys: bson.D{
-				{Key: "latestReportGUID", Value: 1},
+				{Key: "lastPostureScanTriggered", Value: 1},
 			},
 		},
 		{
 			Keys: bson.D{
-				{Key: "uiStatus.processingStatus", Value: 1},
+				{Key: "lastTimeEngineCompleted", Value: 1},
 			},
 		},
 	},
