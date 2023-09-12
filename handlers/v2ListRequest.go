@@ -66,7 +66,7 @@ func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error
 		}
 		if len(filters) > 1 {
 			findOptions.Filter().AddOr(filters...)
-		} else {
+		} else if len(filters) == 1 {
 			findOptions.Filter().WithFilter(filters[0])
 		}
 	}
