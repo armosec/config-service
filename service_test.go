@@ -5,7 +5,6 @@ import (
 	"config-service/types"
 	"config-service/utils"
 	"config-service/utils/consts"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -1189,136 +1188,86 @@ var attackChainStatesJson []byte
 func (suite *MainTestSuite) TestAttackChainsStates() {
 	attackChainStates, _ := loadJson[*types.ClusterAttackChainState](attackChainStatesJson)
 
-	cloneDocFunc := func(doc *types.ClusterAttackChainState) *types.ClusterAttackChainState {
+	modifyDocFunc := func(doc *types.ClusterAttackChainState) *types.ClusterAttackChainState {
 		docCloned := Clone(doc)
+		currentTime := time.Now().UTC()
+		docCloned.LastPostureScanTriggered = currentTime.Format(time.RFC3339)
 		return docCloned
 	}
 
 	testOpts := testOptions[*types.ClusterAttackChainState]{
 		uniqueName:    false,
 		mandatoryName: true,
-		customGUID:    true,
-		skipPutTests:  true,
-		clondeDocFunc: &cloneDocFunc,
+		customGUID:    false,
+		skipPutTests:  false,
 	}
 
-	commonTestWithOptions(suite, consts.AttackChainsPath, attackChainStates, nil, testOpts, commonCmpFilter, ignoreTime)
+	commonTestWithOptions(suite, consts.AttackChainsPath, attackChainStates, modifyDocFunc, testOpts, commonCmpFilter, ignoreTime)
 
 	projectedDocs := []*types.ClusterAttackChainState{
 		{
-			PortalBase: armotypes.PortalBase{
-				Name: "aaa",
-			},
+			ClusterName:              "aaa",
+			LastPostureScanTriggered: "2022-04-28T14:00:00.147901",
+			LastTimeEngineCompleted:  "2022-04-28T14:59:44.147901",
 		},
 		{
-			PortalBase: armotypes.PortalBase{
-				Name: "bbb",
-			},
+			ClusterName:              "bbb",
+			LastPostureScanTriggered: "2022-04-28T14:00:00.147901",
+			LastTimeEngineCompleted:  "2022-04-28T14:59:44.147901",
 		},
 		{
-			PortalBase: armotypes.PortalBase{
-				Name: "ccc",
-			},
+			ClusterName:              "ccc",
+			LastPostureScanTriggered: "2022-04-28T14:00:00.147901",
+			LastTimeEngineCompleted:  "2022-04-28T14:59:44.147901",
 		},
 	}
 
 	searchQueries := []searchTest{
-		//same field or match in descending order
 		{
-			testName:        "same field or match in descending order",
-			expectedIndexes: []int{2, 1, 0},
-			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:desc",
-				InnerFilters: []map[string]string{
-					{
-						"clusterName": "minikube-a",
-						"someField":   "", //test ignore empty field
-					},
-				},
-			},
-		},
-		//fields and match
-		{
-			testName:        "fields and match",
-			expectedIndexes: []int{1},
-			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
-				InnerFilters: []map[string]string{
-					{
-						"clusterName": "minikube-a",
-						"name":        "bbb",
-					},
-				},
-			},
-		},
-		//filters exist operator
-		{
-			testName:        "filters exist operator",
-			expectedIndexes: []int{0, 1, 2},
-			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
-				InnerFilters: []map[string]string{
-					{
-						"clusterName": "|exists",
-					},
-				},
-			},
-		},
-		//filters or match with missing operator
-		{
-			testName:        "filters or match with missing operator",
-			expectedIndexes: []int{0, 1, 2},
-			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
-				InnerFilters: []map[string]string{
-					{
-						"last_login_date": "2022-04-28T14:59:44.147901",
-					},
-					{
-						"last_login_date": "|missing",
-					},
-				},
-			},
-		},
-
-		//like match
-		{
-			testName:        "like ignorecase match",
+			testName:        "search by customerGUID",
 			expectedIndexes: []int{0},
 			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"name": "AaA|like&ignorecase",
+						"customerGUID": "1e31185d-c0fe-40d1-8ce3-31989bd270d8",
 					},
 				},
 			},
 		},
 		{
-			testName:        "like with multi results",
-			expectedIndexes: []int{0, 1, 2},
+			testName:        "search by clusterName",
+			expectedIndexes: []int{2},
 			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
-						"clusterName": "mini|like",
+						"clusterName": "ccc",
 					},
 				},
 			},
 		},
-		//projection test
 		{
-			testName:         "projection test",
+			testName:        "search by customerGUID abd clusterName",
+			expectedIndexes: []int{0},
+			listRequest: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"customerGUID": "1e31185d-c0fe-40d1-8ce3-31989bd270d8",
+						"clusterName":  "aaa",
+					},
+				},
+			},
+		},
+		{
+			testName:        "get all (max 150)",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest:     armotypes.V2ListRequest{},
+		},
+		{
+			testName:         "get all (max 150) with selected field only",
 			expectedIndexes:  []int{0, 1, 2},
 			projectedResults: true,
 			listRequest: armotypes.V2ListRequest{
-				OrderBy:    "name:asc",
-				FieldsList: []string{"name"},
-				InnerFilters: []map[string]string{
-					{
-						"clusterName": "minikube-a",
-					},
-				},
+				FieldsList: []string{"clusterName", "lastPostureScanTriggered", "lastTimeEngineCompleted"},
 			},
 		},
 	}
@@ -1350,7 +1299,7 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 		},
 		{
 			PortalBase: armotypes.PortalBase{
-				GUID: "223",
+				GUID: "223xx",
 				Name: "aaa",
 			},
 			ClusterName: "minikube-b",
@@ -1358,8 +1307,8 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 
 		{
 			PortalBase: armotypes.PortalBase{
-				GUID: "223x",
-				Name: "ddd",
+				GUID: "2234",
+				Name: "aaa",
 			},
 			ClusterName: "minikube-d",
 		},
@@ -1368,121 +1317,71 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 
 	uniqueValues := []uniqueValueTest{
 		{
-			testName: "unique names",
+			testName: "unique cluster names",
 			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
 				Fields: map[string]string{
-					"name": "",
-				},
-			},
-			expectedResponse: armotypes.UniqueValuesResponseV2{
-				Fields: map[string][]string{
-					"name": {"aaa", "bbb", "ccc", "ddd"},
-				},
-				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
-					"name": {
-						{
-
-							Field: "aaa",
-							Count: 3,
-						},
-						{
-							Field: "bbb",
-							Count: 2,
-						},
-						{
-							Field: "ccc",
-							Count: 2,
-						},
-						{
-							Field: "ddd",
-							Count: 1,
-						},
-					},
-				},
-			},
-		},
-		{
-			testName: "unique names with filter",
-			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
-				Fields: map[string]string{
-					"name": "",
-				},
-				InnerFilters: []map[string]string{
-					{
-						"clusterName": "minikube-a",
-					},
-				},
-			},
-			expectedResponse: armotypes.UniqueValuesResponseV2{
-				Fields: map[string][]string{
-					"name": {"aaa", "bbb", "ccc"},
-				},
-				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
-					"name": {
-						{
-
-							Field: "aaa",
-							Count: 2,
-						},
-						{
-
-							Field: "bbb",
-							Count: 1,
-						},
-						{
-
-							Field: "ccc",
-							Count: 2,
-						},
-					},
-				},
-			},
-		},
-		{
-			testName: "unique names and cluster names",
-			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
-				Fields: map[string]string{
-					"name":        "",
 					"clusterName": "",
 				},
-				InnerFilters: []map[string]string{
-					{
-						"someField": "", //test ignore empty field
-					},
-				},
 			},
 			expectedResponse: armotypes.UniqueValuesResponseV2{
 				Fields: map[string][]string{
-					"name":        {"aaa", "bbb", "ccc", "ddd"},
-					"clusterName": {"minikube-a", "minikube-b", "minikube-d"},
+					"clusterName": {"aaa", "bbb", "ccc", "minikube-a", "minikube-b", "minikube-d"},
 				},
 				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
-					"name": {
-						{
-							Field: "aaa",
-							Count: 3,
-						}, {
-							Field: "bbb",
-							Count: 2,
-						}, {
-							Field: "ccc",
-							Count: 2,
-						}, {
-							Field: "ddd",
-							Count: 1,
-						},
-					},
 					"clusterName": {
 						{
+
+							Field: "aaa",
+							Count: 1,
+						},
+						{
+							Field: "bbb",
+							Count: 1,
+						},
+						{
+							Field: "ccc",
+							Count: 1,
+						},
+						{
 							Field: "minikube-a",
-							Count: 5,
+							Count: 2,
 						}, {
 							Field: "minikube-b",
 							Count: 2,
-						},
-						{
+						}, {
 							Field: "minikube-d",
 							Count: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique lastPostureScanTriggered and lastTimeEngineCompleted",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"lastPostureScanTriggered": "",
+					"lastTimeEngineCompleted":  "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"lastPostureScanTriggered": {"2022-04-28T14:00:00.147901"},
+					"lastTimeEngineCompleted":  {"2022-04-28T14:59:44.147901"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"lastPostureScanTriggered": {
+						{
+
+							Field: "2022-04-28T14:00:00.147901",
+							Count: 3,
+						},
+					},
+					"lastTimeEngineCompleted": {
+						{
+
+							Field: "2022-04-28T14:59:44.147901",
+							Count: 3,
 						},
 					},
 				},
@@ -1491,38 +1390,4 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 	}
 
 	testUniqueValues(suite, consts.AttackChainsPath, attackChainStates, uniqueValues, commonCmpFilter, ignoreTime)
-
-	//Post must require attack chain object with defined AttackChainId
-	attackChainWithoutAttackChainId := types.ClusterAttackChainState{
-		PortalBase: armotypes.PortalBase{
-			GUID: "xxxx",
-			Name: "test-name",
-		},
-	}
-	badRequestResponse := struct {
-		error string
-	}{
-		error: "Attack Chain must contain AttackChainID",
-	}
-	badRequestJsonFormat, err := json.Marshal(badRequestResponse)
-	if err != nil {
-		testBadRequest(suite, http.MethodPost, consts.AttackChainsPath, string(badRequestJsonFormat), attackChainWithoutAttackChainId, http.StatusNotFound)
-	}
-
-	//Put request custom test
-
-	attackChainConfigBeforeUpdate := types.ClusterAttackChainState{
-		PortalBase: armotypes.PortalBase{
-			Name: "test-name-1",
-			GUID: "ndjsa2135s",
-		},
-	}
-	testPostDoc(suite, consts.AttackChainsPath, &attackChainConfigBeforeUpdate, commonCmpFilter, ignoreTime)
-
-	attackChainConfigAfterUpdate := Clone(attackChainConfigBeforeUpdate)
-	expectedAttackChainConfigAfterUpdate := Clone(attackChainConfigAfterUpdate)
-
-	testPutPartialDoc(suite, consts.AttackChainsPath, attackChainConfigBeforeUpdate, attackChainConfigAfterUpdate, expectedAttackChainConfigAfterUpdate, commonCmpFilter, ignoreTime)
-
-	testDeleteDocByGUID(suite, consts.AttackChainsPath, &expectedAttackChainConfigAfterUpdate, commonCmpFilter, ignoreTime)
 }

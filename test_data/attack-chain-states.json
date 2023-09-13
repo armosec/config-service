@@ -2,21 +2,21 @@
     {
         "name": "aaa",
         "clusterName": "aaa",
-        "customerGUID": "abcd-2eddf",
+        "customerGUID": "1e31185d-c0fe-40d1-8ce3-31989bd270d8",
         "lastPostureScanTriggered": "2022-04-28T14:00:00.147901",
         "lastTimeEngineCompleted": "2022-04-28T14:59:44.147901"
     },
     {
         "name": "bbb",
         "clusterName": "bbb",
-        "customerGUID": "abcd-2eddf",
+        "customerGUID": "2e31185d-c0fe-40d1-8ce3-31989bd270d8",
         "lastPostureScanTriggered": "2022-04-28T14:00:00.147901",
         "lastTimeEngineCompleted": "2022-04-28T14:59:44.147901"
     },
     {
         "name": "ccc",
         "clusterName": "ccc",
-        "customerGUID": "abcd-2eddf",
+        "customerGUID": "3e31185d-c0fe-40d1-8ce3-31989bd270d8",
         "lastPostureScanTriggered": "2022-04-28T14:00:00.147901",
         "lastTimeEngineCompleted": "2022-04-28T14:59:44.147901"
     }
