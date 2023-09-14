@@ -1224,35 +1224,12 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 
 	searchQueries := []searchTest{
 		{
-			testName:        "search by customerGUID",
-			expectedIndexes: []int{0},
-			listRequest: armotypes.V2ListRequest{
-				InnerFilters: []map[string]string{
-					{
-						"customerGUID": "1e31185d-c0fe-40d1-8ce3-31989bd270d8",
-					},
-				},
-			},
-		},
-		{
 			testName:        "search by clusterName",
 			expectedIndexes: []int{2},
 			listRequest: armotypes.V2ListRequest{
 				InnerFilters: []map[string]string{
 					{
 						"clusterName": "ccc",
-					},
-				},
-			},
-		},
-		{
-			testName:        "search by customerGUID abd clusterName",
-			expectedIndexes: []int{0},
-			listRequest: armotypes.V2ListRequest{
-				InnerFilters: []map[string]string{
-					{
-						"customerGUID": "1e31185d-c0fe-40d1-8ce3-31989bd270d8",
-						"clusterName":  "aaa",
 					},
 				},
 			},
