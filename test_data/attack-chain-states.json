@@ -1,0 +1,20 @@
+[
+    {
+        "name": "aaa",
+        "clusterName": "aaa",
+        "lastPostureScanTriggered": "2022-04-28T14:00:00.147901",
+        "lastTimeEngineCompleted": "2022-04-28T14:59:44.147901"
+    },
+    {
+        "name": "bbb",
+        "clusterName": "bbb",
+        "lastPostureScanTriggered": "2022-04-28T14:00:00.147901",
+        "lastTimeEngineCompleted": "2022-04-28T14:59:44.147901"
+    },
+    {
+        "name": "ccc",
+        "clusterName": "ccc",
+        "lastPostureScanTriggered": "2022-04-28T14:00:00.147901",
+        "lastTimeEngineCompleted": "2022-04-28T14:59:44.147901"
+    }
+]
