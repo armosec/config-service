@@ -1196,7 +1196,7 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 	}
 
 	testOpts := testOptions[*types.ClusterAttackChainState]{
-		uniqueName:    false,
+		uniqueName:    true,
 		mandatoryName: true,
 		customGUID:    false,
 		skipPutTests:  false,
@@ -1256,28 +1256,28 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 		{
 			PortalBase: armotypes.PortalBase{
 				GUID: "11111",
-				Name: "aaa",
+				Name: "minikube-aaa",
 			},
 			ClusterName: "minikube-a",
 		},
 		{
 			PortalBase: armotypes.PortalBase{
 				GUID: "11111121",
-				Name: "bbb",
+				Name: "minikube-bbb",
 			},
 			ClusterName: "minikube-b",
 		},
 		{
 			PortalBase: armotypes.PortalBase{
 				GUID: "1132111",
-				Name: "ccc",
+				Name: "minikube-a",
 			},
 			ClusterName: "minikube-a",
 		},
 		{
 			PortalBase: armotypes.PortalBase{
 				GUID: "223xx",
-				Name: "aaa",
+				Name: "minikube-b",
 			},
 			ClusterName: "minikube-b",
 		},
@@ -1285,7 +1285,7 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 		{
 			PortalBase: armotypes.PortalBase{
 				GUID: "2234",
-				Name: "aaa",
+				Name: "minikube-d",
 			},
 			ClusterName: "minikube-d",
 		},

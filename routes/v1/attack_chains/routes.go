@@ -14,7 +14,7 @@ func AddRoutes(g *gin.Engine) {
 		WithDBCollection(consts.AttackChainsCollection).
 		WithV2ListSearch(true).
 		WithGetNamesList(false).
-		WithValidatePostUniqueName(false).
+		WithValidatePostUniqueName(true).
 		WithValidatePostMandatoryName(true).
 		Get()...)
 }
