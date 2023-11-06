@@ -21,5 +21,6 @@ func AddRoutes(g *gin.Engine) {
 		WithValidatePutGUID(true).
 		WithDeleteByName(false).
 		WithUniqueShortName(repoValueGetter).
+		WithV2ListSearch(true).
 		Get()...)
 }
