@@ -5,6 +5,7 @@ import (
 	"config-service/types"
 	"config-service/utils"
 	"config-service/utils/consts"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -838,6 +839,35 @@ func (suite *MainTestSuite) TestRepository() {
 	suite.Equal(repo.Provider, newDoc.Provider)
 	suite.Equal(repo.BranchName, newDoc.BranchName)
 	suite.Equal(repo.RepoName, newDoc.RepoName)
+
+	req := armotypes.V2ListRequest{
+		OrderBy: "name:asc",
+		InnerFilters: []map[string]string{
+			{
+				"repoName": "DevOps",
+			},
+		},
+	}
+	w = suite.doRequest(http.MethodPost, consts.RepositoryPath+"/query", req)
+	suite.Equal(http.StatusOK, w.Code)
+	var result types.SearchResult[types.Repository]
+	err = json.Unmarshal(w.Body.Bytes(), &result)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(1, len(result.Response))
+	if len(result.Response) > 0 {
+		suite.Equal("DevOps", result.Response[0].RepoName)
+	}
+
+	w = suite.doRequest(http.MethodGet, consts.RepositoryPath+"?name=my-repo", nil)
+	suite.Equal(http.StatusOK, w.Code)
+	byNameRepo := types.Repository{}
+	err = json.Unmarshal(w.Body.Bytes(), &byNameRepo)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(repo.GUID, byNameRepo.GUID)
 }
 
 func (suite *MainTestSuite) TestCustomerNotificationConfig() {
