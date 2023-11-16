@@ -367,6 +367,41 @@ func (suite *MainTestSuite) TestPostureException() {
 	}
 	testGetDeleteByNameAndQuery(suite, consts.PostureExceptionPolicyPath, consts.PolicyNameParam, posturePolicies, getQueries)
 	testPartialUpdate(suite, consts.PostureExceptionPolicyPath, &types.PostureExceptionPolicy{}, commonCmpFilter)
+
+	uniqueValues := []uniqueValueTest{
+		{
+			testName: "unique control names",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"posturePolicies.controlName": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"posturePolicies.controlName": {"Allowed hostPath", "Applications credentials in configuration files", "List Kubernetes secrets"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"posturePolicies.controlName": {
+						{
+
+							Field: "Allowed hostPath",
+							Count: 1,
+						},
+						{
+							Field: "Applications credentials in configuration files",
+							Count: 1,
+						},
+						{
+							Field: "List Kubernetes secrets",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testUniqueValues(suite, consts.PostureExceptionPolicyPath, posturePolicies, uniqueValues, commonCmpFilter)
 }
 
 //go:embed test_data/collaborationConfigs.json
@@ -462,6 +497,49 @@ func (suite *MainTestSuite) TestVulnerabilityPolicies() {
 	}
 	testGetDeleteByNameAndQuery(suite, consts.VulnerabilityExceptionPolicyPath, consts.PolicyNameParam, vulnerabilities, getQueries, commonCmpFilter)
 	testPartialUpdate(suite, consts.VulnerabilityExceptionPolicyPath, &types.VulnerabilityExceptionPolicy{}, commonCmpFilter)
+
+	uniqueValues := []uniqueValueTest{
+		{
+			testName: "unique vulnerabilities name",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"vulnerabilities.name": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"vulnerabilities.name": {"CVE-2005-2541", "CVE-2005-2555", "CVE-2007-5686", "CVE-2009-5155", "CVE-2010-4756"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"vulnerabilities.name": {
+						{
+
+							Field: "CVE-2005-2541",
+							Count: 2,
+						},
+						{
+							Field: "CVE-2005-2555",
+							Count: 1,
+						},
+						{
+							Field: "CVE-2007-5686",
+							Count: 3,
+						},
+						{
+							Field: "CVE-2009-5155",
+							Count: 2,
+						},
+						{
+							Field: "CVE-2010-4756",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testUniqueValues(suite, consts.VulnerabilityExceptionPolicyPath, vulnerabilities, uniqueValues, commonCmpFilter)
 }
 
 //go:embed test_data/customer_config/customerConfig.json

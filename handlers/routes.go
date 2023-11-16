@@ -177,8 +177,8 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 }
 
 // Common router config for policies
-func AddPolicyRoutes[T types.DocContent](g *gin.Engine, path, dbCollection string, paramConf *QueryParamsConfig, allowRename bool) *gin.RouterGroup {
-	return AddRoutes(g, NewRouterOptionsBuilder[T]().
+func AddPolicyRoutes[T types.DocContent](g *gin.Engine, path, dbCollection string, paramConf *QueryParamsConfig, allowRename bool, schema *types.SchemaInfo) *gin.RouterGroup {
+	routerOptionsBuilder := NewRouterOptionsBuilder[T]().
 		WithPath(path).
 		WithDBCollection(dbCollection).
 		WithNameQuery(consts.PolicyNameParam).
@@ -188,8 +188,14 @@ func AddPolicyRoutes[T types.DocContent](g *gin.Engine, path, dbCollection strin
 		WithValidatePostUniqueName(true).
 		WithValidatePutGUID(true).
 		WithV2ListSearch(true).
-		WithValidatePutUniqueName(allowRename).
-		Get()...)
+		WithValidatePutUniqueName(allowRename)
+
+	if schema != nil {
+		routerOptionsBuilder.
+			WithSchemaInfo(*schema)
+	}
+
+	return AddRoutes(g, routerOptionsBuilder.Get()...)
 }
 
 func (opts *routerOptions[T]) apply(options []RouterOption[T]) {
