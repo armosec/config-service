@@ -27,26 +27,16 @@ func ValidateCollection(collection string) error {
 //////////////////////////////////Sugar functions for mongo using values in gin context /////////////////////////////////////////
 /////////////////////////////////all methods are expecting collection and customerGUID from context/////////////////////////////
 
-func BulkSetVulnerabilityExceptionsSeverity(c context.Context, cves []string, severity int) error {
-	defer log.LogNTraceEnterExit("BulkSetVulnerabilityExceptionsSeverity", c)()
-	filterBuilder := NewFilterBuilder().WithIn("vulnerabilities.name", cves)
-	update := GetUpdateSetFieldCommand("vulnerabilities.$.severityScore", severity)
-	res, err := mongo.GetWriteCollection(consts.VulnerabilityExceptionPolicyCollection).UpdateMany(c, filterBuilder.get(), update)
-
-	if res != nil {
-		log.Log(fmt.Sprintf("BulkSetVulnerabilityExceptionsSeverity: updated %d documents", res.ModifiedCount), c)
+func AdminUpdateMany(c context.Context, filter *FilterBuilder, update bson.D) error {
+	defer log.LogNTraceEnterExit("AdminUpdateMany", c)()
+	collection, err := readCollection(c)
+	if err != nil {
+		return err
 	}
-	return err
-}
 
-func BulkSetPostureExceptionsSeverity(c context.Context, controlIDS []string, severity int) error {
-	defer log.LogNTraceEnterExit("BulkSetPostureExceptionsSeverity", c)()
-	filterBuilder := NewFilterBuilder().WithIn("posturePolicies.controlID", controlIDS)
-	update := GetUpdateSetFieldCommand("posturePolicies.$.severityScore", severity)
-	res, err := mongo.GetWriteCollection(consts.PostureExceptionPolicyCollection).UpdateMany(c, filterBuilder.get(), update)
-
+	res, err := mongo.GetWriteCollection(collection).UpdateMany(c, filter.get(), update)
 	if res != nil {
-		log.Log(fmt.Sprintf("BulkSetPostureExceptionsSeverity: updated %d documents", res.ModifiedCount), c)
+		log.Log(fmt.Sprintf("AdminUpdateMany: updated %d documents", res.ModifiedCount), c)
 	}
 	return err
 }

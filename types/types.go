@@ -386,6 +386,16 @@ func (c *ClusterAttackChainState) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
+type VulnerabilityExceptionsSeverityUpdate struct {
+	Cves          []string `json:"cves" binding:"required"`
+	SeverityScore int      `json:"severityScore" binding:"required"`
+}
+
+type PostureExceptionsSeverityUpdate struct {
+	ControlIDS    []string `json:"controlIDS" binding:"required"`
+	SeverityScore int      `json:"severityScore" binding:"required"`
+}
+
 var baseReadOnlyFields = []string{consts.IdField, consts.GUIDField}
 var commonReadOnlyFields = append([]string{consts.NameField}, baseReadOnlyFields...)
 var commonReadOnlyFieldsV1 = append([]string{"creationTime"}, commonReadOnlyFields...)

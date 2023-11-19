@@ -43,8 +43,13 @@ func AddRoutes(g *gin.Engine) {
 	//add delete customers data route
 	admin.DELETE("/customers", deleteAllCustomerData)
 
-	admin.PUT("/updateVulnerabilityExceptionsSeverity", updateVulnerabilityExceptionsSeverity)
-	admin.PUT("/updatePostureExceptionsSeverity", updatePostureExceptionsSeverity)
+	admin.PUT("/updateVulnerabilityExceptionsSeverity",
+		handlers.DBContextMiddleware(consts.VulnerabilityExceptionPolicyCollection),
+		updateVulnerabilityExceptionsSeverity)
+
+	admin.PUT("/updatePostureExceptionsSeverity",
+		handlers.DBContextMiddleware(consts.PostureExceptionPolicyCollection),
+		updatePostureExceptionsSeverity)
 
 	//Post V2 list query on other collections
 	admin.POST("/:path/query", adminSearchCollection)
@@ -53,16 +58,15 @@ func AddRoutes(g *gin.Engine) {
 }
 
 func updateVulnerabilityExceptionsSeverity(c *gin.Context) {
-	updateReq := struct {
-		Cves          []string `json:"cves" binding:"required"`
-		SeverityScore int      `json:"severityScore" binding:"required"`
-	}{}
-
+	var updateReq types.VulnerabilityExceptionsSeverityUpdate
 	if err := c.ShouldBindJSON(&updateReq); err != nil {
 		handlers.ResponseFailedToBindJson(c, err)
 		return
 	}
-	if err := db.BulkSetVulnerabilityExceptionsSeverity(c, updateReq.Cves, updateReq.SeverityScore); err != nil {
+
+	filter := db.NewFilterBuilder().WithIn("vulnerabilities.name", updateReq.Cves)
+	update := db.GetUpdateSetFieldCommand("vulnerabilities.$.severityScore", updateReq.SeverityScore)
+	if err := db.AdminUpdateMany(c, filter, update); err != nil {
 		handlers.ResponseInternalServerError(c, "failed to update vulnerability exceptions severity", err)
 		return
 	}
@@ -70,16 +74,15 @@ func updateVulnerabilityExceptionsSeverity(c *gin.Context) {
 }
 
 func updatePostureExceptionsSeverity(c *gin.Context) {
-	updateReq := struct {
-		ControlIDS    []string `json:"controlIDS" binding:"required"`
-		SeverityScore int      `json:"severityScore" binding:"required"`
-	}{}
-
+	var updateReq types.PostureExceptionsSeverityUpdate
 	if err := c.ShouldBindJSON(&updateReq); err != nil {
 		handlers.ResponseFailedToBindJson(c, err)
 		return
 	}
-	if err := db.BulkSetPostureExceptionsSeverity(c, updateReq.ControlIDS, updateReq.SeverityScore); err != nil {
+
+	filter := db.NewFilterBuilder().WithIn("posturePolicies.controlID", updateReq.ControlIDS)
+	update := db.GetUpdateSetFieldCommand("posturePolicies.$.severityScore", updateReq.SeverityScore)
+	if err := db.AdminUpdateMany(c, filter, update); err != nil {
 		handlers.ResponseInternalServerError(c, "failed to update posture exceptions severity", err)
 		return
 	}
