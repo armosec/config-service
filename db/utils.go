@@ -27,6 +27,17 @@ func ValidateCollection(collection string) error {
 //////////////////////////////////Sugar functions for mongo using values in gin context /////////////////////////////////////////
 /////////////////////////////////all methods are expecting collection and customerGUID from context/////////////////////////////
 
+func AdminUpdateMany(c context.Context, filter *FilterBuilder, update bson.D) (int64, error) {
+	defer log.LogNTraceEnterExit("AdminUpdateMany", c)()
+	collection, err := readCollection(c)
+	if err != nil {
+		return 0, err
+	}
+
+	res, err := mongo.GetWriteCollection(collection).UpdateMany(c, filter.get(), update)
+	return res.ModifiedCount, err
+}
+
 // GetAllForCustomer returns all docs for customer
 func GetAllForCustomer[T any](c context.Context, includeGlobals bool) ([]T, error) {
 	findOps := NewFindOptions()

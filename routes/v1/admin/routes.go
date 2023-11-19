@@ -43,10 +43,52 @@ func AddRoutes(g *gin.Engine) {
 	//add delete customers data route
 	admin.DELETE("/customers", deleteAllCustomerData)
 
+	admin.PUT("/updateVulnerabilityExceptionsSeverity",
+		handlers.DBContextMiddleware(consts.VulnerabilityExceptionPolicyCollection),
+		updateVulnerabilityExceptionsSeverity)
+
+	admin.PUT("/updatePostureExceptionsSeverity",
+		handlers.DBContextMiddleware(consts.PostureExceptionPolicyCollection),
+		updatePostureExceptionsSeverity)
+
 	//Post V2 list query on other collections
 	admin.POST("/:path/query", adminSearchCollection)
 	//uniqueValues
 	admin.POST("/:path/uniqueValues", adminAggregateCollection)
+}
+
+func updateVulnerabilityExceptionsSeverity(c *gin.Context) {
+	var updateReq types.VulnerabilityExceptionsSeverityUpdate
+	if err := c.ShouldBindJSON(&updateReq); err != nil {
+		handlers.ResponseFailedToBindJson(c, err)
+		return
+	}
+
+	filter := db.NewFilterBuilder().WithIn("vulnerabilities.name", updateReq.Cves)
+	update := db.GetUpdateSetFieldCommand("vulnerabilities.$.severityScore", updateReq.SeverityScore)
+	updatedCount, err := db.AdminUpdateMany(c, filter, update)
+	if err != nil {
+		handlers.ResponseInternalServerError(c, "failed to update vulnerability exceptions severity", err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"updatedCount": updatedCount})
+}
+
+func updatePostureExceptionsSeverity(c *gin.Context) {
+	var updateReq types.PostureExceptionsSeverityUpdate
+	if err := c.ShouldBindJSON(&updateReq); err != nil {
+		handlers.ResponseFailedToBindJson(c, err)
+		return
+	}
+
+	filter := db.NewFilterBuilder().WithIn("posturePolicies.controlID", updateReq.ControlIDS)
+	update := db.GetUpdateSetFieldCommand("posturePolicies.$.severityScore", updateReq.SeverityScore)
+	updatedCount, err := db.AdminUpdateMany(c, filter, update)
+	if err != nil {
+		handlers.ResponseInternalServerError(c, "failed to update posture exceptions severity", err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"updatedCount": updatedCount})
 }
 
 func adminSearchCollection(c *gin.Context) {

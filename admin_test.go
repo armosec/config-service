@@ -364,3 +364,62 @@ func (suite *MainTestSuite) TestAdminGetCustomers() {
 	}
 	testGetWithQuery(suite, consts.AdminPath+"/customers", query, guidUsers, ignoreTime)
 }
+
+func (suite *MainTestSuite) TestAdminUpdateMany() {
+	//remove all existing exceptions
+	_, err := mongo.GetWriteCollection(consts.VulnerabilityExceptionPolicyPath).DeleteMany(context.Background(), struct{}{})
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	addException := func(exception *types.VulnerabilityExceptionPolicy) {
+		exception.GUID = uuid.New().String()
+		exception.Name = uuid.New().String()
+		w := suite.doRequest(http.MethodPost, consts.VulnerabilityExceptionPolicyPath, exception)
+		suite.Equal(http.StatusCreated, w.Code)
+	}
+	addException(&types.VulnerabilityExceptionPolicy{
+		VulnerabilityPolicies: []armotypes.VulnerabilityPolicy{
+			{
+				Name: "CVE-1",
+			},
+		},
+	})
+	addException(&types.VulnerabilityExceptionPolicy{
+		VulnerabilityPolicies: []armotypes.VulnerabilityPolicy{
+			{
+				Name:          "CVE-2",
+				SeverityScore: 100,
+			},
+		},
+	})
+	addException(&types.VulnerabilityExceptionPolicy{
+		VulnerabilityPolicies: []armotypes.VulnerabilityPolicy{
+			{
+				Name:          "CVE-3",
+				SeverityScore: 300,
+			},
+		},
+	})
+
+	suite.loginAsAdmin("admin-guid")
+	req := &types.VulnerabilityExceptionsSeverityUpdate{
+		Cves:          []string{"CVE-1", "CVE-2"},
+		SeverityScore: 500,
+	}
+	path := fmt.Sprintf("%s/%s", consts.AdminPath, "updateVulnerabilityExceptionsSeverity")
+	suite.doRequest(http.MethodPut, path, req)
+
+	query := fmt.Sprintf("%s%s/query", consts.AdminPath, consts.VulnerabilityExceptionPolicyPath)
+	v2ListReq := armotypes.V2ListRequest{
+		OrderBy: "vulnerabilities.0.name:asc",
+	}
+	w := suite.doRequest(http.MethodPost, query, &v2ListReq)
+	suite.Equal(http.StatusOK, w.Code)
+	resp, err := decodeResponse[*armotypes.V2ListResponseGeneric[[]armotypes.VulnerabilityExceptionPolicy]](w)
+	suite.NoError(err)
+	suite.NotNil(resp)
+	suite.Len(resp.Response, 3)
+	suite.Equal(resp.Response[0].VulnerabilityPolicies[0].SeverityScore, 500)
+	suite.Equal(resp.Response[1].VulnerabilityPolicies[0].SeverityScore, 500)
+	suite.Equal(resp.Response[2].VulnerabilityPolicies[0].SeverityScore, 300)
+}
