@@ -43,10 +43,47 @@ func AddRoutes(g *gin.Engine) {
 	//add delete customers data route
 	admin.DELETE("/customers", deleteAllCustomerData)
 
+	admin.PUT("/updateVulnerabilityExceptionsSeverity", updateVulnerabilityExceptionsSeverity)
+	admin.PUT("/updatePostureExceptionsSeverity", updatePostureExceptionsSeverity)
+
 	//Post V2 list query on other collections
 	admin.POST("/:path/query", adminSearchCollection)
 	//uniqueValues
 	admin.POST("/:path/uniqueValues", adminAggregateCollection)
+}
+
+func updateVulnerabilityExceptionsSeverity(c *gin.Context) {
+	updateReq := struct {
+		Cves          []string `json:"cves" binding:"required"`
+		SeverityScore int      `json:"severityScore" binding:"required"`
+	}{}
+
+	if err := c.ShouldBindJSON(&updateReq); err != nil {
+		handlers.ResponseFailedToBindJson(c, err)
+		return
+	}
+	if err := db.BulkSetVulnerabilityExceptionsSeverity(c, updateReq.Cves, updateReq.SeverityScore); err != nil {
+		handlers.ResponseInternalServerError(c, "failed to update vulnerability exceptions severity", err)
+		return
+	}
+	c.JSON(http.StatusOK, nil)
+}
+
+func updatePostureExceptionsSeverity(c *gin.Context) {
+	updateReq := struct {
+		ControlIDS    []string `json:"controlIDS" binding:"required"`
+		SeverityScore int      `json:"severityScore" binding:"required"`
+	}{}
+
+	if err := c.ShouldBindJSON(&updateReq); err != nil {
+		handlers.ResponseFailedToBindJson(c, err)
+		return
+	}
+	if err := db.BulkSetPostureExceptionsSeverity(c, updateReq.ControlIDS, updateReq.SeverityScore); err != nil {
+		handlers.ResponseInternalServerError(c, "failed to update posture exceptions severity", err)
+		return
+	}
+	c.JSON(http.StatusOK, nil)
 }
 
 func adminSearchCollection(c *gin.Context) {
