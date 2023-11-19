@@ -66,11 +66,12 @@ func updateVulnerabilityExceptionsSeverity(c *gin.Context) {
 
 	filter := db.NewFilterBuilder().WithIn("vulnerabilities.name", updateReq.Cves)
 	update := db.GetUpdateSetFieldCommand("vulnerabilities.$.severityScore", updateReq.SeverityScore)
-	if err := db.AdminUpdateMany(c, filter, update); err != nil {
+	updatedCount, err := db.AdminUpdateMany(c, filter, update)
+	if err != nil {
 		handlers.ResponseInternalServerError(c, "failed to update vulnerability exceptions severity", err)
 		return
 	}
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusOK, gin.H{"updatedCount": updatedCount})
 }
 
 func updatePostureExceptionsSeverity(c *gin.Context) {
@@ -82,11 +83,12 @@ func updatePostureExceptionsSeverity(c *gin.Context) {
 
 	filter := db.NewFilterBuilder().WithIn("posturePolicies.controlID", updateReq.ControlIDS)
 	update := db.GetUpdateSetFieldCommand("posturePolicies.$.severityScore", updateReq.SeverityScore)
-	if err := db.AdminUpdateMany(c, filter, update); err != nil {
+	updatedCount, err := db.AdminUpdateMany(c, filter, update)
+	if err != nil {
 		handlers.ResponseInternalServerError(c, "failed to update posture exceptions severity", err)
 		return
 	}
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusOK, gin.H{"updatedCount": updatedCount})
 }
 
 func adminSearchCollection(c *gin.Context) {
