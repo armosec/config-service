@@ -194,7 +194,7 @@ func AdminAggregate(c context.Context, findOps *FindOptions) (*armotypes.UniqueV
 					fieldFilter.get(),
 					findOps.skip,
 					findOps.limit,
-					getSchemaFromContext(c)))
+					GetSchemaFromContext(c)))
 			if err != nil {
 				return fmt.Errorf("failed to aggregate field %s: %w", field, err)
 			}
@@ -609,7 +609,7 @@ func ReadContext(c context.Context) (collection, customerGUID string, err error)
 	return collection, customerGUID, err
 }
 
-func getSchemaFromContext(c context.Context) types.SchemaInfo {
+func GetSchemaFromContext(c context.Context) types.SchemaInfo {
 	if val := c.Value(consts.SchemaInfo); val != nil {
 		if schema, ok := val.(types.SchemaInfo); ok {
 			return schema

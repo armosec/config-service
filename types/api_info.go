@@ -14,8 +14,15 @@ type APIInfo struct {
 	Schema       SchemaInfo `json:"schema"`
 }
 
+type FieldType string
+
+const (
+	Date FieldType = "date"
+)
+
 type SchemaInfo struct {
-	ArrayPaths []string `json:"arrayPaths,omitempty"`
+	ArrayPaths []string             `json:"arrayPaths,omitempty"`
+	FieldsType map[string]FieldType `json:"fieldsType,omitempty"`
 }
 
 func SetAPIInfo(path string, apiInfo APIInfo) {

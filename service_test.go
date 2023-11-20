@@ -467,7 +467,7 @@ func (suite *MainTestSuite) TestVulnerabilityPolicies() {
 		return policy
 	}
 
-	commonTest(suite, consts.VulnerabilityExceptionPolicyPath, vulnerabilities, modifyFunc, commonCmpFilter)
+	commonTest(suite, consts.VulnerabilityExceptionPolicyPath, vulnerabilities, modifyFunc, commonCmpFilter, ignoreTime)
 
 	getQueries := []queryTest[*types.VulnerabilityExceptionPolicy]{
 		{
@@ -495,8 +495,8 @@ func (suite *MainTestSuite) TestVulnerabilityPolicies() {
 			expectedIndexes: []int{0},
 		},
 	}
-	testGetDeleteByNameAndQuery(suite, consts.VulnerabilityExceptionPolicyPath, consts.PolicyNameParam, vulnerabilities, getQueries, commonCmpFilter)
-	testPartialUpdate(suite, consts.VulnerabilityExceptionPolicyPath, &types.VulnerabilityExceptionPolicy{}, commonCmpFilter)
+	testGetDeleteByNameAndQuery(suite, consts.VulnerabilityExceptionPolicyPath, consts.PolicyNameParam, vulnerabilities, getQueries, commonCmpFilter, ignoreTime)
+	testPartialUpdate(suite, consts.VulnerabilityExceptionPolicyPath, &types.VulnerabilityExceptionPolicy{}, commonCmpFilter, ignoreTime)
 
 	uniqueValues := []uniqueValueTest{
 		{
@@ -539,7 +539,43 @@ func (suite *MainTestSuite) TestVulnerabilityPolicies() {
 		},
 	}
 
-	testUniqueValues(suite, consts.VulnerabilityExceptionPolicyPath, vulnerabilities, uniqueValues, commonCmpFilter)
+	testUniqueValues(suite, consts.VulnerabilityExceptionPolicyPath, vulnerabilities, uniqueValues, commonCmpFilter, ignoreTime)
+
+	projectedDocs := []*types.VulnerabilityExceptionPolicy{
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "1656325224.51881314",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "1660467597.8207463",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "1660475024.9930612",
+			},
+		},
+	}
+
+	searchQueries := []searchTest{
+		{
+			testName:         "test filter by range of dates",
+			expectedIndexes:  []int{1, 2},
+			projectedResults: true,
+			listRequest: armotypes.V2ListRequest{
+				FieldsList: []string{"name"},
+				InnerFilters: []map[string]string{
+					{
+						"expirationDate": "2022-08-10T11:03:45.494851Z&2022-08-11T08:59:58.297650Z|range",
+					},
+				},
+			},
+		},
+	}
+
+	testPostV2ListRequest(suite, consts.VulnerabilityExceptionPolicyPath, vulnerabilities, projectedDocs, searchQueries, commonCmpFilter, ignoreTime)
 }
 
 //go:embed test_data/customer_config/customerConfig.json
