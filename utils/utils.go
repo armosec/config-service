@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"config-service/types"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -43,7 +42,7 @@ func Interface2String(value interface{}) string {
 	}
 }
 
-func String2Interface(value string, field string, schemaInfo types.SchemaInfo) interface{} {
+func String2Interface(value string) interface{} {
 	if i, err := strconv.ParseInt(value, 0, 64); err == nil {
 		return i
 	}
@@ -52,14 +51,6 @@ func String2Interface(value string, field string, schemaInfo types.SchemaInfo) i
 	}
 	if b, err := strconv.ParseBool(value); err == nil {
 		return b
-	}
-	if fieldType, exist := schemaInfo.FieldsType[field]; exist {
-		switch fieldType {
-		case types.Date:
-			if d, err := time.Parse(time.RFC3339, value); err == nil {
-				return d
-			}
-		}
 	}
 
 	return value

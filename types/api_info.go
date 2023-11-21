@@ -57,3 +57,8 @@ func (s *SchemaInfo) GetArrayDetails(path string) (isArray bool, arrayPath, subP
 	}
 	return
 }
+
+func (s *SchemaInfo) IsDate(field string) bool {
+	fieldType, exist := s.FieldsType[field]
+	return exist && fieldType == Date
+}
