@@ -363,7 +363,7 @@ func testGetByQuery[T types.DocContent](suite *MainTestSuite, basePath string, t
 		docNames = append(docNames, testDocs[i].GetName())
 	}
 	//get Docs by query params
-	testGetWithQuery(suite, basePath, getQueries, newDocs)
+	testGetWithQuery(suite, basePath, getQueries, newDocs, compareOpts...)
 	for _, doc := range newDocs {
 		testDeleteDocByGUID(suite, basePath, doc, compareOpts...)
 	}
@@ -497,7 +497,7 @@ func testGetWithQuery[T types.DocContent](suite *MainTestSuite, basePath string,
 		for _, index := range query.expectedIndexes {
 			expectedDocs = append(expectedDocs, expected[index])
 		}
-		testGetDocs(suite, path, expectedDocs)
+		testGetDocs(suite, path, expectedDocs, compareOpts...)
 	}
 }
 

@@ -5,8 +5,10 @@ import (
 	"config-service/utils"
 	"config-service/utils/consts"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/armosec/armoapi-go/armotypes"
 )
@@ -17,7 +19,7 @@ import (
 
 const maxV2PageSize = 150
 
-func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error) {
+func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.FindOptions, error) {
 	if request.Until != nil {
 		return nil, fmt.Errorf("until is not supported")
 	}
@@ -58,7 +60,7 @@ func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error
 	if len(request.InnerFilters) > 0 {
 		filters := []*db.FilterBuilder{}
 		for i := range request.InnerFilters {
-			if filter, err := buildInnerFilter(request.InnerFilters[i]); err != nil {
+			if filter, err := buildInnerFilter(ctx, request.InnerFilters[i]); err != nil {
 				return nil, err
 			} else if filter != nil {
 				filters = append(filters, filter)
@@ -73,7 +75,7 @@ func v2List2FindOptions(request armotypes.V2ListRequest) (*db.FindOptions, error
 	return findOptions, nil
 }
 
-func uniqueValuesRequest2FindOptions(request armotypes.UniqueValuesRequestV2) (*db.FindOptions, error) {
+func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueValuesRequestV2) (*db.FindOptions, error) {
 	request.ValidatePageProperties(maxV2PageSize)
 	if request.Until != nil || request.Since != nil {
 		return nil, fmt.Errorf("since and until are not supported")
@@ -96,7 +98,7 @@ func uniqueValuesRequest2FindOptions(request armotypes.UniqueValuesRequestV2) (*
 	if len(request.InnerFilters) > 0 {
 		filters := []*db.FilterBuilder{}
 		for i := range request.InnerFilters {
-			if filter, err := buildInnerFilter(request.InnerFilters[i]); err != nil {
+			if filter, err := buildInnerFilter(ctx, request.InnerFilters[i]); err != nil {
 				return nil, err
 			} else if filter != nil {
 				filters = append(filters, filter)
@@ -113,7 +115,7 @@ func uniqueValuesRequest2FindOptions(request armotypes.UniqueValuesRequestV2) (*
 
 // TODO - use schema info to query arrays with $elemMatch
 // and to map ambiguous fields types (e.g time.time vs string)
-func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) {
+func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.FilterBuilder, error) {
 	filterBuilder := db.NewFilterBuilder()
 	for key, value := range innerFilter {
 		//ignore empty values
@@ -148,12 +150,24 @@ func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) 
 				if key == consts.GUIDField {
 					filters = append(filters, db.NewFilterBuilder().WithID(value))
 				} else {
-					filters = append(filters, db.NewFilterBuilder().WithValue(key, utils.String2Interface(value)))
+					value, err := getTypedValue(ctx, key, value)
+					if err != nil {
+						return nil, err
+					}
+					filters = append(filters, db.NewFilterBuilder().WithValue(key, value))
 				}
 			case armotypes.V2ListGreaterOperator:
-				filters = append(filters, db.NewFilterBuilder().WithGreaterThanEqual(key, utils.String2Interface(value)))
+				value, err := getTypedValue(ctx, key, value)
+				if err != nil {
+					return nil, err
+				}
+				filters = append(filters, db.NewFilterBuilder().WithGreaterThanEqual(key, value))
 			case armotypes.V2ListLowerOperator:
-				filters = append(filters, db.NewFilterBuilder().WithLowerThanEqual(key, utils.String2Interface(value)))
+				value, err := getTypedValue(ctx, key, value)
+				if err != nil {
+					return nil, err
+				}
+				filters = append(filters, db.NewFilterBuilder().WithLowerThanEqual(key, value))
 			case armotypes.V2ListLikeOperator:
 				value = regexp.QuoteMeta(value)
 				fallthrough
@@ -168,8 +182,14 @@ func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) 
 				if rangeValues[0] == "" || rangeValues[1] == "" {
 					return nil, fmt.Errorf("invalid range value %s", value)
 				}
-				val1 := utils.String2Interface(rangeValues[0])
-				val2 := utils.String2Interface(rangeValues[1])
+				val1, err := getTypedValue(ctx, key, rangeValues[0])
+				if err != nil {
+					return nil, err
+				}
+				val2, err := getTypedValue(ctx, key, rangeValues[1])
+				if err != nil {
+					return nil, err
+				}
 				if !utils.SameType(val1, val2) {
 					return nil, fmt.Errorf("invalid range must use same value types found %T %T", val1, val2)
 				}
@@ -189,4 +209,16 @@ func buildInnerFilter(innerFilter map[string]string) (*db.FilterBuilder, error) 
 		return nil, nil
 	}
 	return filterBuilder, nil
+}
+
+func getTypedValue(ctx *gin.Context, field, value string) (interface{}, error) {
+	schemaInfo := db.GetSchemaFromContext(ctx)
+	if schemaInfo.IsDate(field) {
+		date, err := time.Parse(time.RFC3339, value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse field %s with value %s into Time type", field, value)
+		}
+		return date, nil
+	}
+	return utils.String2Interface(value), nil
 }

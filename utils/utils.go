@@ -52,6 +52,7 @@ func String2Interface(value string) interface{} {
 	if b, err := strconv.ParseBool(value); err == nil {
 		return b
 	}
+
 	return value
 }
 
