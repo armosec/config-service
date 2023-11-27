@@ -146,7 +146,7 @@ func (f *FilterBuilder) AddOr(filters ...*FilterBuilder) *FilterBuilder {
 		}
 		orM = append(orM, m)
 	}
-	f.filter = bson.D{{Key: "$or", Value: orM}}
+	f.filter = append(f.filter, bson.E{Key: "$or", Value: orM})
 	return f
 }
 
