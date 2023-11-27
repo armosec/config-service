@@ -402,6 +402,36 @@ func (suite *MainTestSuite) TestPostureException() {
 	}
 
 	testUniqueValues(suite, consts.PostureExceptionPolicyPath, posturePolicies, uniqueValues, commonCmpFilter)
+
+	searchtests := []searchTest{
+		{
+			testName: "test OR score with missing date",
+			listRequest: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"posturePolicies.severityScore": "1,2,3",
+						"expirationDate":                "|missing",
+					},
+				},
+			},
+			expectedIndexes: []int{0, 2},
+		},
+		{
+			testName: "test OR score with existing date",
+			listRequest: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"posturePolicies.severityScore": "1,2,3",
+						"expirationDate":                "|exists",
+					},
+				},
+			},
+			expectedIndexes: []int{},
+		},
+	}
+
+	testPostV2ListRequest(suite, consts.PostureExceptionPolicyPath, posturePolicies, nil, searchtests, commonCmpFilter)
+
 }
 
 //go:embed test_data/collaborationConfigs.json

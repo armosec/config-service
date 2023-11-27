@@ -21,7 +21,8 @@
         "posturePolicies": [
             {
                 "frameworkName": "NSA",
-                "controlName": "Allowed hostPath"
+                "controlName": "Allowed hostPath",
+                "severityScore": 3
             }
         ]
     },
@@ -75,7 +76,8 @@
         "posturePolicies": [
             {
                 "frameworkName": "MITRE",
-                "controlName": "List Kubernetes secrets"
+                "controlName": "List Kubernetes secrets",
+                "severityScore": 1
             }
         ]
     }

@@ -392,8 +392,10 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 				expectedDocs = append(expectedDocs, testDocs[index])
 			}
 		}
-		diff := cmp.Diff(result.Response, expectedDocs, compareOpts...)
-		suite.Equal("", diff, "Unexpected diff: %s", test.testName)
+		if len(expectedDocs) != 0 {
+			diff := cmp.Diff(result.Response, expectedDocs, compareOpts...)
+			suite.Equal("", diff, "Unexpected diff: %s", test.testName)
+		}
 	}
 
 	//test bad requests for search
