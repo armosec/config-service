@@ -93,6 +93,7 @@ func startServer(handler http.Handler) {
 		port = "8080"
 		log.Printf("Defaulting to port %s", port)
 	}
+
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: handler,
