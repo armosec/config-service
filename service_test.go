@@ -477,6 +477,29 @@ func (suite *MainTestSuite) TestCollaborationConfigs() {
 	}
 	testGetDeleteByNameAndQuery(suite, consts.CollaborationConfigPath, consts.PolicyNameParam, collaborations, getQueries, commonCmpFilter)
 	testPartialUpdate(suite, consts.CollaborationConfigPath, &types.CollaborationConfig{PortalBase: armotypes.PortalBase{Name: "collabPartial"}}, commonCmpFilter, ignoreName)
+
+	// test case for delete by provider
+	testBulkPostDocs(suite, consts.CollaborationConfigPath, collaborations, commonCmpFilter)
+
+	v2Req := armotypes.V2ListRequest{
+		InnerFilters: []map[string]string{
+			{
+				"provider": "slack,jira,not-existing",
+			},
+		}}
+	w := suite.doRequest(http.MethodDelete, consts.CollaborationConfigPath+"/query", v2Req)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err := decodeResponse[map[string]int](w)
+	suite.NoError(err)
+	suite.Equal(3, res["deletedCount"])
+	// verify deletion happened
+	w = suite.doRequest(http.MethodPost, consts.CollaborationConfigPath+"/query", v2Req)
+	suite.Equal(http.StatusOK, w.Code)
+	var searchRes types.SearchResult[types.CollaborationConfig]
+	searchRes, err = decodeResponse[types.SearchResult[types.CollaborationConfig]](w)
+	suite.NoError(err)
+	suite.Equal(0, len(searchRes.Response))
+	suite.Equal(0, searchRes.Total.Value)
 }
 
 //go:embed test_data/vulnerabilityPolicies.json
