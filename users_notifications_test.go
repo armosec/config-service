@@ -169,36 +169,42 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 		return i
 	}
 
+	now := time.Now().UTC()
+
 	docs := []*types.Cache{
 		{
-			GUID:     "test-guid-1",
-			Name:     "test-name-1",
-			Data:     toJson(float64(1)),
-			DataType: "test-data-type-1",
+			GUID:       "test-guid-1",
+			Name:       "test-name-1",
+			Data:       toJson(float64(1)),
+			DataType:   "test-data-type-1",
+			ExpiryTime: now.Add(1 * time.Hour),
 		},
 		{
-			GUID:     "test-guid-2",
-			Name:     "test-name-2",
-			Data:     toJson("data-value-string"),
-			DataType: "test-data-type-2",
+			GUID:       "test-guid-2",
+			Name:       "test-name-2",
+			Data:       toJson("data-value-string"),
+			DataType:   "test-data-type-2",
+			ExpiryTime: now.Add(2 * time.Hour),
 		},
 		{
-			GUID: "test-guid-3",
-			Name: "test-name-3*.?7*",
-			Data: toJson([]interface{}{"test-*value*?-3", "test-value-4"}),
+			GUID:       "test-guid-3",
+			Name:       "test-name-3*.?7*",
+			Data:       toJson([]interface{}{"test-*value*?-3", "test-value-4"}),
+			ExpiryTime: now.Add(3 * time.Hour),
 		},
 		{
-			GUID:     "test-guid-4",
-			Name:     "test-name-4",
-			Data:     toJson(float64(5)),
-			DataType: "test-data-type-4",
+			GUID:       "test-guid-4",
+			Name:       "test-name-4",
+			Data:       toJson(float64(5)),
+			DataType:   "test-data-type-4",
+			ExpiryTime: now.Add(4 * time.Hour),
 		},
 		{
 			GUID:       "test-guid-5",
 			Name:       "test-name-5",
 			Data:       toJson("role,bind,clusterrole"),
 			DataType:   "test-data-type-5",
-			ExpiryTime: time.Now().UTC().Add(1 * time.Hour),
+			ExpiryTime: now.Add(5 * time.Hour),
 		},
 	}
 
@@ -408,18 +414,6 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				},
 			},
 		},
-		/*{ //TODO - add schema to identify time.time fields so the search will convert it to time object
-			testName:        "range time dates",
-			expectedIndexes: []int{0, 1, 2, 3, 4},
-			listRequest: armotypes.V2ListRequest{
-				OrderBy: "name:asc",
-				InnerFilters: []map[string]string{
-					{
-						"creationTime": fmt.Sprintf("%s&%s|range", time.Now().UTC().Add(-1*time.Hour).Format(time.RFC3339), time.Now().UTC().Add(1*time.Hour).Format(time.RFC3339)),
-					},
-				},
-			},
-		},*/
 		//lower than equal on one field
 		{
 			testName:        "lower than equal on one field",
@@ -442,6 +436,19 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				InnerFilters: []map[string]string{
 					{
 						"guid": "test-guid-1|lower,test-guid-4|greater,.*-gui.-3|regex",
+					},
+				},
+			},
+		},
+		//expiring times query
+		{
+			testName:        "greater than equal expiry time",
+			expectedIndexes: []int{3, 4},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"expiryTime": time.Now().UTC().Add(4*time.Hour).Format(time.RFC3339) + "|greater",
 					},
 				},
 			},
@@ -699,6 +706,31 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 	}
 
 	testUniqueValues(suite, consts.UsersNotificationsCachePath, docs, uniqueValues, commonCmpFilter, ignoreTime)
+
+	cachedDuration := armotypes.PortalCache[time.Duration]{
+		GUID:     "test-duration-guid",
+		Name:     "test-duration-name",
+		Data:     time.Hour,
+		DataType: "test-duration-data-type",
+	}
+
+	w := suite.doRequest(http.MethodPost, consts.UsersNotificationsCachePath, cachedDuration)
+	suite.Equal(http.StatusCreated, w.Code)
+	newDoc, err := decodeResponse[armotypes.PortalCache[time.Duration]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	diff := cmp.Diff(cachedDuration, newDoc, commonCmpFilter, ignoreTime)
+	suite.Equal("", diff)
+
+	w = suite.doRequest(http.MethodGet, consts.UsersNotificationsCachePath+"/test-duration-guid", nil)
+	suite.Equal(http.StatusOK, w.Code)
+	newDoc, err = decodeResponse[armotypes.PortalCache[time.Duration]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	diff = cmp.Diff(cachedDuration, newDoc, commonCmpFilter, ignoreTime)
+	suite.Equal("", diff)
 
 	ttlDoc := &types.Cache{
 		GUID:     "test-ttl-guid",

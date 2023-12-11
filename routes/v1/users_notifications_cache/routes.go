@@ -21,6 +21,11 @@ func AddRoutes(g *gin.Engine) {
 		WithValidatePostUniqueName(false).
 		WithPostValidators(ttlValidator).
 		WithPutValidators(ttlValidator).
+		WithSchemaInfo(types.SchemaInfo{
+			FieldsType: map[string]types.FieldType{
+				"expiryTime": types.Date,
+			},
+		}).
 		Get()...)
 }
 
