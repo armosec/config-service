@@ -440,7 +440,6 @@ func (suite *MainTestSuite) TestUsersNotificationsCache() {
 				},
 			},
 		},
-		//expiring times query
 		{
 			testName:        "greater than equal expiry time",
 			expectedIndexes: []int{3, 4},
