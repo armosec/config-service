@@ -1,0 +1,59 @@
+
+name: 01-pr-merged
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**README.md'
+      - '**.yaml'
+      - '**.yml'
+      - '**.md'
+      - '**.sh'
+      - 'docs/*'
+      - '.github/*'
+
+  workflow_dispatch:
+    inputs:
+      TAG_BUMP_TYPE:
+        description: 'TAG_BUMP_TYPE'
+        options:
+        - patch
+        - minor
+        - major
+        type: choice
+        default: patch
+
+env:
+  GITHUB_REPOSITORY: ${{ github.repository }}
+  PR_OPENER: ${{ github.actor }}
+  DOCKER_IMAGE_PATH: quay.io/armosec/kubescape-config-service
+  DEV_VALUES_DIRS: kubernetes-deployment/Helm/cyberarmor-be-apps/values/eu-dev-3
+  STAGING_VALUES_DIRS: kubernetes-deployment/Helm/cyberarmor-be-apps/values/eu-stage-2
+  PRODUCTION_VALUES_DIRS: kubernetes-deployment/Helm/cyberarmor-be-apps/values/eu-prod-1
+  STAGING_ARGO_APPS: kubescape-config-service-stage
+  PRODUCTION_ARGO_APPS: kubescape-config-service-prod
+  TESTS_GROUPS: FULL
+
+# ---------------------------------------------------- 01 Call user-notification-service CD Process---------------------------------------------------- #
+jobs:
+  trigger-cd-process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set PR Opener
+        run: |
+          if [ -z "${{ github.event.pull_request.user.login }}" ]; then
+            echo "PR_OPENER=${{ github.actor }}" >> $GITHUB_ENV
+          else
+            echo "PR_OPENER=${{ github.event.pull_request.user.login }}" >> $GITHUB_ENV
+          fi
+
+      - name: Trigger CD Process
+        uses: benc-uk/workflow-dispatch@v1.2.2
+        with:
+          workflow: e-cd-release-process.yaml
+          repo: armosec/shared-workflows
+          ref: main
+          token: ${{ secrets.ARMOSEC_GITHUB_ACCESS_TOKEN }}
+          inputs: '{"GITHUB_REPOSITORY":"${{ env.GITHUB_REPOSITORY }}","PR_OPENER":"${{ env.PR_OPENER }}","DOCKER_IMAGE_PATH":"${{ env.DOCKER_IMAGE_PATH }}","DEV_VALUES_DIRS":"${{ env.DEV_VALUES_DIRS }}","STAGING_VALUES_DIRS":"${{ env.STAGING_VALUES_DIRS }}","PRODUCTION_VALUES_DIRS":"${{ env.PRODUCTION_VALUES_DIRS }}","STAGING_ARGO_APPS":"${{ env.STAGING_ARGO_APPS }}","PRODUCTION_ARGO_APPS":"${{ env.PRODUCTION_ARGO_APPS }}","TESTS_GROUPS":"${{ env.TESTS_GROUPS }}"}'
