@@ -25,6 +25,10 @@ on:
         type: choice
         default: patch
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
+  cancel-in-progress: true
+
 env:
   GITHUB_REPOSITORY: ${{ github.repository }}
   PR_OPENER: ${{ github.actor }}
