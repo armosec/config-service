@@ -17,12 +17,12 @@ while [ "$is_workflow_queued" == "true" ] || [ "$is_workflow_pending" == "true" 
     # Fetch queued workflows
     response_queued=$(curl --location 'https://api.github.com/repos/armosec/shared-workflows/actions/runs?status=queued' \
         --header 'Accept: application/vnd.github+json' \
-        --header 'Authorization: Bearer $GITHUB_TOKEN' \
+        --header "Authorization: Bearer $GITHUB_TOKEN" \
         --header 'X-GitHub-Api-Version: 2022-11-28')
 
     response_pending=$(curl --location 'https://api.github.com/repos/armosec/shared-workflows/actions/runs?status=pending' \
         --header 'Accept: application/vnd.github+json' \
-        --header 'Authorization: Bearer $GITHUB_TOKEN' \
+        --header "Authorization: Bearer $GITHUB_TOKEN" \
         --header 'X-GitHub-Api-Version: 2022-11-28')
 
     # Clean the response and extract total workflows
