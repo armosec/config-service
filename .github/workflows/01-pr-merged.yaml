@@ -40,8 +40,16 @@ env:
 # ---------------------------------------------------- 01 Call user-notification-service CD Process---------------------------------------------------- #
 jobs:
   trigger-cd-process:
-    runs-on: ubuntu-latest
+    runs-on: k8s-self-hosted-runner
     steps:
+      - name: Set PR Opener
+        run: |
+            if [ -z "${{ github.event.pull_request.user.login }}" ]; then
+              echo "PR_OPENER=${{ github.actor }}" >> $GITHUB_ENV
+            else
+              echo "PR_OPENER=${{ github.event.pull_request.user.login }}" >> $GITHUB_ENV
+            fi
+
       - name: Check for Queued CD Workflows
         env:
           GITHUB_TOKEN: ${{ secrets.ARMOSEC_GITHUB_ACCESS_TOKEN }}
