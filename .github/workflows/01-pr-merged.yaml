@@ -42,6 +42,9 @@ jobs:
   trigger-cd-process:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
       - name: Set PR Opener
         run: |
             if [ -z "${{ github.event.pull_request.user.login }}" ]; then
