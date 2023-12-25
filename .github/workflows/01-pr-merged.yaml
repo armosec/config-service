@@ -40,7 +40,7 @@ env:
 # ---------------------------------------------------- 01 Call user-notification-service CD Process---------------------------------------------------- #
 jobs:
   trigger-cd-process:
-    runs-on: k8s-self-hosted-runner
+    runs-on: ubuntu-latest
     steps:
       - name: Set PR Opener
         run: |
