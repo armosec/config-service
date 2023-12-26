@@ -41,13 +41,19 @@ env:
   TESTS_GROUPS: FULL
   CD_WORKFLOW_NAME: e-cd-release-process
 
-# ---------------------------------------------------- 01 Call user-notification-service CD Process---------------------------------------------------- #
+# ---------------------------------- 01 Call config-service CD Process------------------------------------- #
 jobs:
   trigger-cd-process:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+      - name: Checkout shared-workflows Repository
+        uses: actions/checkout@v3
+        with:
+          repository: armosec/shared-workflows
+          submodules: 'true'
+          token: ${{ secrets.ARMOSEC_GITHUB_ACCESS_TOKEN }}
+          path: shared-workflows
+          ref: main
 
       - name: Set PR Opener
         run: |
@@ -57,12 +63,12 @@ jobs:
               echo "PR_OPENER=${{ github.event.pull_request.user.login }}" >> $GITHUB_ENV
             fi
 
-      - name: Check for Queued CD Workflows
+      - name: Wait for Queued CD Workflows to Finish
         env:
           GITHUB_TOKEN: ${{ secrets.ARMOSEC_GITHUB_ACCESS_TOKEN }}
         run: |
-          chmod +x .github/scripts/check_cd_workflow_before_trigger.sh
-          ./.github/scripts/check_cd_workflow_before_trigger.sh "${{ env.CD_WORKFLOW_NAME }}"
+          chmod +x shared-workflows/.github/scripts/04.wait_for_queued_workflows.sh
+          shared-workflows/.github/scripts/04.wait_for_queued_workflows.sh "${{ env.CD_WORKFLOW_NAME }}"
 
       - name: Trigger CD Process
         uses: benc-uk/workflow-dispatch@v1.2.2
