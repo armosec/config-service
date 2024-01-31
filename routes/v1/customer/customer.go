@@ -25,6 +25,11 @@ func AddRoutes(g *gin.Engine) {
 	customer.GET("", getCustomer)
 	customer.DELETE("", deleteCustomer)
 	customer.PUT("", handlers.HandlePutDocWithValidation(customerPutMiddleware)...)
+	handlers.AddRouteInfo[*types.Customer](types.APIInfo{
+		BasePath:     consts.CustomerPath,
+		DBCollection: consts.CustomersCollection,
+		// Schema:       nil,
+	})
 
 	//add customer's inner files routes
 	addInnerFieldsRoutes(g)

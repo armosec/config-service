@@ -457,3 +457,9 @@ func (b *RouterOptionsBuilder[T]) WithContainerHandler(path string, containerHan
 	})
 	return b
 }
+
+func AddRouteInfo[T types.DocContent](apiInfo types.APIInfo) {
+	types.SetAPIInfo(apiInfo.BasePath, apiInfo)
+	//keep the admin query handler for this route
+	coll2AdminQueryHandler[apiInfo.DBCollection] = HandleAdminPostV2ListRequest[T]
+}
