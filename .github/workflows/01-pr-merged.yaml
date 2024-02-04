@@ -38,7 +38,7 @@ env:
   PRODUCTION_VALUES_DIRS: kubernetes-deployment/Helm/cyberarmor-be-apps/values/eu-prod-1
   STAGING_ARGO_APPS: kubescape-config-service-stage
   PRODUCTION_ARGO_APPS: kubescape-config-service-prod
-  TESTS_GROUPS: FULL
+  TESTS_GROUPS: MAPPED_REPO_TESTS
   CD_WORKFLOW_NAME: e-cd-release-process
 
 # ---------------------------------- 01 Call config-service CD Process------------------------------------- #
