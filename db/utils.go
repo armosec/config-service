@@ -78,7 +78,7 @@ func AdminFind[T any](c context.Context, findOps *FindOptions) ([]T, error) {
 	if findOps == nil {
 		findOps = NewFindOptions()
 	}
-	dbFindOptions := options.Find().SetNoCursorTimeout(true)
+	dbFindOptions := options.Find()
 	dbFindOptions.SetProjection(findOps.projection.get())
 	dbFindOptions.SetSort(findOps.sort.get())
 	dbFindOptions.SetSkip(int64(findOps.skip))
@@ -87,7 +87,7 @@ func AdminFind[T any](c context.Context, findOps *FindOptions) ([]T, error) {
 		Find(c, findOps.filter.get(), dbFindOptions); err != nil {
 		return nil, err
 	} else {
-
+		defer cur.Close(c)
 		if err := cur.All(c, &result); err != nil {
 			return nil, err
 		}
