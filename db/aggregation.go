@@ -79,6 +79,7 @@ func AggregateWithTemplate[T any](ctx context.Context, limit, cursor int, collec
 		log.LogNTraceError("failed aggregate", err, ctx)
 		return nil, err
 	}
+	defer dbCursor.Close(ctx)
 
 	resultsSlice := []aggResponse[T]{}
 	if err := dbCursor.All(ctx, &resultsSlice); err != nil {
