@@ -68,7 +68,7 @@ func Connect(config utils.MongoConfig) error {
 
 	dbClientOpts := defaultOpts
 	url := generateMongoUrl(config.Host, config.Port, config.User, config.Password)
-	dbClient, err := mongo.Connect(context.TODO(), dbClientOpts.ApplyURI(url))
+	dbClient, err := mongo.Connect(context.TODO(), dbClientOpts.ApplyURI(url), dbClientOpts.SetMinPoolSize(100), dbClientOpts.SetMaxPoolSize(400))
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func Connect(config utils.MongoConfig) error {
 			return fmt.Errorf("failed to connect. database: %s /n url: %s", config.DB, url)
 		}
 		primeOpts := defaultOpts
-		if primeClient, err := mongo.Connect(context.TODO(), primeOpts.ApplyURI(primaryUrl)); err != nil {
+		if primeClient, err := mongo.Connect(context.TODO(), primeOpts.ApplyURI(primaryUrl), dbClientOpts.SetMinPoolSize(100), dbClientOpts.SetMaxPoolSize(400)); err != nil {
 			return err
 		} else if mongoDBprimary = primeClient.Database(config.DB, dbOptionsWriteConcern); mongoDBprimary == nil {
 			return fmt.Errorf("failed to connect to primary DB. database: %s /n url: %s", config.DB, primaryUrl)
