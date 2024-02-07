@@ -39,7 +39,7 @@ env:
   STAGING_ARGO_APPS: kubescape-config-service-stage
   PRODUCTION_ARGO_APPS: kubescape-config-service-prod
   TESTS_GROUPS: MAPPED_REPO_TESTS
-  CD_WORKFLOW_NAME: e-cd-release-process
+  CD_WORKFLOW_NAME: e-cd-release-process-dev-only
 
 # ---------------------------------- 01 Call config-service CD Process------------------------------------- #
 jobs:
