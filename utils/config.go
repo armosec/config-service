@@ -39,20 +39,22 @@ type LoggerConfig struct {
 }
 
 type MongoConfig struct {
-	Host       string `json:"host,omitempty"`
-	Port       string `json:"port,omitempty"`
-	User       string `json:"user,omitempty"`
-	Password   string `json:"password,omitempty"`
-	DB         string `json:"db,omitempty"`
-	ReplicaSet string `json:"replicaSet"`
+	Host        string `json:"host,omitempty"`
+	Port        string `json:"port,omitempty"`
+	User        string `json:"user,omitempty"`
+	Password    string `json:"password,omitempty"`
+	DB          string `json:"db,omitempty"`
+	ReplicaSet  string `json:"replicaSet"`
+	MaxPoolSize int    `json:"maxPoolSize"`
 }
 
 // globalConfig with defaults
 var globalConfig = Configuration{
 	Mongo: MongoConfig{
-		Host: "localhost",
-		Port: "27017",
-		DB:   "caportalbe_db",
+		Host:        "localhost",
+		Port:        "27017",
+		DB:          "caportalbe_db",
+		MaxPoolSize: 200,
 	},
 }
 var initOnce sync.Once
@@ -70,6 +72,7 @@ func GetConfig() Configuration {
 		}
 
 		OverrideConfigFromEnvVars(&globalConfig)
+
 	})
 	return globalConfig
 }

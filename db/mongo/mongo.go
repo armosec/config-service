@@ -62,26 +62,24 @@ func EnsureConnected() error {
 func Connect(config utils.MongoConfig) error {
 	defaultOpts := options.Client().
 		SetRetryWrites(true)
-
-	dbOptionsWriteConcern := options.Database().
-		SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
-
-	dbClientOpts := defaultOpts
+	if config.MaxPoolSize > 0 {
+		defaultOpts.SetMaxPoolSize(uint64(config.MaxPoolSize))
+	}
 	url := generateMongoUrl(config.Host, config.Port, config.User, config.Password)
-	dbClient, err := mongo.Connect(context.TODO(), dbClientOpts.ApplyURI(url), dbClientOpts.SetMinPoolSize(100), dbClientOpts.SetMaxPoolSize(400))
+	dbClient, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(url), defaultOpts)
 	if err != nil {
 		return err
 	}
-
 	//check if replicaSet is defined
+	dbOptionsWriteConcern := options.Database().
+		SetWriteConcern(writeconcern.Majority())
 	primaryUrl := getPrimaryUrl(config)
 	if primaryUrl != "" {
 		zap.L().Info("connecting to replica set " + config.ReplicaSet)
 		if mongoDB = dbClient.Database(config.DB); mongoDB == nil {
 			return fmt.Errorf("failed to connect. database: %s /n url: %s", config.DB, url)
 		}
-		primeOpts := defaultOpts
-		if primeClient, err := mongo.Connect(context.TODO(), primeOpts.ApplyURI(primaryUrl), dbClientOpts.SetMinPoolSize(100), dbClientOpts.SetMaxPoolSize(400)); err != nil {
+		if primeClient, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(primaryUrl), defaultOpts); err != nil {
 			return err
 		} else if mongoDBprimary = primeClient.Database(config.DB, dbOptionsWriteConcern); mongoDBprimary == nil {
 			return fmt.Errorf("failed to connect to primary DB. database: %s /n url: %s", config.DB, primaryUrl)
@@ -108,6 +106,7 @@ func Disconnect() {
 	}
 	if mongoDBprimary != nil && mongoDBprimary != mongoDB {
 		mongoDBprimary.Client().Disconnect(context.TODO())
+
 	}
 }
 
