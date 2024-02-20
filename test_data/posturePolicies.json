@@ -80,5 +80,34 @@
                 "severityScore": 1
             }
         ]
+    },
+    {
+        "guid": "9e586c8e-70d8-4191-baa7-9dfc59c5af06",
+        "name": "exception_C-0015_armo-system_97e97cdb00b616ce63475cd8fdfdc145",
+        "attributes": {
+            "namespaceOnly": "true"
+        },
+        "policyType": "postureExceptionPolicy",
+        "creationTime": "2022-01-18T12:42:15.403876",
+        "expirationDate": "2024-02-21T23:59:59Z",
+        "actions": [
+            "alertOnly"
+        ],
+        "resources": [
+            {
+                "designatorType": "Attributes",
+                "attributes": {
+                    "cluster": "cluster1",
+                    "namespace": "armo-system"
+                }
+            }
+        ],
+        "posturePolicies": [
+            {
+                "frameworkName": "MITRE",
+                "controlName": "List Kubernetes secrets",
+                "severityScore": 1
+            }
+        ]
     }
 ]

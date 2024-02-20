@@ -334,31 +334,31 @@ func (suite *MainTestSuite) TestPostureException() {
 		},
 		{
 			query:           "resources.attributes.cluster=cluster1&scope.cluster=cluster3",
-			expectedIndexes: []int{0, 2},
+			expectedIndexes: []int{0, 2, 3},
 		},
 		{
 			query:           "scope.namespace=armo-system&scope.namespace=test-system&scope.cluster=cluster1&scope.cluster=cluster3",
-			expectedIndexes: []int{0, 2},
+			expectedIndexes: []int{0, 2, 3},
 		},
 		{
 			query:           "scope.namespace=armo-system&posturePolicies.frameworkName=MITRE",
-			expectedIndexes: []int{1, 2},
+			expectedIndexes: []int{1, 2, 3},
 		},
 		{
 			query:           "namespaceOnly=true",
-			expectedIndexes: []int{1, 2},
+			expectedIndexes: []int{1, 2, 3},
 		},
 		{
 			query:           "resources.attributes.cluster=cluster1",
-			expectedIndexes: []int{2},
+			expectedIndexes: []int{2, 3},
 		},
 		{
 			query:           "posturePolicies.frameworkName=MITRE&posturePolicies.frameworkName=NSA",
-			expectedIndexes: []int{0, 1, 2},
+			expectedIndexes: []int{0, 1, 2, 3},
 		},
 		{
 			query:           "posturePolicies.frameworkName=MITRE",
-			expectedIndexes: []int{1, 2},
+			expectedIndexes: []int{1, 2, 3},
 		},
 		{
 			query:           "posturePolicies.frameworkName=NSA",
@@ -393,7 +393,7 @@ func (suite *MainTestSuite) TestPostureException() {
 						},
 						{
 							Field: "List Kubernetes secrets",
-							Count: 1,
+							Count: 2,
 						},
 					},
 				},
@@ -426,7 +426,7 @@ func (suite *MainTestSuite) TestPostureException() {
 					},
 				},
 			},
-			expectedIndexes: []int{},
+			expectedIndexes: []int{3},
 		},
 	}
 

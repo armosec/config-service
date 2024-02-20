@@ -143,9 +143,15 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 			}
 			switch operator {
 			case armotypes.V2ListExistsOperator:
-				filters = append(filters, db.NewFilterBuilder().AddExists(key, true))
+				builder := db.NewFilterBuilder()
+				builder.AddExists(key, true)
+				builder.WithNotEqual(key, nil)
+				filters = append(filters, db.NewFilterBuilder().AddAnd(builder))
 			case armotypes.V2ListMissingOperator:
-				filters = append(filters, db.NewFilterBuilder().AddExists(key, false))
+				builder := db.NewFilterBuilder()
+				builder.AddExists(key, false)
+				builder.WithEqual(key, nil)
+				filters = append(filters, db.NewFilterBuilder().AddOr(builder))
 			case armotypes.V2ListMatchOperator, armotypes.V2ListEqualOperator:
 				if key == consts.GUIDField {
 					filters = append(filters, db.NewFilterBuilder().WithID(value))
