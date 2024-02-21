@@ -473,6 +473,7 @@ func (suite *MainTestSuite) TestPostureException() {
 	if err != nil {
 		panic(err)
 	}
+	suite.NotNil(response.ExpirationDate)
 	policyGuid := response.GUID
 	exceptionPolicy.ExpirationDate = nil
 	exceptionPolicy.GUID = policyGuid
