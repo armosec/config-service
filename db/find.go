@@ -67,7 +67,7 @@ func (f *FindOptions) SetPagination(page, perPage int64) *FindOptions {
 	if page < 1 {
 		page = 1
 	}
-	f.skip = (page - 1) * perPage
+	f.skip = (page) * perPage
 	f.limit = perPage
 	return f
 }
