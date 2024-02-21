@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path"
 	"time"
 
 	"github.com/aws/smithy-go/ptr"
@@ -468,18 +469,22 @@ func (suite *MainTestSuite) TestPostureException() {
 	exceptionPolicy := posturePolicies[3]
 	w := suite.doRequest(http.MethodPost, consts.PostureExceptionPolicyPath, exceptionPolicy)
 	suite.Equal(http.StatusCreated, w.Code)
-
-	exceptionPolicy.ExpirationDate = nil
-	w = suite.doRequest(http.MethodPut, consts.PostureExceptionPolicyPath, exceptionPolicy)
-	suite.Equal(http.StatusOK, w.Code)
-
-	w = suite.doRequest(http.MethodGet, fmt.Sprintf("%s?policyName=%s", consts.PostureExceptionPolicyPath, exceptionPolicy.Name), nil)
-	suite.Equal(http.StatusOK, w.Code)
-	response, err := decodeResponseArray[*types.PostureExceptionPolicy](w)
-	if err != nil || len(response) != 1 {
+	response, err := decodeResponse[*types.PostureExceptionPolicy](w)
+	if err != nil {
 		panic(err)
 	}
-	suite.Equal(nil, response[0].ExpirationDate)
+	policyGuid := response.GUID
+	exceptionPolicy.ExpirationDate = nil
+	exceptionPolicy.GUID = policyGuid
+	w = suite.doRequest(http.MethodPut, consts.PostureExceptionPolicyPath, exceptionPolicy)
+	suite.Equal(http.StatusOK, w.Code)
+	w = suite.doRequest(http.MethodGet, path.Join(consts.PostureExceptionPolicyPath, policyGuid), nil)
+	suite.Equal(http.StatusOK, w.Code)
+	response, err = decodeResponse[*types.PostureExceptionPolicy](w)
+	if err != nil {
+		panic(err)
+	}
+	suite.Nil(response.ExpirationDate)
 }
 
 //go:embed test_data/collaborationConfigs.json
