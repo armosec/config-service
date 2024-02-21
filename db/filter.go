@@ -133,7 +133,22 @@ func (f *FilterBuilder) WithNotIn(key string, value interface{}) *FilterBuilder 
 }
 
 func (f *FilterBuilder) AddExists(key string, value bool) *FilterBuilder {
-	f.filter = append(f.filter, bson.E{Key: key, Value: bson.D{{Key: "$exists", Value: value}}})
+	if value {
+		// Field exists
+		f.filter = append(f.filter, bson.E{
+			Key:   key,
+			Value: bson.M{"$exists": true, "$ne": nil},
+		})
+	} else {
+		// Field does not exist or is null
+		f.filter = append(f.filter, bson.E{
+			Key: "$or",
+			Value: []interface{}{
+				bson.M{key: bson.M{"$exists": false}},
+				bson.M{key: nil},
+			},
+		})
+	}
 	return f
 }
 

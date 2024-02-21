@@ -1,10 +1,12 @@
 package main
 
 import (
+	"config-service/db/mongo"
 	"config-service/routes/v1/customer_config"
 	"config-service/types"
 	"config-service/utils"
 	"config-service/utils/consts"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -417,6 +419,17 @@ func (suite *MainTestSuite) TestPostureException() {
 			expectedIndexes: []int{0, 2},
 		},
 		{
+			testName: "test missing date",
+			listRequest: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"expirationDate": "|missing",
+					},
+				},
+			},
+			expectedIndexes: []int{0, 1, 2, 4},
+		},
+		{
 			testName: "test OR score with existing date",
 			listRequest: armotypes.V2ListRequest{
 				InnerFilters: []map[string]string{
@@ -429,9 +442,44 @@ func (suite *MainTestSuite) TestPostureException() {
 			expectedIndexes: []int{3},
 		},
 	}
-
+	oldException := &types.PostureExceptionPolicy{
+		PortalBase: armotypes.PortalBase{
+			GUID: "1c00292c-713d-4be7-9bff-3f5e14fa4068",
+			Name: "exception_old_bba5f2df536533fb348631207c85ed39",
+		},
+		PolicyType:   "postureExceptionPolicy",
+		CreationTime: "2022-01-19T11:56:06.740591",
+		PosturePolicies: []armotypes.PosturePolicy{
+			{
+				FrameworkName: "ArmoBest",
+				ControlName:   "Allowed hostPath",
+				SeverityScore: 5,
+			},
+		},
+	}
+	collection := mongo.GetWriteCollection(consts.PostureExceptionPolicyCollection)
+	if _, err := collection.InsertOne(context.Background(), oldException); err != nil {
+		suite.FailNow("Failed to insert posturePolicyException", err.Error())
+	}
+	posturePolicies = append(posturePolicies, oldException)
 	testPostV2ListRequest(suite, consts.PostureExceptionPolicyPath, posturePolicies, nil, searchtests, commonCmpFilter)
 
+	//test add exception with expiry date then put it back to null
+	exceptionPolicy := posturePolicies[3]
+	w := suite.doRequest(http.MethodPost, consts.PostureExceptionPolicyPath, exceptionPolicy)
+	suite.Equal(http.StatusCreated, w.Code)
+
+	exceptionPolicy.ExpirationDate = nil
+	w = suite.doRequest(http.MethodPut, consts.PostureExceptionPolicyPath, exceptionPolicy)
+	suite.Equal(http.StatusOK, w.Code)
+
+	w = suite.doRequest(http.MethodGet, fmt.Sprintf("%s?policyName=%s", consts.PostureExceptionPolicyPath, exceptionPolicy.Name), nil)
+	suite.Equal(http.StatusOK, w.Code)
+	response, err := decodeResponseArray[*types.PostureExceptionPolicy](w)
+	if err != nil || len(response) != 1 {
+		panic(err)
+	}
+	suite.Equal(nil, response[0].ExpirationDate)
 }
 
 //go:embed test_data/collaborationConfigs.json
