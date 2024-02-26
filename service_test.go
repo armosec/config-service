@@ -1,13 +1,16 @@
 package main
 
 import (
+	"config-service/db/mongo"
 	"config-service/routes/v1/customer_config"
 	"config-service/types"
 	"config-service/utils"
 	"config-service/utils/consts"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path"
 	"time"
 
 	"github.com/aws/smithy-go/ptr"
@@ -334,31 +337,31 @@ func (suite *MainTestSuite) TestPostureException() {
 		},
 		{
 			query:           "resources.attributes.cluster=cluster1&scope.cluster=cluster3",
-			expectedIndexes: []int{0, 2},
+			expectedIndexes: []int{0, 2, 3},
 		},
 		{
 			query:           "scope.namespace=armo-system&scope.namespace=test-system&scope.cluster=cluster1&scope.cluster=cluster3",
-			expectedIndexes: []int{0, 2},
+			expectedIndexes: []int{0, 2, 3},
 		},
 		{
 			query:           "scope.namespace=armo-system&posturePolicies.frameworkName=MITRE",
-			expectedIndexes: []int{1, 2},
+			expectedIndexes: []int{1, 2, 3},
 		},
 		{
 			query:           "namespaceOnly=true",
-			expectedIndexes: []int{1, 2},
+			expectedIndexes: []int{1, 2, 3},
 		},
 		{
 			query:           "resources.attributes.cluster=cluster1",
-			expectedIndexes: []int{2},
+			expectedIndexes: []int{2, 3},
 		},
 		{
 			query:           "posturePolicies.frameworkName=MITRE&posturePolicies.frameworkName=NSA",
-			expectedIndexes: []int{0, 1, 2},
+			expectedIndexes: []int{0, 1, 2, 3},
 		},
 		{
 			query:           "posturePolicies.frameworkName=MITRE",
-			expectedIndexes: []int{1, 2},
+			expectedIndexes: []int{1, 2, 3},
 		},
 		{
 			query:           "posturePolicies.frameworkName=NSA",
@@ -393,7 +396,7 @@ func (suite *MainTestSuite) TestPostureException() {
 						},
 						{
 							Field: "List Kubernetes secrets",
-							Count: 1,
+							Count: 2,
 						},
 					},
 				},
@@ -417,6 +420,17 @@ func (suite *MainTestSuite) TestPostureException() {
 			expectedIndexes: []int{0, 2},
 		},
 		{
+			testName: "test missing date",
+			listRequest: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"expirationDate": "|missing",
+					},
+				},
+			},
+			expectedIndexes: []int{0, 1, 2, 4},
+		},
+		{
 			testName: "test OR score with existing date",
 			listRequest: armotypes.V2ListRequest{
 				InnerFilters: []map[string]string{
@@ -426,12 +440,52 @@ func (suite *MainTestSuite) TestPostureException() {
 					},
 				},
 			},
-			expectedIndexes: []int{},
+			expectedIndexes: []int{3},
 		},
 	}
-
+	oldException := &types.PostureExceptionPolicy{
+		PortalBase: armotypes.PortalBase{
+			GUID: "1c00292c-713d-4be7-9bff-3f5e14fa4068",
+			Name: "exception_old_bba5f2df536533fb348631207c85ed39",
+		},
+		PolicyType:   "postureExceptionPolicy",
+		CreationTime: "2022-01-19T11:56:06.740591",
+		PosturePolicies: []armotypes.PosturePolicy{
+			{
+				FrameworkName: "ArmoBest",
+				ControlName:   "Allowed hostPath",
+				SeverityScore: 5,
+			},
+		},
+	}
+	collection := mongo.GetWriteCollection(consts.PostureExceptionPolicyCollection)
+	if _, err := collection.InsertOne(context.Background(), oldException); err != nil {
+		suite.FailNow("Failed to insert posturePolicyException", err.Error())
+	}
+	posturePolicies = append(posturePolicies, oldException)
 	testPostV2ListRequest(suite, consts.PostureExceptionPolicyPath, posturePolicies, nil, searchtests, commonCmpFilter)
 
+	//test add exception with expiry date then put it back to null
+	exceptionPolicy := posturePolicies[3]
+	w := suite.doRequest(http.MethodPost, consts.PostureExceptionPolicyPath, exceptionPolicy)
+	suite.Equal(http.StatusCreated, w.Code)
+	response, err := decodeResponse[*types.PostureExceptionPolicy](w)
+	if err != nil {
+		panic(err)
+	}
+	suite.NotNil(response.ExpirationDate)
+	policyGuid := response.GUID
+	exceptionPolicy.ExpirationDate = nil
+	exceptionPolicy.GUID = policyGuid
+	w = suite.doRequest(http.MethodPut, consts.PostureExceptionPolicyPath, exceptionPolicy)
+	suite.Equal(http.StatusOK, w.Code)
+	w = suite.doRequest(http.MethodGet, path.Join(consts.PostureExceptionPolicyPath, policyGuid), nil)
+	suite.Equal(http.StatusOK, w.Code)
+	response, err = decodeResponse[*types.PostureExceptionPolicy](w)
+	if err != nil {
+		panic(err)
+	}
+	suite.Nil(response.ExpirationDate)
 }
 
 //go:embed test_data/collaborationConfigs.json

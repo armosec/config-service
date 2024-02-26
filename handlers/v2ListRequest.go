@@ -23,6 +23,7 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	if request.Until != nil {
 		return nil, fmt.Errorf("until is not supported")
 	}
+	request.ValidatePageProperties(maxV2PageSize)
 	findOptions := db.NewFindOptions()
 	//pages
 	var perPage int
