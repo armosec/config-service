@@ -1039,7 +1039,7 @@ func (suite *MainTestSuite) TestRepository() {
 	delete(repo1.Attributes, "alias")
 	testBadRequest(suite, http.MethodPut, consts.RepositoryPath, errorDocumentNotFound, repo1, http.StatusNotFound)
 
-	//change read only fields - expect them to be ignored
+	//change fields (used to be read only)
 	repo1 = Clone(repo)
 	repo1.Owner = "new-owner"
 	repo1.Provider = "new-provider"
@@ -1055,17 +1055,16 @@ func (suite *MainTestSuite) TestRepository() {
 	newDoc := response[1]
 	//check updated field
 	suite.Equal(newDoc.Attributes["new-attribute"], "new-value")
-	//check read only fields
-	suite.Equal(repo.Owner, newDoc.Owner)
-	suite.Equal(repo.Provider, newDoc.Provider)
-	suite.Equal(repo.BranchName, newDoc.BranchName)
-	suite.Equal(repo.RepoName, newDoc.RepoName)
+	suite.Equal(repo1.Owner, newDoc.Owner)
+	suite.Equal(repo1.Provider, newDoc.Provider)
+	suite.Equal(repo1.BranchName, newDoc.BranchName)
+	suite.Equal(repo1.RepoName, newDoc.RepoName)
 
 	req := armotypes.V2ListRequest{
 		OrderBy: "name:asc",
 		InnerFilters: []map[string]string{
 			{
-				"repoName": "DevOps",
+				"repoName": "new-repo",
 			},
 		},
 	}
@@ -1078,7 +1077,7 @@ func (suite *MainTestSuite) TestRepository() {
 	}
 	suite.Equal(1, len(result.Response))
 	if len(result.Response) > 0 {
-		suite.Equal("DevOps", result.Response[0].RepoName)
+		suite.Equal("new-repo", result.Response[0].RepoName)
 	}
 
 	w = suite.doRequest(http.MethodGet, consts.RepositoryPath+"?name=my-repo", nil)
