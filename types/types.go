@@ -401,6 +401,6 @@ var commonReadOnlyFields = append([]string{consts.NameField}, baseReadOnlyFields
 var commonReadOnlyFieldsV1 = append([]string{"creationTime"}, commonReadOnlyFields...)
 var commonReadOnlyFieldsAllowRename = append([]string{"creationTime"}, baseReadOnlyFields...)
 var clusterReadOnlyFields = append([]string{"subscription_date"}, commonReadOnlyFields...)
-var repositoryReadOnlyFields = append([]string{"creationDate", "provider", "owner", "repoName", "branchName"}, commonReadOnlyFields...)
+var repositoryReadOnlyFields = append([]string{"creationDate"}, commonReadOnlyFields...)
 var croneJobReadOnlyFields = append([]string{"creationTime", "clusterName", "registryName"}, commonReadOnlyFields...)
 var attackChainReadOnlyFields = append([]string{"creationTime", "customerGUID", "clusterName"}, commonReadOnlyFieldsV1...)
