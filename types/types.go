@@ -36,7 +36,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability
+		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability | *RuntimeIncident
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -394,6 +394,20 @@ type VulnerabilityExceptionsSeverityUpdate struct {
 type PostureExceptionsSeverityUpdate struct {
 	ControlIDS    []string `json:"controlIDS" binding:"required"`
 	SeverityScore int      `json:"severityScore" binding:"required"`
+}
+
+type RuntimeIncident armotypes.RuntimeIncident
+
+func (r *RuntimeIncident) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsV1
+}
+
+func (r *RuntimeIncident) InitNew() {
+	r.CreationTimestamp = time.Now().UTC()
+}
+
+func (r *RuntimeIncident) GetCreationTime() *time.Time {
+	return &r.CreationTimestamp
 }
 
 var baseReadOnlyFields = []string{consts.IdField, consts.GUIDField}

@@ -31,6 +31,7 @@ const (
 	UsersNotificationsCachePath           = "/v1_users_notifications_cache"
 	UsersNotificationsVulnerabilitiesPath = "/v1_users_notifications_vulnerability"
 	AttackChainsPath                      = "/v1_attack_chains"
+	RuntimeIncidentPath                   = "/v1_runtime_incident"
 
 	//DB collections
 	ClustersCollection                          = "clusters"
@@ -45,6 +46,7 @@ const (
 	UsersNotificationsCacheCollection           = "v1_users_notifications_cache"
 	UsersNotificationsVulnerabilitiesCollection = "v1_users_notifications_vulnerabilities"
 	AttackChainsCollection                      = "v1_attack_chains"
+	RuntimeIncidentCollection                   = "v1_runtime_incidents"
 
 	//Common document fields
 	IdField          = "_id"
