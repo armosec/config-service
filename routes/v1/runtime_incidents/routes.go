@@ -23,7 +23,7 @@ func AddRoutes(g *gin.Engine) {
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.RuntimeIncident]().
 		WithPath(consts.RuntimeIncidentPath).
 		WithDBCollection(consts.RuntimeIncidentCollection).
-		WithValidatePutGUID(true).
+		WithGetNamesList(false).
 		WithValidatePostUniqueName(false).
 		WithValidatePostMandatoryName(false).
 		WithSchemaInfo(schemaInfo).
