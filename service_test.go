@@ -18,6 +18,7 @@ import (
 	_ "embed"
 
 	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/armosec/armoapi-go/notifications"
 	rndStr "github.com/dchest/uniuri"
 
@@ -1617,4 +1618,62 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 	}
 
 	testUniqueValues(suite, consts.AttackChainsPath, attackChainStates, uniqueValues, commonCmpFilter, ignoreTime)
+}
+
+func (suite *MainTestSuite) TestRuntimeIncidents() {
+	runtimeIncidents := []*types.RuntimeIncident{
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "incident1",
+				GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a648",
+			},
+			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				Designators: identifiers.PortalDesignator{
+					DesignatorType: identifiers.DesignatorAttributes,
+					Attributes:     map[string]string{},
+				},
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "incident2",
+				GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a647",
+			},
+			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				Designators: identifiers.PortalDesignator{
+					DesignatorType: identifiers.DesignatorAttributes,
+					Attributes:     map[string]string{},
+				},
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "incident3",
+				GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a646",
+			},
+			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				Designators: identifiers.PortalDesignator{
+					DesignatorType: identifiers.DesignatorAttributes,
+					Attributes:     map[string]string{},
+				},
+			},
+		},
+	}
+
+	modifyDocFunc := func(doc *types.RuntimeIncident) *types.RuntimeIncident {
+		docCloned := Clone(doc)
+		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, armotypes.RuntimeAlert{
+			RuleName: "rule1",
+		})
+		return docCloned
+	}
+
+	testOpts := testOptions[*types.RuntimeIncident]{
+		mandatoryName: false,
+		customGUID:    false,
+		skipPutTests:  false,
+	}
+	commonTestWithOptions(suite, consts.RuntimeIncidentPath, runtimeIncidents, modifyDocFunc,
+		testOpts, commonCmpFilter, ignoreTime)
+
 }
