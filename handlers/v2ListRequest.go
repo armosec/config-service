@@ -5,17 +5,14 @@ import (
 	"config-service/utils"
 	"config-service/utils/consts"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/armosec/armoapi-go/armotypes"
 )
-
-// TODO:
-// support array element match - needs some schema information of what are searchable arrays)
-// support time range for fields of time.time type (vs. RFC3339 string) - need to add schema information
 
 const maxV2PageSize = 150
 
@@ -130,7 +127,14 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 		filters := make([]*db.FilterBuilder, 0, len(parts))
 		for _, part := range parts {
 			// Split each part into value and operator by pipe
-			valueAndOperation := strings.Split(part, armotypes.V2ListOperatorSeparator)
+			operatorIdx := strings.LastIndex(part, armotypes.V2ListOperatorSeparator)
+			var valueAndOperation []string
+			if operatorIdx == -1 {
+				valueAndOperation = []string{part}
+			} else {
+				valueAndOperation = []string{part[:operatorIdx], part[operatorIdx+1:]}
+			}
+			//valueAndOperation := strings.Split(part, armotypes.V2ListOperatorSeparator)
 			value := valueAndOperation[0]
 			value = strings.ReplaceAll(value, armotypes.V2ListEscapeChar, "")
 			operator := armotypes.V2ListMatchOperator
@@ -195,6 +199,24 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 					return nil, fmt.Errorf("invalid range must use same value types found %T %T", val1, val2)
 				}
 				filters = append(filters, db.NewFilterBuilder().WithRange(key, val1, val2))
+			case armotypes.V2ListElementMatchOperator:
+				keyAndVals := strings.Split(value, armotypes.V2ListElementMatchFieldsSeperator)
+				if len(keyAndVals) == 0 {
+					return nil, fmt.Errorf("value missing element key and values %s", value)
+				}
+				elemFilters := map[string]string{}
+				for _, keyAndVal := range keyAndVals {
+					keyAndValParts := strings.Split(keyAndVal, armotypes.V2ListElementMatchKeyValueSeperator)
+					if len(keyAndValParts) != 2 {
+						return nil, fmt.Errorf("invalid element match key value %s", keyAndVal)
+					}
+					elemFilters[keyAndValParts[0]] = keyAndValParts[1]
+				}
+				elemFilter, err := buildInnerFilter(ctx, elemFilters)
+				if err != nil {
+					return nil, fmt.Errorf("invalid element match key value %s", keyAndVals)
+				}
+				filters = append(filters, elemFilter.WarpElementMatch().WarpWithField(key))
 			default:
 				return nil, fmt.Errorf("unsupported operator %s", operator)
 			}

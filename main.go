@@ -10,6 +10,7 @@ import (
 	"config-service/routes/v1/customer"
 	"config-service/routes/v1/customer_config"
 	"config-service/routes/v1/framework"
+	"config-service/routes/v1/integration_reference"
 	"config-service/routes/v1/posture_exception"
 	"config-service/routes/v1/registry_cron_job"
 	"config-service/routes/v1/repository"
@@ -86,6 +87,7 @@ func setupRouter() *gin.Engine {
 	users_notifications_vulnerabilities.AddRoutes(router)
 	attack_chains.AddRoutes(router)
 	runtime_incidents.AddRoutes(router)
+	integration_reference.AddRoutes(router)
 
 	return router
 }

@@ -129,6 +129,29 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			},
 		},
 	},
+	consts.IntegrationReferenceCollection: {
+		{
+			Keys: bson.D{
+				{Key: "guid", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "provider", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "type", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+			},
+		},
+		//TODO: index most used fields in owner and relatedObjects
+	},
 }
 
 // defaultIndex is the default index for all collections unless overridden in collectionIndexes
