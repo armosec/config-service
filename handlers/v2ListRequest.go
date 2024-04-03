@@ -115,9 +115,28 @@ func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueV
 // and to map ambiguous fields types (e.g time.time vs string)
 func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.FilterBuilder, error) {
 	filterBuilder := db.NewFilterBuilder()
+	schemaInfo := db.GetSchemaFromContext(ctx)
+	var elemMatches map[string]map[string]string
 	for key, value := range innerFilter {
 		//ignore empty values
 		if value == "" {
+			continue
+		}
+		//check if key has element match operator
+		keyNOperator := strings.Split(key, armotypes.V2ListOperatorSeparator)
+		if len(keyNOperator) > 1 && keyNOperator[1] == armotypes.V2ListElementMatchOperator {
+			key = keyNOperator[0]
+			isArray, arrayPath, fieldPath := schemaInfo.GetArrayDetails(key)
+			if !isArray {
+				return nil, fmt.Errorf("element match operator is only supported for array fields")
+			}
+			if elemMatches == nil {
+				elemMatches = map[string]map[string]string{}
+			}
+			if _, ok := elemMatches[arrayPath]; !ok {
+				elemMatches[arrayPath] = map[string]string{}
+			}
+			elemMatches[arrayPath][fieldPath] = value
 			continue
 		}
 		// Split the value into parts by comma
@@ -126,15 +145,7 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 		// Prepare a slice to hold all filters for this key
 		filters := make([]*db.FilterBuilder, 0, len(parts))
 		for _, part := range parts {
-			// Split each part into value and operator by pipe
-			operatorIdx := strings.LastIndex(part, armotypes.V2ListOperatorSeparator)
-			var valueAndOperation []string
-			if operatorIdx == -1 {
-				valueAndOperation = []string{part}
-			} else {
-				valueAndOperation = []string{part[:operatorIdx], part[operatorIdx+1:]}
-			}
-			//valueAndOperation := strings.Split(part, armotypes.V2ListOperatorSeparator)
+			valueAndOperation := strings.Split(part, armotypes.V2ListOperatorSeparator)
 			value := valueAndOperation[0]
 			value = strings.ReplaceAll(value, armotypes.V2ListEscapeChar, "")
 			operator := armotypes.V2ListMatchOperator
@@ -199,24 +210,6 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 					return nil, fmt.Errorf("invalid range must use same value types found %T %T", val1, val2)
 				}
 				filters = append(filters, db.NewFilterBuilder().WithRange(key, val1, val2))
-			case armotypes.V2ListElementMatchOperator:
-				keyAndVals := strings.Split(value, armotypes.V2ListElementMatchFieldsSeperator)
-				if len(keyAndVals) == 0 {
-					return nil, fmt.Errorf("value missing element key and values %s", value)
-				}
-				elemFilters := map[string]string{}
-				for _, keyAndVal := range keyAndVals {
-					keyAndValParts := strings.Split(keyAndVal, armotypes.V2ListElementMatchKeyValueSeperator)
-					if len(keyAndValParts) != 2 {
-						return nil, fmt.Errorf("invalid element match key value %s", keyAndVal)
-					}
-					elemFilters[keyAndValParts[0]] = keyAndValParts[1]
-				}
-				elemFilter, err := buildInnerFilter(ctx, elemFilters)
-				if err != nil {
-					return nil, fmt.Errorf("invalid element match key value %s", keyAndVals)
-				}
-				filters = append(filters, elemFilter.WarpElementMatch().WarpWithField(key))
 			default:
 				return nil, fmt.Errorf("unsupported operator %s", operator)
 			}
@@ -227,6 +220,14 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 		} else if len(filters) == 1 {
 			filterBuilder.WithFilter(filters[0])
 		}
+	}
+	//add element match filters
+	for array, elemInnerFilters := range elemMatches {
+		elemFilter, err := buildInnerFilter(ctx, elemInnerFilters)
+		if err != nil {
+			return nil, fmt.Errorf("invalid element match filters %v", err)
+		}
+		filterBuilder.WithFilter(elemFilter.WarpElementMatch().WarpWithField(array))
 	}
 	if filterBuilder.Len() == 0 {
 		return nil, nil

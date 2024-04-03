@@ -1688,13 +1688,13 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: map[string]interface{}{"key": "value"},
-				Owner: map[string]string{
-					"resourceHash": "hash1",
-					"cluster":      "cluster1",
-					"namespace":    "namespace1",
-					"kind":         "kind1",
-					"name":         "name1",
+				ProviderData: "privider data",
+				Owner: &notifications.IntegrationRefOwner{
+					ResourceHash: "hash1",
+					Cluster:      "cluster1",
+					Namespace:    "namespace1",
+					Kind:         "kind1",
+					Name:         "name1",
 				},
 				RelatedObjects: []map[string]string{
 					{
@@ -1718,13 +1718,13 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve:layer",
-				ProviderData: map[string]interface{}{"key": "value"},
-				Owner: map[string]string{
-					"resourceHash": "hash3",
-					"cluster":      "cluster1",
-					"namespace":    "namespace1",
-					"kind":         "kind1",
-					"name":         "name1",
+				ProviderData: "privider data",
+				Owner: &notifications.IntegrationRefOwner{
+					ResourceHash: "hash3",
+					Cluster:      "cluster1",
+					Namespace:    "namespace1",
+					Kind:         "kind1",
+					Name:         "name1",
 				},
 				RelatedObjects: []map[string]string{
 					{
@@ -1750,13 +1750,13 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: map[string]interface{}{"key": "value"},
-				Owner: map[string]string{
-					"resourceHash": "hash2",
-					"cluster":      "cluster2",
-					"namespace":    "namespace2",
-					"kind":         "kind2",
-					"name":         "name2",
+				ProviderData: "privider data",
+				Owner: &notifications.IntegrationRefOwner{
+					ResourceHash: "hash2",
+					Cluster:      "cluster2",
+					Namespace:    "namespace2",
+					Kind:         "kind2",
+					Name:         "name2",
 				},
 				RelatedObjects: []map[string]string{
 					{
@@ -1780,7 +1780,7 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: map[string]interface{}{"key": "value"},
+				ProviderData: "privider data",
 				RelatedObjects: []map[string]string{
 					{
 						"cveID":     "cve3",
@@ -1804,13 +1804,13 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: map[string]interface{}{"key": "value"},
-				Owner: map[string]string{
-					"resourceHash": "hash5",
-					"cluster":      "cluster1",
-					"namespace":    "namespace1",
-					"kind":         "kind1",
-					"name":         "name1",
+				ProviderData: "privider data",
+				Owner: &notifications.IntegrationRefOwner{
+					ResourceHash: "hash5",
+					Cluster:      "cluster1",
+					Namespace:    "namespace1",
+					Kind:         "kind1",
+					Name:         "name1",
 				},
 				RelatedObjects: []map[string]string{
 					{
@@ -1907,7 +1907,7 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				FieldsCount: nil,
 			},
-		},		
+		},
 		{
 			testName: "search releated objects properties without element match",
 			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
@@ -1916,14 +1916,14 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				InnerFilters: []map[string]string{
 					{
-						"relatedObjects.cveID":     "cve1",
-						"relatedObjects.severity":  "critical",				
+						"relatedObjects.cveID":    "cve1",
+						"relatedObjects.severity": "critical",
 					},
 				},
 			},
 			expectedResponse: armotypes.UniqueValuesResponseV2{
 				Fields: map[string][]string{
-					"owner.resourceHash": {"hash1","hash2","hash3","hash5"},
+					"owner.resourceHash": {"hash1", "hash2", "hash3", "hash5"},
 				},
 				FieldsCount: nil,
 			},
@@ -1936,10 +1936,9 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				InnerFilters: []map[string]string{
 					{
-						"relatedObjects": armotypes.Filter2ElementMatchString(map[string]string{
-							"cveID":     "cve1",
-		 					"severity":  "critical",
-						}),					
+						"owner":                             "|exists",
+						"relatedObjects.cveID|elemMatch":    "cve1",
+						"relatedObjects.severity|elemMatch": "critical",
 					},
 				},
 			},
@@ -1958,13 +1957,11 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				InnerFilters: []map[string]string{
 					{
-						"relatedObjects": armotypes.Filter2ElementMatchString(map[string]string{
-							"cveID":     "cve1",
-							"severity":  "critical",
-							"component": "component2",
-							"version":   "version2",
-							"layer":     "|missing",
-						}),						
+						"relatedObjects.cveID|elemMatch":     "cve1",
+						"relatedObjects.severity|elemMatch":  "critical",
+						"relatedObjects.component|elemMatch": "component2",
+						"relatedObjects.version|elemMatch":   "version2",
+						"relatedObjects.layer|elemMatch":     "|missing",
 					},
 				},
 			},
