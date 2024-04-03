@@ -1688,26 +1688,26 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: "privider data",
-				Owner: &notifications.IntegrationRefOwner{
+				ProviderData: "provider data",
+				Owner: &notifications.Entity{
 					ResourceHash: "hash1",
 					Cluster:      "cluster1",
 					Namespace:    "namespace1",
 					Kind:         "kind1",
 					Name:         "name1",
 				},
-				RelatedObjects: []map[string]string{
+				RelatedObjects: []notifications.Entity{
 					{
-						"cveID":     "cve1",
-						"severity":  "high",
-						"component": "component1",
-						"version":   "version1",
+						CVEID:            "cve1",
+						Severity:         "high",
+						Component:        "component1",
+						ComponentVersion: "version1",
 					},
 					{
-						"cveID":     "cve2",
-						"severity":  "critical",
-						"component": "component1",
-						"version":   "version2",
+						CVEID:            "cve2",
+						Severity:         "critical",
+						Component:        "component1",
+						ComponentVersion: "version2",
 					},
 				},
 			},
@@ -1718,28 +1718,28 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve:layer",
-				ProviderData: "privider data",
-				Owner: &notifications.IntegrationRefOwner{
+				ProviderData: "provider data",
+				Owner: &notifications.Entity{
 					ResourceHash: "hash3",
 					Cluster:      "cluster1",
 					Namespace:    "namespace1",
 					Kind:         "kind1",
 					Name:         "name1",
 				},
-				RelatedObjects: []map[string]string{
+				RelatedObjects: []notifications.Entity{
 					{
-						"cveID":     "cve1",
-						"severity":  "high",
-						"component": "component2",
-						"version":   "version1",
-						"layer":     "layer1",
+						CVEID:            "cve1",
+						Severity:         "high",
+						Component:        "component1",
+						ComponentVersion: "version1",
+						LayerHash:        "layer1",
 					},
 					{
-						"cveID":     "cve2",
-						"severity":  "critical",
-						"component": "component1",
-						"version":   "version1",
-						"layer":     "layer1",
+						CVEID:            "cve2",
+						Severity:         "critical",
+						Component:        "component1",
+						ComponentVersion: "version1",
+						LayerHash:        "layer",
 					},
 				},
 			},
@@ -1750,26 +1750,26 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: "privider data",
-				Owner: &notifications.IntegrationRefOwner{
+				ProviderData: "provider data",
+				Owner: &notifications.Entity{
 					ResourceHash: "hash2",
 					Cluster:      "cluster2",
 					Namespace:    "namespace2",
 					Kind:         "kind2",
 					Name:         "name2",
 				},
-				RelatedObjects: []map[string]string{
+				RelatedObjects: []notifications.Entity{
 					{
-						"cveID":     "cve1",
-						"severity":  "high",
-						"component": "component1",
-						"version":   "version1",
+						CVEID:            "cve1",
+						Severity:         "high",
+						Component:        "component1",
+						ComponentVersion: "version1",
 					},
 					{
-						"cveID":     "cve2",
-						"severity":  "critical",
-						"component": "component1",
-						"version":   "version2",
+						CVEID:            "cve2",
+						Severity:         "critical",
+						Component:        "component1",
+						ComponentVersion: "version2",
 					},
 				},
 			},
@@ -1780,20 +1780,20 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: "privider data",
-				RelatedObjects: []map[string]string{
+				ProviderData: "provider data",
+				RelatedObjects: []notifications.Entity{
 					{
-						"cveID":     "cve3",
-						"severity":  "high",
-						"component": "component2",
-						"version":   "version1",
+						CVEID:            "cve3",
+						Severity:         "high",
+						Component:        "component2",
+						ComponentVersion: "version1",
 					},
 					{
-						"cveID":     "cve2",
-						"severity":  "critical",
-						"component": "component2",
-						"version":   "version1",
-						"layer":     "layer1",
+						CVEID:            "cve2",
+						Severity:         "critical",
+						Component:        "component2",
+						ComponentVersion: "version1",
+						LayerHash:        "layer1",
 					},
 				},
 			},
@@ -1804,26 +1804,26 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: "privider data",
-				Owner: &notifications.IntegrationRefOwner{
+				ProviderData: "provider data",
+				Owner: &notifications.Entity{
 					ResourceHash: "hash5",
 					Cluster:      "cluster1",
 					Namespace:    "namespace1",
 					Kind:         "kind1",
 					Name:         "name1",
 				},
-				RelatedObjects: []map[string]string{
+				RelatedObjects: []notifications.Entity{
 					{
-						"cveID":     "cve1",
-						"severity":  "critical",
-						"component": "component2",
-						"version":   "version2",
+						CVEID:            "cve1",
+						Severity:         "critical",
+						Component:        "component2",
+						ComponentVersion: "version2",
 					},
 					{
-						"cveID":     "cve2",
-						"severity":  "critical",
-						"component": "component1",
-						"version":   "version2",
+						CVEID:            "cve2",
+						Severity:         "critical",
+						Component:        "component1",
+						ComponentVersion: "version2",
 					},
 				},
 			},
@@ -1854,8 +1854,8 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 			listRequest: armotypes.V2ListRequest{
 				InnerFilters: []map[string]string{
 					{
-						"relatedObjects.component": "component1",
-						"relatedObjects.version":   "version1",
+						"relatedObjects.component":        "component1",
+						"relatedObjects.componentVersion": "version1",
 					},
 				},
 			},
@@ -1866,8 +1866,8 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 			listRequest: armotypes.V2ListRequest{
 				InnerFilters: []map[string]string{
 					{
-						"relatedObjects.component": "component1",
-						"relatedObjects.version":   "version66",
+						"relatedObjects.component":        "component1",
+						"relatedObjects.componentVersion": "version66",
 					},
 				},
 			},
@@ -1896,8 +1896,8 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				InnerFilters: []map[string]string{
 					{
-						"relatedObjects.layer": "|exists",
-						"owner":                "|exists",
+						"relatedObjects.layerHash": "|exists",
+						"owner":                    "|exists",
 					},
 				},
 			},
@@ -1957,11 +1957,11 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				InnerFilters: []map[string]string{
 					{
-						"relatedObjects.cveID|elemMatch":     "cve1",
-						"relatedObjects.severity|elemMatch":  "critical",
-						"relatedObjects.component|elemMatch": "component2",
-						"relatedObjects.version|elemMatch":   "version2",
-						"relatedObjects.layer|elemMatch":     "|missing",
+						"relatedObjects.cveID|elemMatch":            "cve1",
+						"relatedObjects.severity|elemMatch":         "critical",
+						"relatedObjects.component|elemMatch":        "component2",
+						"relatedObjects.componentVersion|elemMatch": "version2",
+						"relatedObjects.componentLayer|elemMatch":   "|missing",
 					},
 				},
 			},
