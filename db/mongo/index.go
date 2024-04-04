@@ -235,11 +235,6 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 				{Key: "relatedObjects.imageRepository", Value: 1},
 			},
 		},
-		{
-			Keys: bson.D{
-				{Key: "relatedObjects.imageRepository", Value: 1},
-			},
-		},
 	},
 }
 
