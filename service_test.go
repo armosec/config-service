@@ -1663,7 +1663,7 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 	modifyDocFunc := func(doc *types.RuntimeIncident) *types.RuntimeIncident {
 		docCloned := Clone(doc)
 		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, armotypes.RuntimeAlert{
-			RuleName: "rule1",
+			Message: "msg" + rndStr.New(),
 		})
 		return docCloned
 	}
@@ -1689,14 +1689,14 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				Provider:     "jira",
 				Type:         "ticket:cve",
 				ProviderData: "provider data",
-				Owner: &notifications.Entity{
+				Owner: &notifications.EntityIdentifiers{
 					ResourceHash: "hash1",
 					Cluster:      "cluster1",
 					Namespace:    "namespace1",
 					Kind:         "kind1",
 					Name:         "name1",
 				},
-				RelatedObjects: []notifications.Entity{
+				RelatedObjects: []notifications.EntityIdentifiers{
 					{
 						CVEID:            "cve1",
 						Severity:         "high",
@@ -1719,14 +1719,14 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				Provider:     "jira",
 				Type:         "ticket:cve:layer",
 				ProviderData: "provider data",
-				Owner: &notifications.Entity{
+				Owner: &notifications.EntityIdentifiers{
 					ResourceHash: "hash3",
 					Cluster:      "cluster1",
 					Namespace:    "namespace1",
 					Kind:         "kind1",
 					Name:         "name1",
 				},
-				RelatedObjects: []notifications.Entity{
+				RelatedObjects: []notifications.EntityIdentifiers{
 					{
 						CVEID:            "cve1",
 						Severity:         "high",
@@ -1751,14 +1751,14 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				Provider:     "jira",
 				Type:         "ticket:cve",
 				ProviderData: "provider data",
-				Owner: &notifications.Entity{
+				Owner: &notifications.EntityIdentifiers{
 					ResourceHash: "hash2",
 					Cluster:      "cluster2",
 					Namespace:    "namespace2",
 					Kind:         "kind2",
 					Name:         "name2",
 				},
-				RelatedObjects: []notifications.Entity{
+				RelatedObjects: []notifications.EntityIdentifiers{
 					{
 						CVEID:            "cve1",
 						Severity:         "high",
@@ -1781,7 +1781,7 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				Provider:     "jira",
 				Type:         "ticket:cve",
 				ProviderData: "provider data",
-				RelatedObjects: []notifications.Entity{
+				RelatedObjects: []notifications.EntityIdentifiers{
 					{
 						CVEID:            "cve3",
 						Severity:         "high",
@@ -1805,14 +1805,14 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				Provider:     "jira",
 				Type:         "ticket:cve",
 				ProviderData: "provider data",
-				Owner: &notifications.Entity{
+				Owner: &notifications.EntityIdentifiers{
 					ResourceHash: "hash5",
 					Cluster:      "cluster1",
 					Namespace:    "namespace1",
 					Kind:         "kind1",
 					Name:         "name1",
 				},
-				RelatedObjects: []notifications.Entity{
+				RelatedObjects: []notifications.EntityIdentifiers{
 					{
 						CVEID:            "cve1",
 						Severity:         "critical",
