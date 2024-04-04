@@ -150,7 +150,96 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 				{Key: "customers", Value: 1},
 			},
 		},
-		//TODO: index most used fields in owner and relatedObjects
+		{
+			Keys: bson.D{
+				{Key: "owner.name", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "owner.kind", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "owner.namespace", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "owner.cluster", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "owner.repoHash", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "owner.resourceID", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "owner.resourceHash", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.layerHash", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.controlID", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.baseScore", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.cveName", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.cveID", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.severity", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.severityScore", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.component", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.componentVersion", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.imageRepository", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedObjects.imageRepository", Value: 1},
+			},
+		},
 	},
 }
 

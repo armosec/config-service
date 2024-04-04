@@ -111,8 +111,6 @@ func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueV
 	return findOptions, nil
 }
 
-// TODO - use schema info to query arrays with $elemMatch
-// and to map ambiguous fields types (e.g time.time vs string)
 func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.FilterBuilder, error) {
 	filterBuilder := db.NewFilterBuilder()
 	schemaInfo := db.GetSchemaFromContext(ctx)
