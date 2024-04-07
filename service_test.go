@@ -1663,7 +1663,7 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 	modifyDocFunc := func(doc *types.RuntimeIncident) *types.RuntimeIncident {
 		docCloned := Clone(doc)
 		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, armotypes.RuntimeAlert{
-			RuleName: "rule1",
+			Message: "msg" + rndStr.New(),
 		})
 		return docCloned
 	}
@@ -1675,5 +1675,305 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 	}
 	commonTestWithOptions(suite, consts.RuntimeIncidentPath, runtimeIncidents, modifyDocFunc,
 		testOpts, commonCmpFilter, ignoreTime)
+
+}
+
+func (suite *MainTestSuite) TestIntegrationReference() {
+	getTestCase := func() []*types.IntegrationReference {
+		return []*types.IntegrationReference{
+			{
+				PortalBase: armotypes.PortalBase{
+					Name: "incident0",
+					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a648",
+				},
+				Provider:     "jira",
+				Type:         "ticket:cve",
+				ProviderData: "provider data",
+				Owner: &notifications.EntityIdentifiers{
+					ResourceHash: "hash1",
+					Cluster:      "cluster1",
+					Namespace:    "namespace1",
+					Kind:         "kind1",
+					Name:         "name1",
+				},
+				RelatedObjects: []notifications.EntityIdentifiers{
+					{
+						CVEID:            "cve1",
+						Severity:         "high",
+						Component:        "component1",
+						ComponentVersion: "version1",
+					},
+					{
+						CVEID:            "cve2",
+						Severity:         "critical",
+						Component:        "component1",
+						ComponentVersion: "version2",
+					},
+				},
+			},
+			{
+				PortalBase: armotypes.PortalBase{
+					Name: "incident1",
+					GUID: "a-7e71-4370-999e-9b3e8f69a648",
+				},
+				Provider:     "jira",
+				Type:         "ticket:cve:layer",
+				ProviderData: "provider data",
+				Owner: &notifications.EntityIdentifiers{
+					ResourceHash: "hash3",
+					Cluster:      "cluster1",
+					Namespace:    "namespace1",
+					Kind:         "kind1",
+					Name:         "name1",
+				},
+				RelatedObjects: []notifications.EntityIdentifiers{
+					{
+						CVEID:            "cve1",
+						Severity:         "high",
+						Component:        "component1",
+						ComponentVersion: "version1",
+						LayerHash:        "layer1",
+					},
+					{
+						CVEID:            "cve2",
+						Severity:         "critical",
+						Component:        "component1",
+						ComponentVersion: "version1",
+						LayerHash:        "layer",
+					},
+				},
+			},
+			{
+				PortalBase: armotypes.PortalBase{
+					Name: "incident2",
+					GUID: "b-7e71-4370-999e-9b3e8f69a648",
+				},
+				Provider:     "jira",
+				Type:         "ticket:cve",
+				ProviderData: "provider data",
+				Owner: &notifications.EntityIdentifiers{
+					ResourceHash: "hash2",
+					Cluster:      "cluster2",
+					Namespace:    "namespace2",
+					Kind:         "kind2",
+					Name:         "name2",
+				},
+				RelatedObjects: []notifications.EntityIdentifiers{
+					{
+						CVEID:            "cve1",
+						Severity:         "high",
+						Component:        "component1",
+						ComponentVersion: "version1",
+					},
+					{
+						CVEID:            "cve2",
+						Severity:         "critical",
+						Component:        "component1",
+						ComponentVersion: "version2",
+					},
+				},
+			},
+			{
+				PortalBase: armotypes.PortalBase{
+					Name: "incident3",
+					GUID: "z-7e71-4370-999e-9b3e8f69a648",
+				},
+				Provider:     "jira",
+				Type:         "ticket:cve",
+				ProviderData: "provider data",
+				RelatedObjects: []notifications.EntityIdentifiers{
+					{
+						CVEID:            "cve3",
+						Severity:         "high",
+						Component:        "component2",
+						ComponentVersion: "version1",
+					},
+					{
+						CVEID:            "cve2",
+						Severity:         "critical",
+						Component:        "component2",
+						ComponentVersion: "version1",
+						LayerHash:        "layer1",
+					},
+				},
+			},
+			{
+				PortalBase: armotypes.PortalBase{
+					Name: "incident4",
+					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a648",
+				},
+				Provider:     "jira",
+				Type:         "ticket:cve",
+				ProviderData: "provider data",
+				Owner: &notifications.EntityIdentifiers{
+					ResourceHash: "hash5",
+					Cluster:      "cluster1",
+					Namespace:    "namespace1",
+					Kind:         "kind1",
+					Name:         "name1",
+				},
+				RelatedObjects: []notifications.EntityIdentifiers{
+					{
+						CVEID:            "cve1",
+						Severity:         "critical",
+						Component:        "component2",
+						ComponentVersion: "version2",
+					},
+					{
+						CVEID:            "cve2",
+						Severity:         "critical",
+						Component:        "component1",
+						ComponentVersion: "version2",
+					},
+				},
+			},
+		}
+	}
+
+	modifyDocFunc := func(doc *types.IntegrationReference) *types.IntegrationReference {
+		docCloned := Clone(doc)
+		if docCloned.Attributes == nil {
+			docCloned.Attributes = map[string]interface{}{}
+		}
+		docCloned.Attributes[rndStr.NewLen(5)] = rndStr.NewLen(5)
+		return docCloned
+	}
+
+	testOpts := testOptions[*types.IntegrationReference]{
+		mandatoryName: false,
+		customGUID:    false,
+		skipPutTests:  false,
+	}
+	commonTestWithOptions(suite, consts.IntegrationReferencePath, getTestCase(), modifyDocFunc,
+		testOpts, commonCmpFilter, ignoreTime)
+
+	searchTestCases := []searchTest{
+		{
+			testName:        "search by component and version",
+			expectedIndexes: []int{0, 1, 2},
+			listRequest: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"relatedObjects.component":        "component1",
+						"relatedObjects.componentVersion": "version1",
+					},
+				},
+			},
+		},
+		{
+			testName:        "search by component and version not exist",
+			expectedIndexes: []int{},
+			listRequest: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"relatedObjects.component":        "component1",
+						"relatedObjects.componentVersion": "version66",
+					},
+				},
+			},
+		},
+		{
+			testName:        "search by missing owner",
+			expectedIndexes: []int{3},
+			listRequest: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"owner": "|missing",
+					},
+				},
+			},
+		},
+	}
+
+	testPostV2ListRequest(suite, consts.IntegrationReferencePath, getTestCase(), nil, searchTestCases, commonCmpFilter, ignoreTime)
+
+	uniqueValueTestCases := []uniqueValueTest{
+		{
+			testName: "resources with image layer",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"owner.resourceHash": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"relatedObjects.layerHash": "|exists",
+						"owner":                    "|exists",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"owner.resourceHash": {"hash3"},
+				},
+				FieldsCount: nil,
+			},
+		},
+		{
+			testName: "search releated objects properties without element match",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"owner.resourceHash": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"relatedObjects.cveID":    "cve1",
+						"relatedObjects.severity": "critical",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"owner.resourceHash": {"hash1", "hash2", "hash3", "hash5"},
+				},
+				FieldsCount: nil,
+			},
+		},
+		{
+			testName: "search releated objects properties with element match",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"owner.resourceHash": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"owner":                             "|exists",
+						"relatedObjects.cveID|elemMatch":    "cve1",
+						"relatedObjects.severity|elemMatch": "critical",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"owner.resourceHash": {"hash5"},
+				},
+				FieldsCount: nil,
+			},
+		},
+		{
+			testName: "math element in releated objects with missing layer",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"owner.resourceHash": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"relatedObjects.cveID|elemMatch":            "cve1",
+						"relatedObjects.severity|elemMatch":         "critical",
+						"relatedObjects.component|elemMatch":        "component2",
+						"relatedObjects.componentVersion|elemMatch": "version2",
+						"relatedObjects.componentLayer|elemMatch":   "|missing",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"owner.resourceHash": {"hash5"},
+				},
+				FieldsCount: nil,
+			},
+		},
+	}
+
+	testUniqueValues(suite, consts.IntegrationReferencePath, getTestCase(), uniqueValueTestCases, commonCmpFilter, ignoreTime)
 
 }

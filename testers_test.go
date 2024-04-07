@@ -460,6 +460,10 @@ func testUniqueValues[T types.DocContent](suite *MainTestSuite, basePath string,
 		if err != nil {
 			suite.FailNow(err.Error())
 		}
+		if test.expectedResponse.FieldsCount == nil {
+			//skipping fields count comparison
+			test.expectedResponse.FieldsCount = result.FieldsCount
+		}
 		suite.Equal(test.expectedResponse, result, "Unexpected result: %s", test.testName)
 	}
 

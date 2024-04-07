@@ -5,17 +5,14 @@ import (
 	"config-service/utils"
 	"config-service/utils/consts"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/armosec/armoapi-go/armotypes"
 )
-
-// TODO:
-// support array element match - needs some schema information of what are searchable arrays)
-// support time range for fields of time.time type (vs. RFC3339 string) - need to add schema information
 
 const maxV2PageSize = 150
 
@@ -114,13 +111,30 @@ func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueV
 	return findOptions, nil
 }
 
-// TODO - use schema info to query arrays with $elemMatch
-// and to map ambiguous fields types (e.g time.time vs string)
 func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.FilterBuilder, error) {
 	filterBuilder := db.NewFilterBuilder()
+	schemaInfo := db.GetSchemaFromContext(ctx)
+	var elemMatches map[string]map[string]string
 	for key, value := range innerFilter {
 		//ignore empty values
 		if value == "" {
+			continue
+		}
+		//check if key has element match operator
+		keyNOperator := strings.Split(key, armotypes.V2ListOperatorSeparator)
+		if len(keyNOperator) > 1 && keyNOperator[1] == armotypes.V2ListElementMatchOperator {
+			key = keyNOperator[0]
+			isArray, arrayPath, fieldPath := schemaInfo.GetArrayDetails(key)
+			if !isArray {
+				return nil, fmt.Errorf("element match operator is only supported for array fields")
+			}
+			if elemMatches == nil {
+				elemMatches = map[string]map[string]string{}
+			}
+			if _, ok := elemMatches[arrayPath]; !ok {
+				elemMatches[arrayPath] = map[string]string{}
+			}
+			elemMatches[arrayPath][fieldPath] = value
 			continue
 		}
 		// Split the value into parts by comma
@@ -129,7 +143,6 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 		// Prepare a slice to hold all filters for this key
 		filters := make([]*db.FilterBuilder, 0, len(parts))
 		for _, part := range parts {
-			// Split each part into value and operator by pipe
 			valueAndOperation := strings.Split(part, armotypes.V2ListOperatorSeparator)
 			value := valueAndOperation[0]
 			value = strings.ReplaceAll(value, armotypes.V2ListEscapeChar, "")
@@ -205,6 +218,14 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 		} else if len(filters) == 1 {
 			filterBuilder.WithFilter(filters[0])
 		}
+	}
+	//add element match filters
+	for array, elemInnerFilters := range elemMatches {
+		elemFilter, err := buildInnerFilter(ctx, elemInnerFilters)
+		if err != nil {
+			return nil, fmt.Errorf("invalid element match filters %v", err)
+		}
+		filterBuilder.WithFilter(elemFilter.WarpElementMatch().WarpWithField(array))
 	}
 	if filterBuilder.Len() == 0 {
 		return nil, nil

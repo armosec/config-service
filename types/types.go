@@ -36,7 +36,8 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability | *RuntimeIncident
+		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability | 
+		*RuntimeIncident | *IntegrationReference
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -398,8 +399,10 @@ type PostureExceptionsSeverityUpdate struct {
 
 type RuntimeIncident armotypes.RuntimeIncident
 
+var runtimeIncidentReadOnlyFields = append([]string{"creationTimestamp"}, commonReadOnlyFieldsV1...)
+
 func (r *RuntimeIncident) GetReadOnlyFields() []string {
-	return commonReadOnlyFieldsV1
+	return runtimeIncidentReadOnlyFields
 }
 
 func (r *RuntimeIncident) InitNew() {
@@ -408,6 +411,20 @@ func (r *RuntimeIncident) InitNew() {
 
 func (r *RuntimeIncident) GetCreationTime() *time.Time {
 	return &r.CreationTimestamp
+}
+
+type IntegrationReference notifications.IntegrationReference
+
+func (i *IntegrationReference) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsV1
+}
+
+func (i *IntegrationReference) InitNew() {
+	i.CreationTime = time.Now().UTC()
+}
+
+func (i *IntegrationReference) GetCreationTime() *time.Time {
+	return &i.CreationTime
 }
 
 var baseReadOnlyFields = []string{consts.IdField, consts.GUIDField}
