@@ -18,7 +18,7 @@ type FieldType string
 
 const (
 	Date FieldType = "date"
-	//Use this is you field is a number or a boolean that is saved as a string
+	//Explict string type in schema is needed to avoid type conversion if this field is a string but holds numbers or bool values
 	String FieldType = "string"
 )
 
