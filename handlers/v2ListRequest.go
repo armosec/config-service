@@ -235,6 +235,9 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 
 func getTypedValue(ctx *gin.Context, field, value string) (interface{}, error) {
 	schemaInfo := db.GetSchemaFromContext(ctx)
+	if schemaInfo.IsString(field) {
+		return value, nil
+	}
 	if schemaInfo.IsDate(field) {
 		date, err := time.Parse(time.RFC3339, value)
 		if err != nil {

@@ -18,6 +18,8 @@ type FieldType string
 
 const (
 	Date FieldType = "date"
+	//Explict string type in schema is needed to avoid type conversion if this field is a string but holds numbers or bool values
+	String FieldType = "string"
 )
 
 type SchemaInfo struct {
@@ -61,4 +63,9 @@ func (s *SchemaInfo) GetArrayDetails(path string) (isArray bool, arrayPath, subP
 func (s *SchemaInfo) IsDate(field string) bool {
 	fieldType, exist := s.FieldsType[field]
 	return exist && fieldType == Date
+}
+
+func (s *SchemaInfo) IsString(field string) bool {
+	fieldType, exist := s.FieldsType[field]
+	return exist && fieldType == String
 }
