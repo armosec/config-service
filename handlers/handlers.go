@@ -339,8 +339,6 @@ func HandleDeleteByQuery[T types.DocContent](c *gin.Context) {
 	}
 	filter := findOpts.Filter()
 	if deletedCount, err := db.BulkDelete[T](c, *filter); err != nil {
-	} else if deletedCount == 0 {
-		ResponseDocumentNotFound(c)
 	} else {
 		c.JSON(http.StatusOK, gin.H{"deletedCount": deletedCount})
 	}
