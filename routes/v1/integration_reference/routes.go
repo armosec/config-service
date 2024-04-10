@@ -13,7 +13,10 @@ func AddRoutes(g *gin.Engine) {
 	schemaInfo := types.SchemaInfo{
 		ArrayPaths: []string{"relatedObjects"},
 		FieldsType: map[string]types.FieldType{
-			"creationTime": "date",
+			"creationTime": types.Date,
+			//add explicit string type to avoid conversion of query values to float
+			"owner.resourceHash": types.String,
+			"owner.repoHash":     types.String,
 		},
 	}
 
