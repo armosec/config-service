@@ -1688,7 +1688,7 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: "provider data",
+				ProviderData: map[string]string{"key": "value"},
 				Owner: &notifications.EntityIdentifiers{
 					ResourceHash: "hash1",
 					Cluster:      "cluster1",
@@ -1718,7 +1718,7 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve:layer",
-				ProviderData: "provider data",
+				ProviderData: map[string]string{"key": "value"},
 				Owner: &notifications.EntityIdentifiers{
 					ResourceHash: "hash3",
 					Cluster:      "cluster1",
@@ -1750,7 +1750,7 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: "provider data",
+				ProviderData: map[string]string{"key": "value"},
 				Owner: &notifications.EntityIdentifiers{
 					ResourceHash: "hash2",
 					Cluster:      "cluster2",
@@ -1780,7 +1780,7 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: "provider data",
+				ProviderData: map[string]string{"key": "value"},
 				RelatedObjects: []notifications.EntityIdentifiers{
 					{
 						CVEID:            "cve3",
@@ -1804,7 +1804,7 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				},
 				Provider:     "jira",
 				Type:         "ticket:cve",
-				ProviderData: "provider data",
+				ProviderData: map[string]string{"key": "value"},
 				Owner: &notifications.EntityIdentifiers{
 					ResourceHash: "hash5",
 					Cluster:      "cluster1",
