@@ -1670,7 +1670,7 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 
 	testOpts := testOptions[*types.RuntimeIncident]{
 		mandatoryName: false,
-		customGUID:    false,
+		customGUID:    true,
 		skipPutTests:  false,
 	}
 	commonTestWithOptions(suite, consts.RuntimeIncidentPath, runtimeIncidents, modifyDocFunc,

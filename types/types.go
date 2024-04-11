@@ -36,7 +36,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 // Doc Content interface for data types embedded in DB documents
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
-		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability | 
+		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability |
 		*RuntimeIncident | *IntegrationReference
 	InitNew()
 	GetReadOnlyFields() []string
@@ -411,6 +411,14 @@ func (r *RuntimeIncident) InitNew() {
 
 func (r *RuntimeIncident) GetCreationTime() *time.Time {
 	return &r.CreationTimestamp
+}
+
+func (r *RuntimeIncident) SetGUID(guid string) {
+	//if user defined a GUID do not change it
+	//alow only to reset it to empty
+	if r.GUID == "" || guid == "" {
+		r.GUID = guid
+	}
 }
 
 type IntegrationReference notifications.IntegrationReference
