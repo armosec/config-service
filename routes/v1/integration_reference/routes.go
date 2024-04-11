@@ -15,9 +15,11 @@ func AddRoutes(g *gin.Engine) {
 		FieldsType: map[string]types.FieldType{
 			"creationTime": types.Date,
 			//add explicit string type to avoid conversion of query values to float
-			"owner.resourceHash":   types.String,
-			"owner.repoHash":       types.String,
-			"relatedObjects.cveID": types.String,
+			"owner.resourceHash":           types.String,
+			"owner.repoHash":               types.String,
+			"relatedObjects.cveID":         types.String,
+			"relatedObjects.severityScore": types.String,
+			"relatedObjects.baseScore":     types.String,
 		},
 	}
 
