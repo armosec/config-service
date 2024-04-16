@@ -1825,6 +1825,9 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 						Component:        "component1",
 						ComponentVersion: "version2",
 					},
+					{
+						CVEID: "123456",
+					},
 				},
 			},
 		}
@@ -1848,6 +1851,17 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 		testOpts, commonCmpFilter, ignoreTime)
 
 	searchTestCases := []searchTest{
+		{
+			testName:        "element match search with a number as string",
+			expectedIndexes: []int{4},
+			listRequest: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"relatedObjects.cveID|elemMatch": "123456",
+					},
+				},
+			},
+		},
 		{
 			testName:        "search by component and version",
 			expectedIndexes: []int{0, 1, 2},
