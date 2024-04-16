@@ -1740,7 +1740,7 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 						Component:        "component1",
 						ComponentVersion: "version1",
 						LayerHash:        "layer",
-					},					
+					},
 				},
 			},
 			{
