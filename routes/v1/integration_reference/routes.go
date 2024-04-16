@@ -18,7 +18,6 @@ func AddRoutes(g *gin.Engine) {
 			"owner.resourceHash":           types.String,
 			"owner.repoHash":               types.String,
 			"relatedObjects.cveID":         types.String,
-			"relatedObjects.severityScore": types.String,
 			"relatedObjects.baseScore":     types.String,
 		},
 	}

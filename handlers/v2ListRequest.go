@@ -58,7 +58,7 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	if len(request.InnerFilters) > 0 {
 		filters := []*db.FilterBuilder{}
 		for i := range request.InnerFilters {
-			if filter, err := buildInnerFilter(ctx, request.InnerFilters[i]); err != nil {
+			if filter, err := buildInnerFilter(ctx, request.InnerFilters[i], ""); err != nil {
 				return nil, err
 			} else if filter != nil {
 				filters = append(filters, filter)
@@ -96,7 +96,7 @@ func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueV
 	if len(request.InnerFilters) > 0 {
 		filters := []*db.FilterBuilder{}
 		for i := range request.InnerFilters {
-			if filter, err := buildInnerFilter(ctx, request.InnerFilters[i]); err != nil {
+			if filter, err := buildInnerFilter(ctx, request.InnerFilters[i], ""); err != nil {
 				return nil, err
 			} else if filter != nil {
 				filters = append(filters, filter)
@@ -111,7 +111,9 @@ func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueV
 	return findOptions, nil
 }
 
-func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.FilterBuilder, error) {
+// buildInnerFilter builds a filter from a map of key value pairs
+// if it calls itself recursively (e.g. for element match operator) the rootField must be the array field path
+func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string, rootField string) (*db.FilterBuilder, error) {
 	filterBuilder := db.NewFilterBuilder()
 	schemaInfo := db.GetSchemaFromContext(ctx)
 	var elemMatches map[string]map[string]string
@@ -124,7 +126,11 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 		keyNOperator := strings.Split(key, armotypes.V2ListOperatorSeparator)
 		if len(keyNOperator) > 1 && keyNOperator[1] == armotypes.V2ListElementMatchOperator {
 			key = keyNOperator[0]
-			isArray, arrayPath, fieldPath := schemaInfo.GetArrayDetails(key)
+			keyWithRoot := key
+			if rootField != "" {
+				keyWithRoot = fmt.Sprintf("%s.%s", rootField, key)
+			}
+			isArray, arrayPath, fieldPath := schemaInfo.GetArrayDetails(keyWithRoot)
 			if !isArray {
 				return nil, fmt.Errorf("element match operator is only supported for array fields")
 			}
@@ -164,7 +170,12 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 				if key == consts.GUIDField {
 					filters = append(filters, db.NewFilterBuilder().WithID(value))
 				} else {
-					value, err := getTypedValue(ctx, key, value)
+					//append root field if exists
+					keyWithRoot := key
+					if rootField != "" {
+						keyWithRoot = fmt.Sprintf("%s.%s", rootField, key)
+					}
+					value, err := getTypedValue(ctx, keyWithRoot, value)
 					if err != nil {
 						return nil, err
 					}
@@ -221,7 +232,7 @@ func buildInnerFilter(ctx *gin.Context, innerFilter map[string]string) (*db.Filt
 	}
 	//add element match filters
 	for array, elemInnerFilters := range elemMatches {
-		elemFilter, err := buildInnerFilter(ctx, elemInnerFilters)
+		elemFilter, err := buildInnerFilter(ctx, elemInnerFilters, array)
 		if err != nil {
 			return nil, fmt.Errorf("invalid element match filters %v", err)
 		}
