@@ -321,6 +321,10 @@ func (c *VulnerabilityExceptionPolicy) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
+func (c *VulnerabilityExceptionPolicy) GetTimestampFieldName() string {
+	return "creationTime"
+}
+
 type PostureExceptionPolicy armotypes.PostureExceptionPolicy
 
 func (p *PostureExceptionPolicy) GetReadOnlyFields() []string {
@@ -414,6 +418,10 @@ func (c *ClusterAttackChainState) GetCreationTime() *time.Time {
 		return nil
 	}
 	return &creationTime
+}
+
+func (c *ClusterAttackChainState) GetTimestampFieldName() string {
+	return "creationTime"
 }
 
 type VulnerabilityExceptionsSeverityUpdate struct {
