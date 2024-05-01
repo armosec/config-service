@@ -69,6 +69,10 @@ func (g *GeneralDocContent) GetReadOnlyFields() []string {
 
 func (g *GeneralDocContent) InitNew() {}
 
+func (g *GeneralDocContent) GetTimestampFieldName() string {
+	return "creationTime"
+}
+
 // redefine types for Doc Content implementations
 
 // DocContent implementations
@@ -260,6 +264,10 @@ func (f *Framework) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
+func (f *Framework) GetTimestampFieldName() string {
+	return "creationTime"
+}
+
 type Customer configservice.PortalCustomer
 
 func (c *Customer) GetReadOnlyFields() []string {
@@ -277,6 +285,10 @@ func (c *Customer) GetCreationTime() *time.Time {
 		return nil
 	}
 	return &creationTime
+}
+
+func (c *Customer) GetTimestampFieldName() string {
+	return "subscription_date"
 }
 
 type Cluster armotypes.PortalCluster
@@ -349,6 +361,10 @@ func (p *PostureExceptionPolicy) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
+func (p *PostureExceptionPolicy) GetTimestampFieldName() string {
+	return "creationTime"
+}
+
 type Repository armotypes.PortalRepository
 
 func (*Repository) GetReadOnlyFields() []string {
@@ -370,6 +386,10 @@ func (r *Repository) GetCreationTime() *time.Time {
 		return nil
 	}
 	return &creationTime
+}
+
+func (r *Repository) GetTimestampFieldName() string {
+	return "creationDate"
 }
 
 type RegistryCronJob armotypes.PortalRegistryCronJob
@@ -394,6 +414,10 @@ func (r *RegistryCronJob) GetCreationTime() *time.Time {
 		return nil
 	}
 	return &creationTime
+}
+
+func (r *RegistryCronJob) GetTimestampFieldName() string {
+	return "updatedTime"
 }
 
 type ClusterAttackChainState armotypes.ClusterAttackChainState
@@ -478,6 +502,10 @@ func (i *IntegrationReference) InitNew() {
 
 func (i *IntegrationReference) GetCreationTime() *time.Time {
 	return &i.CreationTime
+}
+
+func (i *IntegrationReference) GetTimestampFieldName() string {
+	return "creationTime"
 }
 
 var baseReadOnlyFields = []string{consts.IdField, consts.GUIDField}
