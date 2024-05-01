@@ -49,6 +49,12 @@ func v2List2FindOptions[T types.DocContent](ctx *gin.Context, request armotypes.
 	}
 	//projection
 	findOptions.Projection().Include(request.FieldsList...)
+	if request.Until != nil {
+		findOptions.Filter().WithLowerThanEqual(typeObj.GetTimestampFieldName(), *request.Until)
+	}
+	if request.Since != nil {
+		findOptions.Filter().WithGreaterThanEqual(typeObj.GetTimestampFieldName(), *request.Since)
+	}
 	//filters
 	if len(request.InnerFilters) > 0 {
 		filters := []*db.FilterBuilder{}
@@ -68,11 +74,8 @@ func v2List2FindOptions[T types.DocContent](ctx *gin.Context, request armotypes.
 	return findOptions, nil
 }
 
-func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueValuesRequestV2) (*db.FindOptions, error) {
+func uniqueValuesRequest2FindOptions[T types.DocContent](ctx *gin.Context, request armotypes.UniqueValuesRequestV2, typeObj T) (*db.FindOptions, error) {
 	request.ValidatePageProperties(maxV2PageSize)
-	if request.Until != nil || request.Since != nil {
-		return nil, fmt.Errorf("since and until are not supported")
-	}
 	if len(request.Fields) == 0 {
 		return nil, fmt.Errorf("fields are required")
 	}
@@ -87,6 +90,12 @@ func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueV
 		findOptions.WithGroup(field)
 	}
 	findOptions.Limit(int64(request.PageSize))
+	if request.Until != nil {
+		findOptions.Filter().WithLowerThanEqual(typeObj.GetTimestampFieldName(), *request.Until)
+	}
+	if request.Since != nil {
+		findOptions.Filter().WithGreaterThanEqual(typeObj.GetTimestampFieldName(), *request.Since)
+	}
 	//filters
 	if len(request.InnerFilters) > 0 {
 		filters := []*db.FilterBuilder{}

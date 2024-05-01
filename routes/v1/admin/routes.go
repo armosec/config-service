@@ -54,7 +54,7 @@ func AddRoutes(g *gin.Engine) {
 	//Post V2 list query on other collections
 	admin.POST("/:path/query", adminSearchCollection)
 	//uniqueValues
-	admin.POST("/:path/uniqueValues", adminAggregateCollection)
+	admin.POST("/:path/uniqueValues", adminAggregateCollection[*types.GeneralDocContent])
 }
 
 func updateVulnerabilityExceptionsSeverity(c *gin.Context) {
@@ -108,7 +108,7 @@ func adminSearchCollection(c *gin.Context) {
 	queryHandler(c)
 }
 
-func adminAggregateCollection(c *gin.Context) {
+func adminAggregateCollection[T types.DocContent](c *gin.Context) {
 	path := "/" + c.Param("path")
 	apiInfo := types.GetAPIInfo(path)
 	if apiInfo == nil {
@@ -117,7 +117,7 @@ func adminAggregateCollection(c *gin.Context) {
 	}
 	//set the path collection
 	c.Set(consts.Collection, apiInfo.DBCollection)
-	handlers.HandleAdminPostUniqueValuesRequestV2(c)
+	handlers.HandleAdminPostUniqueValuesRequestV2[T](c)
 }
 
 func getCustomers(c *gin.Context) {

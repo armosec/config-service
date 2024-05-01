@@ -204,7 +204,7 @@ func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func HandlePostUniqueValuesRequestV2(c *gin.Context) {
+func HandlePostUniqueValuesRequestV2[T types.DocContent](c *gin.Context) {
 	defer log.LogNTraceEnterExit("HandlePostUniqueValuesRequestV2", c)()
 	var req armotypes.UniqueValuesRequestV2
 	err := c.BindJSON(&req)
@@ -212,7 +212,7 @@ func HandlePostUniqueValuesRequestV2(c *gin.Context) {
 		ResponseFailedToBindJson(c, err)
 		return
 	}
-	findOpts, err := uniqueValuesRequest2FindOptions(c, req)
+	findOpts, err := uniqueValuesRequest2FindOptions(c, req, *new(T))
 	if err != nil {
 		ResponseBadRequest(c, err.Error())
 		return
@@ -247,7 +247,7 @@ func HandleAdminPostV2ListRequest[T types.DocContent](c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func HandleAdminPostUniqueValuesRequestV2(c *gin.Context) {
+func HandleAdminPostUniqueValuesRequestV2[T types.DocContent](c *gin.Context) {
 	defer log.LogNTraceEnterExit("HandleAdminPostUniqueValuesRequestV2", c)()
 	var req armotypes.UniqueValuesRequestV2
 	err := c.BindJSON(&req)
@@ -255,7 +255,7 @@ func HandleAdminPostUniqueValuesRequestV2(c *gin.Context) {
 		ResponseFailedToBindJson(c, err)
 		return
 	}
-	findOpts, err := uniqueValuesRequest2FindOptions(c, req)
+	findOpts, err := uniqueValuesRequest2FindOptions(c, req, *new(T))
 	if err != nil {
 		ResponseBadRequest(c, err.Error())
 		return

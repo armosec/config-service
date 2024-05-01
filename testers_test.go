@@ -417,9 +417,12 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 
 	//use of unsupported Until
 	req = armotypes.V2ListRequest{
+		Since: ptr.Time(time.Time{}),
 		Until: ptr.Time(time.Now()),
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("until is not supported"), req, http.StatusBadRequest)
+
+	w := suite.doRequest(http.MethodPost, basePath+"/query", req)
+	suite.Equal(http.StatusOK, w.Code)
 
 	//range with no &
 	req = armotypes.V2ListRequest{
@@ -477,12 +480,15 @@ func testUniqueValues[T types.DocContent](suite *MainTestSuite, basePath string,
 	//test uniqueValues bad requests
 	req := armotypes.UniqueValuesRequestV2{}
 	testBadRequest(suite, http.MethodPost, basePath+"/uniqueValues", errorMessage("fields are required"), req, http.StatusBadRequest)
-	req.Fields = map[string]string{
-		"name": "",
+	req = armotypes.UniqueValuesRequestV2{
+		Fields: map[string]string{
+			"name": "",
+		},
+		Since: ptr.Time(time.Time{}),
+		Until: ptr.Time(time.Now()),
 	}
-	req.Since = ptr.Time(time.Now())
-	req.Until = ptr.Time(time.Now())
-	testBadRequest(suite, http.MethodPost, basePath+"/uniqueValues", errorMessage("since and until are not supported"), req, http.StatusBadRequest)
+	w := suite.doRequest(http.MethodPost, basePath+"/uniqueValues", req)
+	suite.Equal(http.StatusOK, w.Code)
 
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/armosec/armoapi-go/configservice"
 	"github.com/armosec/armoapi-go/notifications"
+	"github.com/aws/smithy-go/ptr"
 	opapolicy "github.com/kubescape/opa-utils/reporthandling"
 	uuid "github.com/satori/go.uuid"
 )
@@ -37,7 +38,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
 		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability |
-		*RuntimeIncident | *IntegrationReference
+		*RuntimeIncident | *IntegrationReference | *GeneralDocContent
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -52,6 +53,21 @@ type DocContent interface {
 	GetCreationTime() *time.Time
 	GetTimestampFieldName() string
 }
+
+// general empty doc to use where the specific doc is not needed
+type GeneralDocContent struct {
+	armotypes.PortalBase
+}
+
+func (g *GeneralDocContent) GetCreationTime() *time.Time {
+	return ptr.Time(time.Now().UTC())
+}
+
+func (g *GeneralDocContent) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsV1
+}
+
+func (g *GeneralDocContent) InitNew() {}
 
 // redefine types for Doc Content implementations
 

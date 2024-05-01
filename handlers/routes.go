@@ -151,7 +151,7 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 	if opts.servePostV2ListRequests {
 		putSchemaInContext := SchemaContextMiddleware(opts.schemaInfo)
 		routerGroup.POST(querySuffix, putSchemaInContext, HandlePostV2ListRequest[T])
-		routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2)
+		routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2[T])
 
 	}
 	//add array handlers
