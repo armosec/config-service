@@ -159,6 +159,10 @@ func (p *CollaborationConfig) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
+func (p *CollaborationConfig) GetTimestampFieldName() string {
+	return "creationTime"
+}
+
 type CustomerConfig struct {
 	armotypes.CustomerConfig `json:",inline" bson:"inline"`
 	GUID                     string `json:"guid" bson:"guid"`
