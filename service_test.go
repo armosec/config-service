@@ -1621,11 +1621,21 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 }
 
 func (suite *MainTestSuite) TestRuntimeIncidents() {
+	ts, err := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147901Z")
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
 	runtimeIncidents := []*types.RuntimeIncident{
 		{
 			PortalBase: armotypes.PortalBase{
 				Name: "incident1",
 				GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a648",
+			},
+			RuntimeAlert: armotypes.RuntimeAlert{
+				RuntimeAlertK8sDetails: armotypes.RuntimeAlertK8sDetails{
+					ClusterName: "cluster1",
+					Namespace:   "namespace1",
+				},
 			},
 			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
 				Designators: identifiers.PortalDesignator{
@@ -1645,11 +1655,17 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 					Attributes:     map[string]string{},
 				},
 			},
+			Severity: "high",
 		},
 		{
 			PortalBase: armotypes.PortalBase{
 				Name: "incident3",
 				GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a646",
+			},
+			RuntimeAlert: armotypes.RuntimeAlert{
+				BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+					Timestamp: ts,
+				},
 			},
 			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
 				Designators: identifiers.PortalDesignator{
@@ -1675,6 +1691,91 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 	}
 	commonTestWithOptions(suite, consts.RuntimeIncidentPath, runtimeIncidents, modifyDocFunc,
 		testOpts, commonCmpFilter, ignoreTime)
+
+	zeroTimeIntAsStr := "-62135596800000"
+
+	uniqueValues := []uniqueValueTest{
+		{
+			testName: "unique cluster names",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"clusterName": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"clusterName": {"", "cluster1"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"clusterName": {
+						{
+							Field: "",
+							Count: 2,
+						},
+						{
+
+							Field: "cluster1",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique incidents severities",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"incidentSeverity": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"incidentSeverity": {"", "high"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"incidentSeverity": {
+						{
+							Field: "",
+							Count: 2,
+						},
+						{
+
+							Field: "high",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique timestamps",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"timestamp": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"timestamp": {zeroTimeIntAsStr, "1651154400147"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"timestamp": {
+						{
+							Field: zeroTimeIntAsStr, // zero time
+							Count: 2,
+						},
+						{
+
+							Field: "1651154400147", // 2022-04-28T14:00:00.147901
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testUniqueValues(suite, consts.RuntimeIncidentPath, runtimeIncidents, uniqueValues, commonCmpFilter, ignoreTime)
 
 }
 
