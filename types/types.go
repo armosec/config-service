@@ -446,6 +446,10 @@ func (r *RuntimeIncident) SetGUID(guid string) {
 	}
 }
 
+func (r *RuntimeIncident) GetTimestampFieldName() string {
+	return "creationTimestamp"
+}
+
 type IntegrationReference notifications.IntegrationReference
 
 func (i *IntegrationReference) GetReadOnlyFields() []string {
