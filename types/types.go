@@ -50,6 +50,7 @@ type DocContent interface {
 	SetUpdatedTime(updatedTime *time.Time)
 	GetUpdatedTime() *time.Time
 	GetCreationTime() *time.Time
+	GetTimestampFieldName() string
 }
 
 // redefine types for Doc Content implementations
@@ -117,6 +118,10 @@ func (v *AggregatedVulnerability) SetName(name string) {
 func (v *AggregatedVulnerability) GetAttributes() map[string]interface{} { return nil }
 
 func (v *AggregatedVulnerability) SetAttributes(attributes map[string]interface{}) {}
+
+func (v *AggregatedVulnerability) GetTimestampFieldName() string {
+	return "creationTime"
+}
 
 type CollaborationConfig notifications.CollaborationConfig
 
@@ -207,6 +212,10 @@ func (p *CustomerConfig) GetCreationTime() *time.Time {
 		return nil
 	}
 	return &creationTime
+}
+
+func (p *CustomerConfig) GetTimestampFieldName() string {
+	return "creationTime"
 }
 
 // DocContent implementations

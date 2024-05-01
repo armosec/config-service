@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"config-service/db"
+	"config-service/types"
 	"config-service/utils"
 	"config-service/utils/consts"
 	"fmt"
@@ -16,10 +17,7 @@ import (
 
 const maxV2PageSize = 150
 
-func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.FindOptions, error) {
-	if request.Until != nil {
-		return nil, fmt.Errorf("until is not supported")
-	}
+func v2List2FindOptions[T types.DocContent](ctx *gin.Context, request armotypes.V2ListRequest, typeObj T) (*db.FindOptions, error) {
 	request.ValidatePageProperties(maxV2PageSize)
 	findOptions := db.NewFindOptions()
 	//pages
@@ -33,10 +31,7 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	}
 	findOptions.SetPagination(int64(page), int64(perPage))
 	//sort
-	if request.OrderBy == "" {
-		//default sort by update time
-		request.OrderBy = fmt.Sprintf("%s:%s", consts.UpdatedTimeField, armotypes.V2ListDescendingSort)
-	}
+	request.ValidateOrderBy(fmt.Sprintf("%s:%s", typeObj.GetTimestampFieldName(), armotypes.V2ListDescendingSort))
 	sortFields := strings.Split(request.OrderBy, armotypes.V2ListValueSeparator)
 	for _, sortField := range sortFields {
 		sortNameAndType := strings.Split(sortField, armotypes.V2ListSortTypeSeparator)

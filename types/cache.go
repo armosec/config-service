@@ -70,3 +70,7 @@ func (c *Cache) SetExpiryTime(expiryTime time.Time) {
 func (c *Cache) SetTTL(ttl time.Duration) {
 	(*armotypes.PortalCache[json.RawMessage])(c).SetTTL(ttl)
 }
+
+func (c *Cache) GetTimestampFieldName() string {
+	return "creationTime"
+}

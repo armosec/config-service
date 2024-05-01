@@ -191,7 +191,7 @@ func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
 		ResponseFailedToBindJson(c, err)
 		return
 	}
-	findOpts, err := v2List2FindOptions(c, req)
+	findOpts, err := v2List2FindOptions(c, req, *new(T))
 	if err != nil {
 		ResponseBadRequest(c, err.Error())
 		return
@@ -234,7 +234,7 @@ func HandleAdminPostV2ListRequest[T types.DocContent](c *gin.Context) {
 		ResponseFailedToBindJson(c, err)
 		return
 	}
-	findOpts, err := v2List2FindOptions(c, req)
+	findOpts, err := v2List2FindOptions(c, req, *new(T))
 	if err != nil {
 		ResponseBadRequest(c, err.Error())
 		return
@@ -332,7 +332,7 @@ func HandleDeleteByQuery[T types.DocContent](c *gin.Context) {
 		ResponseFailedToBindJson(c, err)
 		return
 	}
-	findOpts, err := v2List2FindOptions(c, req)
+	findOpts, err := v2List2FindOptions(c, req, *new(T))
 	if err != nil {
 		ResponseBadRequest(c, err.Error())
 		return
