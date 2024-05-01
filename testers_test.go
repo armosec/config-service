@@ -409,11 +409,11 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 	}
 	testBadRequest(suite, http.MethodPost, basePath+"/query", errorUnsupportedOperator("unknownOp"), req, http.StatusBadRequest)
 
-	//invalid sort type
+	//invalid sort direction
 	req = armotypes.V2ListRequest{
 		OrderBy: "name:unknownOrder",
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("invalid sort type unknownOrder"), req, http.StatusBadRequest)
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("invalid sort field name:unknownOrder:desc"), req, http.StatusBadRequest)
 
 	//use of unsupported Until
 	req = armotypes.V2ListRequest{
