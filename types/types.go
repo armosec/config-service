@@ -298,6 +298,10 @@ func (c *Cluster) GetCreationTime() *time.Time {
 	return &creationTime
 }
 
+func (c *Cluster) GetTimestampFieldName() string {
+	return "subscription_date"
+}
+
 type VulnerabilityExceptionPolicy armotypes.VulnerabilityExceptionPolicy
 
 func (c *VulnerabilityExceptionPolicy) GetReadOnlyFields() []string {
