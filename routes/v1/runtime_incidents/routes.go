@@ -20,6 +20,7 @@ func AddRoutes(g *gin.Engine) {
 			"relatedAlerts.timestamp": "date",
 		},
 		TimestampFieldName: ptr.String("creationTimestamp"),
+		MustExcludeFields:  []string{"relatedAlerts"},
 	}
 
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.RuntimeIncident]().

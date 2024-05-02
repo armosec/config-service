@@ -26,6 +26,7 @@ type SchemaInfo struct {
 	ArrayPaths         []string             `json:"arrayPaths,omitempty"`
 	FieldsType         map[string]FieldType `json:"fieldsType,omitempty"`
 	TimestampFieldName *string              `json:"timestampFieldName,omitempty"` // pointer so empty string can be distinguished from nil
+	MustExcludeFields  []string             `json:"mustExcludeFields,omitempty"`  // fields that must be excluded from the response
 }
 
 func SetAPIInfo(path string, apiInfo APIInfo) {
@@ -76,4 +77,8 @@ func (s SchemaInfo) GetTimestampFieldName() string {
 		return "creationTime"
 	}
 	return *s.TimestampFieldName
+}
+
+func (s SchemaInfo) GetMustExcludeFields() []string {
+	return s.MustExcludeFields
 }
