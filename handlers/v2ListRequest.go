@@ -49,12 +49,25 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	}
 	//projection
 	findOptions.Projection().Include(request.FieldsList...)
+	if len(request.FieldsList) == 0 {
+		findOptions.Projection().Exclude(db.GetSchemaFromContext(ctx).GetMustExcludeFields()...)
+	}
 	//filters
 	if request.Until != nil {
-		findOptions.Filter().WithLowerThanEqual(tsField, *request.Until)
+		timeVal := request.Until.Format(time.RFC3339)
+		value, err := getTypedValue(ctx, tsField, timeVal)
+		if err != nil {
+			return nil, err
+		}
+		findOptions.Filter().WithLowerThanEqual(tsField, value)
 	}
 	if request.Since != nil {
-		findOptions.Filter().WithGreaterThanEqual(tsField, *request.Since)
+		timeVal := request.Since.Format(time.RFC3339)
+		value, err := getTypedValue(ctx, tsField, timeVal)
+		if err != nil {
+			return nil, err
+		}
+		findOptions.Filter().WithGreaterThanEqual(tsField, value)
 	}
 	if len(request.InnerFilters) > 0 {
 		filters := []*db.FilterBuilder{}

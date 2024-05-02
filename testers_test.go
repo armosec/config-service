@@ -415,7 +415,7 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 	}
 	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("invalid sort field name:unknownOrder:desc"), req, http.StatusBadRequest)
 
-	//use of supported time window
+	//use of inclusive time window
 	req = armotypes.V2ListRequest{
 		Since: ptr.Time(time.Time{}),
 		Until: ptr.Time(time.Now()),
@@ -423,6 +423,34 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 
 	w := suite.doRequest(http.MethodPost, basePath+"/query", req)
 	suite.Equal(http.StatusOK, w.Code)
+	var qResult types.SearchResult[T]
+	err := json.Unmarshal(w.Body.Bytes(), &qResult)
+	suite.NoError(err, "Unexpected error: %s", "use of supported time window")
+	allDocs := qResult.Total.Value
+	suite.Equal(len(newDocs), allDocs, "Unexpected result count: %s", "use of supported time window")
+
+	// use of exclusive since
+	req = armotypes.V2ListRequest{
+		Since: ptr.Time(time.Now()),
+		Until: ptr.Time(time.Now()),
+	}
+	w = suite.doRequest(http.MethodPost, basePath+"/query", req)
+	suite.Equal(http.StatusOK, w.Code)
+
+	err = json.Unmarshal(w.Body.Bytes(), &qResult)
+	suite.NoError(err, "Unexpected error: %s", "use of exclusive since")
+	suite.Equal(0, qResult.Total.Value, "Unexpected result count: %s", "use of exclusive since")
+
+	// use of exclusive until
+	req = armotypes.V2ListRequest{
+		Since: ptr.Time(time.Time{}),
+		Until: ptr.Time(time.Time{}),
+	}
+	w = suite.doRequest(http.MethodPost, basePath+"/query", req)
+	suite.Equal(http.StatusOK, w.Code)
+	err = json.Unmarshal(w.Body.Bytes(), &qResult)
+	suite.NoError(err, "Unexpected error: %s", "use of exclusive until")
+	suite.Equal(0, qResult.Total.Value, "Unexpected result count: %s", "use of exclusive until")
 
 	//range with no &
 	req = armotypes.V2ListRequest{
