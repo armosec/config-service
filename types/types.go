@@ -37,7 +37,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
 		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability |
-		*RuntimeIncident | *IntegrationReference
+		*RuntimeIncident | *RuntimeAlert | *IntegrationReference
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -419,6 +419,27 @@ func (r *RuntimeIncident) SetGUID(guid string) {
 	if r.GUID == "" || guid == "" {
 		r.GUID = guid
 	}
+}
+
+type RuntimeAlert struct {
+	armotypes.PortalBase   `json:",inline" bson:"inline"`
+	armotypes.RuntimeAlert `json:",inline" bson:"inline"`
+}
+
+func (r *RuntimeAlert) GetReadOnlyFields() []string {
+	return runtimeIncidentReadOnlyFields
+}
+
+func (r *RuntimeAlert) InitNew() {
+	r.Timestamp = time.Now().UTC()
+}
+
+func (r *RuntimeAlert) GetCreationTime() *time.Time {
+	return &r.Timestamp
+}
+
+func (r *RuntimeAlert) SetGUID(guid string) {
+
 }
 
 type IntegrationReference notifications.IntegrationReference

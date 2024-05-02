@@ -12,6 +12,7 @@ const (
 	ResponseSender = "customResponseSender" //key for custom response sender
 	PutDocFields   = "customPutDocFields"   //key for string list of fields name to update in PUT requests, only these fields will be updated
 	SchemaInfo     = "schemaInfo"           //key for schema info
+	BaseDocID      = "baseDocID"            //key for base document ID, for pagination over nested documents
 
 	//PATHS
 	ClusterPath                           = "/cluster"
@@ -32,6 +33,7 @@ const (
 	UsersNotificationsVulnerabilitiesPath = "/v1_users_notifications_vulnerability"
 	AttackChainsPath                      = "/v1_attack_chains"
 	RuntimeIncidentPath                   = "/v1_runtime_incident"
+	RuntimeAlertPath                      = "/v1_runtime_alert"
 	IntegrationReferencePath              = "/v1_integration_reference"
 
 	//DB collections
