@@ -416,9 +416,12 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("invalid sort field name:unknownOrder:desc"), req, http.StatusBadRequest)
 
 	//use of inclusive time window
+	maxTimeForDocs := time.Now()
+	maxTimeForDocs = maxTimeForDocs.Add(time.Hour * 24)
+
 	req = armotypes.V2ListRequest{
 		Since: ptr.Time(time.Time{}),
-		Until: ptr.Time(time.Now()),
+		Until: ptr.Time(maxTimeForDocs),
 	}
 
 	w := suite.doRequest(http.MethodPost, basePath+"/query", req)
@@ -431,8 +434,8 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 
 	// use of exclusive since
 	req = armotypes.V2ListRequest{
-		Since: ptr.Time(time.Now()),
-		Until: ptr.Time(time.Now()),
+		Since: ptr.Time(maxTimeForDocs),
+		Until: ptr.Time(maxTimeForDocs),
 	}
 	w = suite.doRequest(http.MethodPost, basePath+"/query", req)
 	suite.Equal(http.StatusOK, w.Code)
