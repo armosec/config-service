@@ -6,6 +6,7 @@ import (
 
 	"config-service/utils/consts"
 
+	"github.com/aws/smithy-go/ptr"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,6 +19,7 @@ func AddRoutes(g *gin.Engine) {
 			"timestamp":               "date",
 			"relatedAlerts.timestamp": "date",
 		},
+		TimestampFieldName: ptr.String("creationTimestamp"),
 	}
 
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.RuntimeIncident]().

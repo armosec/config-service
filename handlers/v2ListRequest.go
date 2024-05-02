@@ -33,10 +33,8 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	}
 	findOptions.SetPagination(int64(page), int64(perPage))
 	//sort
-	if request.OrderBy == "" {
-		//default sort by update time
-		request.OrderBy = fmt.Sprintf("%s:%s", consts.UpdatedTimeField, armotypes.V2ListDescendingSort)
-	}
+	tsField := db.GetSchemaFromContext(ctx).GetTimestampFieldName()
+	request.ValidateOrderBy(fmt.Sprintf("%s:%s", tsField, armotypes.V2ListDescendingSort))
 	sortFields := strings.Split(request.OrderBy, armotypes.V2ListValueSeparator)
 	for _, sortField := range sortFields {
 		sortNameAndType := strings.Split(sortField, armotypes.V2ListSortTypeSeparator)

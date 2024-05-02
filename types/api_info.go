@@ -23,8 +23,9 @@ const (
 )
 
 type SchemaInfo struct {
-	ArrayPaths []string             `json:"arrayPaths,omitempty"`
-	FieldsType map[string]FieldType `json:"fieldsType,omitempty"`
+	ArrayPaths         []string             `json:"arrayPaths,omitempty"`
+	FieldsType         map[string]FieldType `json:"fieldsType,omitempty"`
+	TimestampFieldName *string              `json:"timestampFieldName,omitempty"` // pointer so empty string can be distinguished from nil
 }
 
 func SetAPIInfo(path string, apiInfo APIInfo) {
@@ -68,4 +69,11 @@ func (s *SchemaInfo) IsDate(field string) bool {
 func (s *SchemaInfo) IsString(field string) bool {
 	fieldType, exist := s.FieldsType[field]
 	return exist && fieldType == String
+}
+
+func (s SchemaInfo) GetTimestampFieldName() string {
+	if s.TimestampFieldName == nil {
+		return "creationTime"
+	}
+	return *s.TimestampFieldName
 }
