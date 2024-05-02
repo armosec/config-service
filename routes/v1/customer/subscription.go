@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/aws/smithy-go/ptr"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,6 +18,9 @@ const (
 )
 
 func addPaymentRoutes(g *gin.Engine) {
+	schemaInfo := types.SchemaInfo{
+		TimestampFieldName: ptr.String("subscription_date"),
+	}
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.Customer]().
 		WithDBCollection(consts.CustomersCollection). //same db as customers
 		WithPath(consts.ActiveSubscriptionPath).
@@ -26,6 +30,7 @@ func addPaymentRoutes(g *gin.Engine) {
 		WithServeDelete(false).                                               //no delete
 		WithBodyDecoder(decodePaymentCustomer).                               //custom decoder
 		WithResponseSender(subscriptionResponseSender).                       //custom response sender
+		WithSchemaInfo(schemaInfo).
 		Get()...)
 }
 
