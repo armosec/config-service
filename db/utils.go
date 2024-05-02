@@ -79,6 +79,10 @@ func AdminFind[T any](c context.Context, findOps *FindOptions) ([]T, error) {
 		findOps = NewFindOptions()
 	}
 	dbFindOptions := options.Find()
+	if findOps.projection.Len() == 0 {
+		schema := GetSchemaFromContext(c)
+		findOps.projection.Exclude(schema.MustExcludeFields...)
+	}
 	dbFindOptions.SetProjection(findOps.projection.get())
 	dbFindOptions.SetSort(findOps.sort.get())
 	dbFindOptions.SetSkip(int64(findOps.skip))
@@ -101,6 +105,9 @@ func FindPaginatedForCustomer[T any](c context.Context, findOps *FindOptions) (*
 		findOps = &FindOptions{}
 	}
 	findOps.Filter().WithNotDeleteForCustomer(c)
+	if GetSchemaFromContext(c).GetNestedDocPath() != "" {
+		return AdminFindNestedPaginated[T](c, findOps)
+	}
 	return AdminFindPaginated[T](c, findOps)
 }
 
@@ -131,6 +138,92 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 
 	pipeline := mongoDB.Pipeline{
 		{{Key: "$match", Value: findOps.filter.get()}},
+		{{Key: "$facet", Value: bson.M{
+			"limitedResults": resultsPipe,
+			"count": []bson.M{
+				{"$count": "count"},
+			},
+		}}},
+	}
+	cursor, err := mongo.GetReadCollection(collection).Aggregate(c, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(c)
+	var result paginatedResult[T]
+	if cursor.Next(c) {
+		err = cursor.Decode(&result)
+		if err != nil {
+			return nil, err
+		}
+	}
+	searchRes := &types.SearchResult[T]{}
+	var count int64
+	if len(result.Count) > 0 {
+		count = result.Count[0].Count
+	}
+	searchRes.SetCount(count)
+	searchRes.SetResults(result.LimitedResults)
+	return searchRes, nil
+}
+
+// AdminFindPaginated search for docs of all customers (unless filtered by caller) and return paginated result
+func AdminFindNestedPaginated[T any](c context.Context, findOps *FindOptions) (*types.SearchResult[T], error) {
+	baseDocId := BaseDocIDFromContext(c)
+	defer log.LogNTraceEnterExit(fmt.Sprintf("AdminFindNestedPaginated(%s) %+v", baseDocId, findOps), c)()
+	if baseDocId == "" {
+		return nil, errors.New("baseDocId is empty")
+	}
+	collection, _, err := ReadContext(c)
+	if err != nil {
+		return nil, err
+	}
+	if findOps == nil {
+		findOps = &FindOptions{}
+	}
+	nestedDocPath := GetSchemaFromContext(c).GetNestedDocPath()
+	if nestedDocPath == "" {
+		return nil, errors.New("nestedDocPath is empty")
+	}
+
+	resultsPipe := []bson.M{}
+	if findOps.Sort().Len() > 0 {
+		resultsPipe = append(resultsPipe, bson.M{"$sort": findOps.sort.get()})
+	}
+	if findOps.skip > 0 {
+		resultsPipe = append(resultsPipe, bson.M{"$skip": findOps.skip})
+	}
+	if findOps.limit > 0 {
+		resultsPipe = append(resultsPipe, bson.M{"$limit": findOps.limit})
+	}
+	if findOps.Projection().Len() > 0 {
+		resultsPipe = append(resultsPipe, bson.M{"$project": findOps.projection.get()})
+	} else { //add default projection
+		resultsPipe = append(resultsPipe, bson.M{"$project": bson.M{"_id": 0, nestedDocPath: 1}})
+	}
+
+	filtersList := findOps.filter.get()
+	// extract base doc filters
+	var matchOnBaseDoc bson.D
+	if len(filtersList) < 2 {
+		return nil, errors.New("missing base doc filters")
+	}
+	matchOnBaseDoc = filtersList[:2] //customer and not deleted
+	// add base doc guid filter:
+	matchOnBaseDoc = append(matchOnBaseDoc, bson.E{Key: consts.IdField, Value: baseDocId})
+	// extract nested doc filters
+	var matchOnNestedDoc bson.D
+	if len(filtersList) > 2 {
+		matchOnNestedDoc = filtersList[2:]
+	}
+
+	nestedDocSubPipeline := []bson.E{
+		{Key: "$match", Value: matchOnBaseDoc},
+		{Key: "$unwind", Value: fmt.Sprintf("$%s", nestedDocPath)},
+		{Key: "$match", Value: matchOnNestedDoc},
+	}
+	pipeline := mongoDB.Pipeline{
+		nestedDocSubPipeline,
 		{{Key: "$facet", Value: bson.M{
 			"limitedResults": resultsPipe,
 			"count": []bson.M{
@@ -344,13 +437,18 @@ func GetDocByGUID[T any](c context.Context, guid string) (*T, error) {
 	if err != nil {
 		return nil, err
 	}
+	findOneOpts := make([]*options.FindOneOptions, 0, 1)
+	schema := GetSchemaFromContext(c)
+	if len(schema.MustExcludeFields) > 0 {
+		findOneOpts = append(findOneOpts, options.FindOne().SetProjection(NewProjectionBuilder().Exclude(schema.MustExcludeFields...).get()))
+	}
 	var result T
 	if err := mongo.GetReadCollection(collection).
 		FindOne(c,
 			NewFilterBuilder().
 				WithNotDeleteForCustomer(c).
 				WithID(guid).
-				get()).
+				get(), findOneOpts...).
 		Decode(&result); err != nil {
 		if err == mongoDB.ErrNoDocuments {
 			return nil, nil
@@ -616,6 +714,15 @@ func GetSchemaFromContext(c context.Context) types.SchemaInfo {
 		}
 	}
 	return types.SchemaInfo{}
+}
+
+func BaseDocIDFromContext(c context.Context) string {
+	if val := c.Value(consts.BaseDocID); val != nil {
+		if id, ok := val.(string); ok {
+			return id
+		}
+	}
+	return ""
 }
 
 func readCustomerGUID(c context.Context) (customerGUID string, err error) {

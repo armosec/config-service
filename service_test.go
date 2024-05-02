@@ -1620,11 +1620,8 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 	testUniqueValues(suite, consts.AttackChainsPath, attackChainStates, uniqueValues, commonCmpFilter, ignoreTime)
 }
 
-func (suite *MainTestSuite) TestRuntimeIncidents() {
-	ts, err := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147901Z")
-	if err != nil {
-		suite.FailNow(err.Error())
-	}
+func getIncidentsMocks() []*types.RuntimeIncident {
+	ts, _ := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147901Z")
 	runtimeIncidents := []*types.RuntimeIncident{
 		{
 			PortalBase: armotypes.PortalBase{
@@ -1667,6 +1664,20 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 					Timestamp: ts,
 				},
 			},
+			RelatedAlerts: []armotypes.RuntimeAlert{
+				{
+					Message:  "msg1",
+					HostName: "host1",
+				},
+				{
+					Message:  "msg2",
+					HostName: "host2",
+				},
+				{
+					Message:  "msg3",
+					HostName: "host3",
+				},
+			},
 			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
 				Designators: identifiers.PortalDesignator{
 					DesignatorType: identifiers.DesignatorAttributes,
@@ -1675,7 +1686,11 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 			},
 		},
 	}
+	return runtimeIncidents
+}
 
+func (suite *MainTestSuite) TestRuntimeIncidents() {
+	runtimeIncidents := getIncidentsMocks()
 	modifyDocFunc := func(doc *types.RuntimeIncident) *types.RuntimeIncident {
 		docCloned := Clone(doc)
 		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, armotypes.RuntimeAlert{
@@ -1776,6 +1791,26 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 	}
 
 	testUniqueValues(suite, consts.RuntimeIncidentPath, runtimeIncidents, uniqueValues, commonCmpFilter, ignoreTime)
+
+}
+func (suite *MainTestSuite) TestRuntimeAlerts() {
+	// feed incidents with nested alerts
+	runtimeIncidents := getIncidentsMocks()
+	w := suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath, runtimeIncidents)
+	suite.Equal(http.StatusCreated, w.Code)
+	// assure no alerts returned in any incident
+	w = suite.doRequest(http.MethodGet, consts.RuntimeIncidentPath, nil)
+	suite.Equal(http.StatusOK, w.Code)
+	docs, err := decodeResponseArray[types.RuntimeIncident](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	for _, doc := range docs {
+		suite.Nil(doc.RelatedAlerts)
+	}
+	// get incident with alert3 by query
+	// assuer it has no alerts
+	// get alerts of this incident guid paginated
 
 }
 
