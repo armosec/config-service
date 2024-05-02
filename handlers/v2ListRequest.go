@@ -54,7 +54,7 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	}
 	//filters
 	if request.Until != nil {
-		timeVal := request.Until.Format(time.RFC3339)
+		timeVal := request.Until.Format(time.RFC3339Nano)
 		value, err := getTypedValue(ctx, tsField, timeVal)
 		if err != nil {
 			return nil, err
@@ -62,7 +62,7 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 		findOptions.Filter().WithLowerThanEqual(tsField, value)
 	}
 	if request.Since != nil {
-		timeVal := request.Since.Format(time.RFC3339)
+		timeVal := request.Since.Format(time.RFC3339Nano)
 		value, err := getTypedValue(ctx, tsField, timeVal)
 		if err != nil {
 			return nil, err
