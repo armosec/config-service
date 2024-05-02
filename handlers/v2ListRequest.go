@@ -17,9 +17,6 @@ import (
 const maxV2PageSize = 150
 
 func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.FindOptions, error) {
-	if request.Until != nil {
-		return nil, fmt.Errorf("until is not supported")
-	}
 	request.ValidatePageProperties(maxV2PageSize)
 	findOptions := db.NewFindOptions()
 	//pages
@@ -53,6 +50,12 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	//projection
 	findOptions.Projection().Include(request.FieldsList...)
 	//filters
+	if request.Until != nil {
+		findOptions.Filter().WithLowerThanEqual(tsField, *request.Until)
+	}
+	if request.Since != nil {
+		findOptions.Filter().WithGreaterThanEqual(tsField, *request.Since)
+	}
 	if len(request.InnerFilters) > 0 {
 		filters := []*db.FilterBuilder{}
 		for i := range request.InnerFilters {
@@ -73,9 +76,6 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 
 func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueValuesRequestV2) (*db.FindOptions, error) {
 	request.ValidatePageProperties(maxV2PageSize)
-	if request.Until != nil || request.Since != nil {
-		return nil, fmt.Errorf("since and until are not supported")
-	}
 	if len(request.Fields) == 0 {
 		return nil, fmt.Errorf("fields are required")
 	}
@@ -91,6 +91,13 @@ func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueV
 	}
 	findOptions.Limit(int64(request.PageSize))
 	//filters
+	tsField := db.GetSchemaFromContext(ctx).GetTimestampFieldName()
+	if request.Until != nil {
+		findOptions.Filter().WithLowerThanEqual(tsField, *request.Until)
+	}
+	if request.Since != nil {
+		findOptions.Filter().WithGreaterThanEqual(tsField, *request.Since)
+	}
 	if len(request.InnerFilters) > 0 {
 		filters := []*db.FilterBuilder{}
 		for i := range request.InnerFilters {

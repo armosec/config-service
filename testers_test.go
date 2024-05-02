@@ -409,17 +409,20 @@ func testPostV2ListRequest[T types.DocContent](suite *MainTestSuite, basePath st
 	}
 	testBadRequest(suite, http.MethodPost, basePath+"/query", errorUnsupportedOperator("unknownOp"), req, http.StatusBadRequest)
 
-	//invalid sort type
+	//invalid sort direction
 	req = armotypes.V2ListRequest{
 		OrderBy: "name:unknownOrder",
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("invalid sort type unknownOrder"), req, http.StatusBadRequest)
+	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("invalid sort field name:unknownOrder:desc"), req, http.StatusBadRequest)
 
-	//use of unsupported Until
+	//use of supported time window
 	req = armotypes.V2ListRequest{
+		Since: ptr.Time(time.Time{}),
 		Until: ptr.Time(time.Now()),
 	}
-	testBadRequest(suite, http.MethodPost, basePath+"/query", errorMessage("until is not supported"), req, http.StatusBadRequest)
+
+	w := suite.doRequest(http.MethodPost, basePath+"/query", req)
+	suite.Equal(http.StatusOK, w.Code)
 
 	//range with no &
 	req = armotypes.V2ListRequest{
@@ -477,13 +480,16 @@ func testUniqueValues[T types.DocContent](suite *MainTestSuite, basePath string,
 	//test uniqueValues bad requests
 	req := armotypes.UniqueValuesRequestV2{}
 	testBadRequest(suite, http.MethodPost, basePath+"/uniqueValues", errorMessage("fields are required"), req, http.StatusBadRequest)
-	req.Fields = map[string]string{
-		"name": "",
+	//fix the bad request
+	req = armotypes.UniqueValuesRequestV2{
+		Fields: map[string]string{
+			"name": "",
+		},
+		Since: ptr.Time(time.Time{}),
+		Until: ptr.Time(time.Now()),
 	}
-	req.Since = ptr.Time(time.Now())
-	req.Until = ptr.Time(time.Now())
-	testBadRequest(suite, http.MethodPost, basePath+"/uniqueValues", errorMessage("since and until are not supported"), req, http.StatusBadRequest)
-
+	w := suite.doRequest(http.MethodPost, basePath+"/uniqueValues", req)
+	suite.Equal(http.StatusOK, w.Code)
 }
 
 func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, basePath, nameParam string, testDocs []T, getQueries []queryTest[T], compareOpts ...cmp.Option) {
