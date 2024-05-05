@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/aws/smithy-go/ptr"
@@ -1620,11 +1621,8 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 	testUniqueValues(suite, consts.AttackChainsPath, attackChainStates, uniqueValues, commonCmpFilter, ignoreTime)
 }
 
-func (suite *MainTestSuite) TestRuntimeIncidents() {
-	ts, err := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147901Z")
-	if err != nil {
-		suite.FailNow(err.Error())
-	}
+func getIncidentsMocks() []*types.RuntimeIncident {
+	ts, _ := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147901Z")
 	runtimeIncidents := []*types.RuntimeIncident{
 		{
 			PortalBase: armotypes.PortalBase{
@@ -1667,6 +1665,20 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 					Timestamp: ts,
 				},
 			},
+			RelatedAlerts: []armotypes.RuntimeAlert{
+				{
+					Message:  "msg1",
+					HostName: "host1",
+				},
+				{
+					Message:  "msg2",
+					HostName: "host2",
+				},
+				{
+					Message:  "msg3",
+					HostName: "host3",
+				},
+			},
 			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
 				Designators: identifiers.PortalDesignator{
 					DesignatorType: identifiers.DesignatorAttributes,
@@ -1675,7 +1687,11 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 			},
 		},
 	}
+	return runtimeIncidents
+}
 
+func (suite *MainTestSuite) TestRuntimeIncidents() {
+	runtimeIncidents := getIncidentsMocks()
 	modifyDocFunc := func(doc *types.RuntimeIncident) *types.RuntimeIncident {
 		docCloned := Clone(doc)
 		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, armotypes.RuntimeAlert{
@@ -1689,8 +1705,11 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 		customGUID:    true,
 		skipPutTests:  false,
 	}
+	cmpFilters := cmp.FilterPath(func(p cmp.Path) bool {
+		return p.String() == "PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" || p.String() == "CreationDate" || p.String() == "PortalBase.UpdatedTime" || p.String() == "UpdatedTime" || strings.HasPrefix(p.String(), "RelatedAlerts")
+	}, cmp.Ignore())
 	commonTestWithOptions(suite, consts.RuntimeIncidentPath, runtimeIncidents, modifyDocFunc,
-		testOpts, commonCmpFilter, ignoreTime)
+		testOpts, cmpFilters, ignoreTime)
 
 	zeroTimeIntAsStr := "-62135596800000"
 
@@ -1776,6 +1795,87 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 	}
 
 	testUniqueValues(suite, consts.RuntimeIncidentPath, runtimeIncidents, uniqueValues, commonCmpFilter, ignoreTime)
+
+}
+func (suite *MainTestSuite) TestRuntimeAlerts() {
+	// feed incidents with nested alerts
+	runtimeIncidents := getIncidentsMocks()
+	w := suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath, runtimeIncidents)
+	suite.Equal(http.StatusCreated, w.Code)
+	// assure no alerts returned in any incident
+	w = suite.doRequest(http.MethodGet, consts.RuntimeIncidentPath, nil)
+	suite.Equal(http.StatusOK, w.Code)
+	docs, err := decodeResponseArray[types.RuntimeIncident](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	for _, doc := range docs {
+		suite.Nil(doc.RelatedAlerts)
+	}
+	// get incident with alert3 by query
+	incidentRequest := armotypes.V2ListRequest{
+		PageSize: ptr.Int(1),
+		PageNum:  ptr.Int(0),
+		InnerFilters: []map[string]string{
+			{
+				"relatedAlerts.message": "msg3",
+			},
+		},
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath+"/query", incidentRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	resp, err := decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeIncident]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(resp.Total.Value, 1)
+	suite.Len(resp.Response, 1)
+	// assuer it has "no alerts"
+	suite.Len(resp.Response[0].RelatedAlerts, 0)
+	// get alerts of this incident guid paginated
+	alertRequest := armotypes.V2ListRequest{
+		PageSize: ptr.Int(1),
+		PageNum:  ptr.Int(0),
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	alerts, err := decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(alerts.Response, 1)
+	suite.Equal(alerts.Total.Value, 3)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[0].RuntimeAlert)
+	// get next page
+	alertRequest.PageNum = ptr.Int(2)
+	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(alerts.Response, 1)
+	suite.Equal(alerts.Total.Value, 3)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[0].RuntimeAlert)
+	// filter alerts by message
+	alertRequest = armotypes.V2ListRequest{
+		PageSize: ptr.Int(1),
+		PageNum:  ptr.Int(0),
+		InnerFilters: []map[string]string{
+			{
+				"message": "msg3",
+			},
+		},
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(alerts.Response, 1)
+	suite.Equal(alerts.Total.Value, 1)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0].RuntimeAlert)
 
 }
 

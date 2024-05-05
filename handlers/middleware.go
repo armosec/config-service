@@ -25,6 +25,18 @@ func SchemaContextMiddleware(schema types.SchemaInfo) gin.HandlerFunc {
 	}
 }
 
+func NestedDocContextMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if baseDocID := c.Param(consts.GUIDField); baseDocID != "" {
+			c.Set(consts.BaseDocID, baseDocID)
+		} else {
+			ResponseBadRequest(c, "missing base document id")
+			return
+		}
+		c.Next()
+	}
+}
+
 func PutFieldsContextMiddleware(fields []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set(consts.PutDocFields, fields)

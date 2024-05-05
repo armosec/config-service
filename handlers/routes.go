@@ -49,6 +49,9 @@ const (
 	bulkSuffix         = "/bulk"
 	querySuffix        = "/query"
 	uniqueValuesSuffix = "/uniqueValues"
+	// nestedDocSuffixes
+	nestedDocQuerySuffix        = "/:" + consts.GUIDField + querySuffix
+	nestedDocUniqueValuesSuffix = "/:" + consts.GUIDField + uniqueValuesSuffix
 )
 
 type containerHandlerOptions struct {
@@ -103,9 +106,9 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 	//add routes
 	if opts.serveGet {
 		if !opts.serveGetWithGUIDOnly {
-			routerGroup.GET("", HandleGet(opts))
+			routerGroup.GET("", SchemaContextMiddleware(opts.schemaInfo), HandleGet(opts))
 		}
-		routerGroup.GET("/:"+consts.GUIDField, HandleGetDocWithGUIDInPath[T])
+		routerGroup.GET("/:"+consts.GUIDField, SchemaContextMiddleware(opts.schemaInfo), HandleGetDocWithGUIDInPath[T])
 	}
 	if opts.servePost {
 		postValidators := []MutatorValidator[T]{}
@@ -149,10 +152,15 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
 	}
 	if opts.servePostV2ListRequests {
-		putSchemaInContext := SchemaContextMiddleware(opts.schemaInfo)
-		routerGroup.POST(querySuffix, putSchemaInContext, HandlePostV2ListRequest[T])
-		routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2)
-
+		if nestedPath := opts.schemaInfo.GetNestedDocPath(); nestedPath != "" {
+			handlers := []gin.HandlerFunc{SchemaContextMiddleware(opts.schemaInfo), NestedDocContextMiddleware(), HandlePostV2ListRequest[T]}
+			routerGroup.POST(nestedDocQuerySuffix, handlers...)
+			routerGroup.POST(nestedDocUniqueValuesSuffix, handlers...)
+		} else {
+			putSchemaInContext := SchemaContextMiddleware(opts.schemaInfo)
+			routerGroup.POST(querySuffix, putSchemaInContext, HandlePostV2ListRequest[T])
+			routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2)
+		}
 	}
 	//add array handlers
 	for _, containerHandler := range opts.containersHandlers {
@@ -219,6 +227,12 @@ func (opts *routerOptions[T]) validate() error {
 	}
 	if opts.serveGetWithGUIDOnly && !opts.serveGet {
 		return fmt.Errorf("serveGetWithGUIDOnly can only be true when serveGet is true")
+	}
+	if opts.schemaInfo.GetNestedDocPath() != "" && !opts.servePostV2ListRequests {
+		return fmt.Errorf("nestedDocPath can only be set when servePostV2ListRequests is true")
+	}
+	if opts.schemaInfo.GetNestedDocPath() != "" && (opts.serveDelete || opts.servePost || opts.serveGet || opts.servePut) {
+		return fmt.Errorf("nestedDocPath can only be set when servePost, serveDelete, serveGet and servePut are false")
 	}
 	return nil
 }
