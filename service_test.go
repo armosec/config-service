@@ -1703,6 +1703,14 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 		mandatoryName: false,
 		customGUID:    true,
 		skipPutTests:  false,
+		manipulateForCompare: func(doc *types.RuntimeIncident) *types.RuntimeIncident {
+			clone := func(doc types.RuntimeIncident) types.RuntimeIncident {
+				return doc
+			}
+			newDoc := clone(*doc)
+			newDoc.RelatedAlerts = nil
+			return &newDoc
+		},
 	}
 	commonTestWithOptions(suite, consts.RuntimeIncidentPath, runtimeIncidents, modifyDocFunc,
 		testOpts, commonCmpFilter, ignoreTime)

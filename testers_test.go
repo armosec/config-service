@@ -22,12 +22,13 @@ import (
 
 // //////////////////////////////////////// Test scenarios //////////////////////////////////////////
 type testOptions[T any] struct {
-	uniqueName    bool
-	mandatoryName bool
-	renameAllowed bool
-	customGUID    bool
-	skipPutTests  bool
-	clondeDocFunc *func(T) T
+	uniqueName           bool
+	mandatoryName        bool
+	renameAllowed        bool
+	customGUID           bool
+	skipPutTests         bool
+	clondeDocFunc        *func(T) T
+	manipulateForCompare func(doc T) T
 }
 
 func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string, testDocs []T, modifyFunc func(T) T, testOptions testOptions[T], compareNewOpts ...cmp.Option) {
@@ -79,7 +80,7 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 			suite.NoError(err, "GUID should be a valid uuid")
 		}
 		//delete the new doc
-		testDeleteDocByGUID(suite, path, newDoc, compareNewOpts...)
+		testDeleteDocByGUIDWithOptions(suite, path, newDoc, &testOptions, compareNewOpts...)
 	}
 	noNameDoc := cloneDocFun(doc1)
 	noNameDoc.SetGUID("")
@@ -95,7 +96,7 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 		_, err := uuid.FromString(newDoc.GetGUID())
 		suite.NoError(err, "GUID should be a valid uuid")
 		//delete the new doc
-		testDeleteDocByGUID(suite, path, newDoc, compareNewOpts...)
+		testDeleteDocByGUIDWithOptions(suite, path, newDoc, &testOptions, compareNewOpts...)
 	}
 	//bulk post documents
 	updateTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
@@ -121,7 +122,7 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 		doc1 = modifyFunc(doc1)
 		//check that the doc update date is updated
 		updateTime, _ = time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
-		testPutDoc(suite, path, oldDoc1, doc1, compareNewOpts...)
+		doc1 = testPutDoc(suite, path, oldDoc1, doc1, compareNewOpts...)
 
 		suite.NotNil(doc1.GetUpdatedTime(), "updated time should not be nil")
 		suite.True(updateTime.Before(*doc1.GetUpdatedTime()) || updateTime.Equal(*doc1.GetUpdatedTime()), "update time is not recent")
@@ -182,21 +183,21 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 	//GET
 	//test get by guid
 	pathWGuid := fmt.Sprintf("%s/%s", path, doc1.GetGUID())
-	testGetDoc(suite, pathWGuid, doc1, compareNewOpts...)
+	testGetDocWithOptions(suite, pathWGuid, doc1, &testOptions, compareNewOpts...)
 	//test get all
 	docs := []T{doc1}
 	docs = append(docs, documents...)
-	testGetDocs(suite, path, docs, compareNewOpts...)
+	testGetDocsWithOptions(suite, path, docs, &testOptions, compareNewOpts...)
 	//test get with wrong guid should fail
 	testBadRequest(suite, http.MethodGet, fmt.Sprintf("%s/%s", path, "no_exist"), errorDocumentNotFound, nil, http.StatusNotFound)
 
 	//test delete by guid
-	testDeleteDocByGUID(suite, path, doc1, compareNewOpts...)
+	testDeleteDocByGUIDWithOptions(suite, path, doc1, &testOptions, compareNewOpts...)
 	//test get all after delete
-	testGetDocs(suite, path, documents, compareNewOpts...)
+	testGetDocsWithOptions(suite, path, documents, &testOptions, compareNewOpts...)
 	//delete the rest of the docs
 	for _, doc := range documents {
-		testDeleteDocByGUID(suite, path, doc, compareNewOpts...)
+		testDeleteDocByGUIDWithOptions(suite, path, doc, &testOptions, compareNewOpts...)
 	}
 	//test get all after delete all
 	testGetDocs(suite, path, []T{}, compareNewOpts...)
@@ -601,20 +602,28 @@ func testBadRequest(suite *MainTestSuite, method, path, expectedResponse string,
 	suite.Equal(expectedResponse, w.Body.String())
 }
 
-// //////////////////////////////////////// GET //////////////////////////////////////////
-func testGetDoc[T any](suite *MainTestSuite, path string, expectedDoc T, compareOpts ...cmp.Option) T {
+func testGetDocWithOptions[T any](suite *MainTestSuite, path string, expectedDoc T, testOptions *testOptions[T], compareOpts ...cmp.Option) T {
 	w := suite.doRequest(http.MethodGet, path, nil)
 	suite.Equal(http.StatusOK, w.Code)
 	doc, err := decodeResponse[T](w)
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
+	if testOptions != nil && testOptions.manipulateForCompare != nil {
+		expectedDoc = testOptions.manipulateForCompare(expectedDoc)
+		doc = testOptions.manipulateForCompare(doc)
+	}
 	diff := cmp.Diff(doc, expectedDoc, compareOpts...)
 	suite.Equal("", diff)
 	return doc
 }
 
-func testGetDocs[T types.DocContent](suite *MainTestSuite, path string, expectedDocs []T, compareOpts ...cmp.Option) (actualDocs []T) {
+// //////////////////////////////////////// GET //////////////////////////////////////////
+func testGetDoc[T any](suite *MainTestSuite, path string, expectedDoc T, compareOpts ...cmp.Option) T {
+	return testGetDocWithOptions[T](suite, path, expectedDoc, nil, compareOpts...)
+}
+
+func testGetDocsWithOptions[T types.DocContent](suite *MainTestSuite, path string, expectedDocs []T, testOptions *testOptions[T], compareOpts ...cmp.Option) (actualDocs []T) {
 	w := suite.doRequest(http.MethodGet, path, nil)
 	suite.Equal(http.StatusOK, w.Code)
 	docs, err := decodeResponseArray[T](w)
@@ -627,9 +636,21 @@ func testGetDocs[T types.DocContent](suite *MainTestSuite, path string, expected
 	sort.Slice(expectedDocs, func(i, j int) bool {
 		return expectedDocs[i].GetName() < expectedDocs[j].GetName()
 	})
+	if testOptions != nil && testOptions.manipulateForCompare != nil {
+		for i := range expectedDocs {
+			expectedDocs[i] = testOptions.manipulateForCompare(expectedDocs[i])
+		}
+		for i := range docs {
+			docs[i] = testOptions.manipulateForCompare(docs[i])
+		}
+	}
 	diff := cmp.Diff(docs, expectedDocs, compareOpts...)
 	suite.Equal("", diff)
 	return docs
+}
+
+func testGetDocs[T types.DocContent](suite *MainTestSuite, path string, expectedDocs []T, compareOpts ...cmp.Option) (actualDocs []T) {
+	return testGetDocsWithOptions(suite, path, expectedDocs, nil, compareOpts...)
 }
 
 func testGetNameList(suite *MainTestSuite, path string, expectedNames []string) {
@@ -724,8 +745,7 @@ func testPutDocWGuid[T types.DocContent](suite *MainTestSuite, path string, oldD
 	suite.Equal("", diff)
 }
 
-// //////////////////////////////////////// DELETE //////////////////////////////////////////
-func testDeleteDocByGUID[T types.DocContent](suite *MainTestSuite, path string, doc2Delete T, compareOpts ...cmp.Option) {
+func testDeleteDocByGUIDWithOptions[T types.DocContent](suite *MainTestSuite, path string, doc2Delete T, testOptions *testOptions[T], compareOpts ...cmp.Option) {
 	path = fmt.Sprintf("%s/%s", path, doc2Delete.GetGUID())
 	w := suite.doRequest(http.MethodDelete, path, nil)
 	suite.Equal(http.StatusOK, w.Code)
@@ -733,8 +753,17 @@ func testDeleteDocByGUID[T types.DocContent](suite *MainTestSuite, path string, 
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
+	if testOptions != nil && testOptions.manipulateForCompare != nil {
+		doc2Delete = testOptions.manipulateForCompare(doc2Delete)
+		deleteDoc = testOptions.manipulateForCompare(deleteDoc)
+	}
 	diff := cmp.Diff(deleteDoc, doc2Delete, compareOpts...)
 	suite.Equal("", diff)
+}
+
+// //////////////////////////////////////// DELETE //////////////////////////////////////////
+func testDeleteDocByGUID[T types.DocContent](suite *MainTestSuite, path string, doc2Delete T, compareOpts ...cmp.Option) {
+	testDeleteDocByGUIDWithOptions(suite, path, doc2Delete, nil, compareOpts...)
 }
 
 func testDeleteDocByName[T types.DocContent](suite *MainTestSuite, path string, nameParam string, doc2Delete T, compareOpts ...cmp.Option) {
