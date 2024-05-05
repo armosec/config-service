@@ -228,6 +228,12 @@ func (opts *routerOptions[T]) validate() error {
 	if opts.serveGetWithGUIDOnly && !opts.serveGet {
 		return fmt.Errorf("serveGetWithGUIDOnly can only be true when serveGet is true")
 	}
+	if opts.schemaInfo.GetNestedDocPath() != "" && !opts.servePostV2ListRequests {
+		return fmt.Errorf("nestedDocPath can only be set when servePostV2ListRequests is true")
+	}
+	if opts.schemaInfo.GetNestedDocPath() != "" && (opts.serveDelete || opts.servePost || opts.serveGet || opts.servePut) {
+		return fmt.Errorf("nestedDocPath can only be set when servePost, serveDelete, serveGet and servePut are false")
+	}
 	return nil
 }
 
