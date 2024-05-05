@@ -22,13 +22,12 @@ import (
 
 // //////////////////////////////////////// Test scenarios //////////////////////////////////////////
 type testOptions[T any] struct {
-	uniqueName           bool
-	mandatoryName        bool
-	renameAllowed        bool
-	customGUID           bool
-	skipPutTests         bool
-	clondeDocFunc        *func(T) T
-	manipulateForCompare func(doc T) T
+	uniqueName    bool
+	mandatoryName bool
+	renameAllowed bool
+	customGUID    bool
+	skipPutTests  bool
+	clondeDocFunc *func(T) T
 }
 
 func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string, testDocs []T, modifyFunc func(T) T, testOptions testOptions[T], compareNewOpts ...cmp.Option) {
@@ -609,10 +608,6 @@ func testGetDocWithOptions[T any](suite *MainTestSuite, path string, expectedDoc
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
-	if testOptions != nil && testOptions.manipulateForCompare != nil {
-		expectedDoc = testOptions.manipulateForCompare(expectedDoc)
-		doc = testOptions.manipulateForCompare(doc)
-	}
 	diff := cmp.Diff(doc, expectedDoc, compareOpts...)
 	suite.Equal("", diff)
 	return doc
@@ -636,14 +631,6 @@ func testGetDocsWithOptions[T types.DocContent](suite *MainTestSuite, path strin
 	sort.Slice(expectedDocs, func(i, j int) bool {
 		return expectedDocs[i].GetName() < expectedDocs[j].GetName()
 	})
-	if testOptions != nil && testOptions.manipulateForCompare != nil {
-		for i := range expectedDocs {
-			expectedDocs[i] = testOptions.manipulateForCompare(expectedDocs[i])
-		}
-		for i := range docs {
-			docs[i] = testOptions.manipulateForCompare(docs[i])
-		}
-	}
 	diff := cmp.Diff(docs, expectedDocs, compareOpts...)
 	suite.Equal("", diff)
 	return docs
@@ -752,10 +739,6 @@ func testDeleteDocByGUIDWithOptions[T types.DocContent](suite *MainTestSuite, pa
 	deleteDoc, err := decodeResponse[T](w)
 	if err != nil {
 		suite.FailNow(err.Error())
-	}
-	if testOptions != nil && testOptions.manipulateForCompare != nil {
-		doc2Delete = testOptions.manipulateForCompare(doc2Delete)
-		deleteDoc = testOptions.manipulateForCompare(deleteDoc)
 	}
 	diff := cmp.Diff(deleteDoc, doc2Delete, compareOpts...)
 	suite.Equal("", diff)

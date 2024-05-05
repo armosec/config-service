@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/aws/smithy-go/ptr"
@@ -1703,17 +1704,12 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 		mandatoryName: false,
 		customGUID:    true,
 		skipPutTests:  false,
-		manipulateForCompare: func(doc *types.RuntimeIncident) *types.RuntimeIncident {
-			clone := func(doc types.RuntimeIncident) types.RuntimeIncident {
-				return doc
-			}
-			newDoc := clone(*doc)
-			newDoc.RelatedAlerts = nil
-			return &newDoc
-		},
 	}
+	cmpFilters := cmp.FilterPath(func(p cmp.Path) bool {
+		return p.String() == "PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" || p.String() == "CreationDate" || p.String() == "PortalBase.UpdatedTime" || p.String() == "UpdatedTime" || strings.HasPrefix(p.String(), "RelatedAlerts")
+	}, cmp.Ignore())
 	commonTestWithOptions(suite, consts.RuntimeIncidentPath, runtimeIncidents, modifyDocFunc,
-		testOpts, commonCmpFilter, ignoreTime)
+		testOpts, cmpFilters, ignoreTime)
 
 	zeroTimeIntAsStr := "-62135596800000"
 
