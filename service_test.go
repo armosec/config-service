@@ -1809,8 +1809,69 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 		suite.Nil(doc.RelatedAlerts)
 	}
 	// get incident with alert3 by query
-	// assuer it has no alerts
+	incidentRequest := armotypes.V2ListRequest{
+		PageSize: ptr.Int(1),
+		PageNum:  ptr.Int(0),
+		InnerFilters: []map[string]string{
+			{
+				"relatedAlerts.message": "msg3",
+			},
+		},
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath+"/query", incidentRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	resp, err := decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeIncident]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(resp.Total.Value, 1)
+	suite.Len(resp.Response, 1)
+	// assuer it has "no alerts"
+	suite.Len(resp.Response[0].RelatedAlerts, 0)
 	// get alerts of this incident guid paginated
+	alertRequest := armotypes.V2ListRequest{
+		PageSize: ptr.Int(1),
+		PageNum:  ptr.Int(0),
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	alerts, err := decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(alerts.Response, 1)
+	suite.Equal(alerts.Total.Value, 3)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[0].RuntimeAlert)
+	// get next page
+	alertRequest.PageNum = ptr.Int(2)
+	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(alerts.Response, 1)
+	suite.Equal(alerts.Total.Value, 3)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[0].RuntimeAlert)
+	// filter alerts by message
+	alertRequest = armotypes.V2ListRequest{
+		PageSize: ptr.Int(1),
+		PageNum:  ptr.Int(0),
+		InnerFilters: []map[string]string{
+			{
+				"message": "msg3",
+			},
+		},
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(alerts.Response, 1)
+	suite.Equal(alerts.Total.Value, 1)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0].RuntimeAlert)
 
 }
 

@@ -12,16 +12,16 @@ import (
 
 func AddRoutes(g *gin.Engine) {
 	schemaInfo := types.SchemaInfo{
-		NestedDocPath: "relatedAlerts",
-		ArrayPaths:    []string{"relatedAlerts", "relatedResources"},
+		NestedDocPath:      "relatedAlerts",
+		TimestampFieldName: ptr.String("timestamp"),
+		// not sure we need all the rest since we are using replace root
+		ArrayPaths: []string{"relatedAlerts", "relatedResources"},
 		FieldsType: map[string]types.FieldType{
 			"creationTimestamp":       "date",
 			"seenAt":                  "date",
 			"timestamp":               "date",
 			"relatedAlerts.timestamp": "date",
 		},
-		TimestampFieldName: ptr.String("creationTimestamp"),
-		MustExcludeFields:  []string{"relatedAlerts"},
 	}
 
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.RuntimeAlert]().

@@ -198,39 +198,33 @@ func AdminFindNestedPaginated[T any](c context.Context, findOps *FindOptions) (*
 	}
 	if findOps.Projection().Len() > 0 {
 		resultsPipe = append(resultsPipe, bson.M{"$project": findOps.projection.get()})
-	} else { //add default projection
-		resultsPipe = append(resultsPipe, bson.M{"$project": bson.M{"_id": 0, nestedDocPath: 1}})
 	}
 
 	filtersList := findOps.filter.get()
 	// extract base doc filters
-	var matchOnBaseDoc bson.D
 	if len(filtersList) < 2 {
 		return nil, errors.New("missing base doc filters")
 	}
-	matchOnBaseDoc = filtersList[:2] //customer and not deleted
-	// add base doc guid filter:
-	matchOnBaseDoc = append(matchOnBaseDoc, bson.E{Key: consts.IdField, Value: baseDocId})
-	// extract nested doc filters
-	var matchOnNestedDoc bson.D
+	matchOnBaseDoc := bson.D{filtersList[len(filtersList)-1], filtersList[len(filtersList)-2], bson.E{Key: consts.IdField, Value: baseDocId}} //customer, not deleted and base doc guid filter
+	pipeline := mongoDB.Pipeline{
+		{{Key: "$match", Value: matchOnBaseDoc}},
+		{{Key: "$unwind", Value: fmt.Sprintf("$%s", nestedDocPath)}},
+		{{Key: "$replaceRoot", Value: bson.M{"newRoot": fmt.Sprintf("$%s", nestedDocPath)}}},
+	}
 	if len(filtersList) > 2 {
-		matchOnNestedDoc = filtersList[2:]
+		matchOnNestedDoc := filtersList[:len(filtersList)-2] //all filters except the last 2
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: bson.D{{Key: "$or", Value: []bson.D{matchOnNestedDoc}}}}})
 	}
 
-	nestedDocSubPipeline := []bson.E{
-		{Key: "$match", Value: matchOnBaseDoc},
-		{Key: "$unwind", Value: fmt.Sprintf("$%s", nestedDocPath)},
-		{Key: "$match", Value: matchOnNestedDoc},
-	}
-	pipeline := mongoDB.Pipeline{
-		nestedDocSubPipeline,
-		{{Key: "$facet", Value: bson.M{
+	pipeline = append(pipeline, bson.D{
+		{Key: "$facet", Value: bson.M{
 			"limitedResults": resultsPipe,
 			"count": []bson.M{
 				{"$count": "count"},
 			},
 		}}},
-	}
+	)
+
 	cursor, err := mongo.GetReadCollection(collection).Aggregate(c, pipeline)
 	if err != nil {
 		return nil, err
