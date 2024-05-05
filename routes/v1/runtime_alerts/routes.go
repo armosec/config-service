@@ -29,5 +29,10 @@ func AddRoutes(g *gin.Engine) {
 		WithDBCollection(consts.RuntimeIncidentCollection).
 		WithSchemaInfo(schemaInfo).
 		WithV2ListSearch(true).
+		WithGetNamesList(false).
+		WithServePost(false).
+		WithServePut(false).
+		WithServeGet(false).
+		WithServeDelete(false).
 		Get()...)
 }
