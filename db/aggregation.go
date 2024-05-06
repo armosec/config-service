@@ -163,7 +163,7 @@ func matchFiltersForUnwind(arrayName string, match bson.D) bson.D {
 	var unwindMatch bson.D
 	for _, elem := range match {
 		if elem.Key == arrayName && isBsonD(elem.Value) {
-			unwindMatch = append(unwindMatch, transformElemMatchForUnwind(arrayName, elem.Value.(bson.D))...)
+			unwindMatch = append(unwindMatch, transformArrayConditionsForUnwind(arrayName, elem.Value.(bson.D))...)
 		} else {
 			unwindMatch = append(unwindMatch, elem)
 		}
@@ -179,13 +179,13 @@ func isBsonD(value interface{}) bool {
 }
 
 // transformElemMatchForUnwind transforms an $elemMatch condition to be applicable after $unwind.
-func transformElemMatchForUnwind(arrayName string, elemMatch bson.D) bson.D {
+func transformArrayConditionsForUnwind(arrayName string, filter bson.D) bson.D {
 	var transformed bson.D
-	for _, cond := range elemMatch {
+	for _, cond := range filter {
 		if cond.Key == "$elemMatch" {
 			transformed = append(transformed, processElemMatchConditions(arrayName, cond.Value.(bson.D))...)
 		} else {
-			transformed = append(transformed, bson.E{Key: arrayName + "." + cond.Key, Value: cond.Value})
+			transformed = append(transformed, cond)
 		}
 	}
 	return transformed
