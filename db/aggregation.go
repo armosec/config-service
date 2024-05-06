@@ -141,7 +141,6 @@ func uniqueValuePipeline(field string, match bson.D, skip, limit int64, schemaIn
 			{Key: "count", Value: 1},
 		}}},
 	)
-	fmt.Println(pipeline)
 	return pipeline
 }
 
