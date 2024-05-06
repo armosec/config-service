@@ -162,13 +162,20 @@ func addUniqueValuesResult(aggregatedResults *armotypes.UniqueValuesResponseV2, 
 func matchFiltersForUnwind(arrayName string, match bson.D) bson.D {
 	var unwindMatch bson.D
 	for _, elem := range match {
-		if elem.Key == arrayName {
+		if elem.Key == arrayName && isBsonD(elem.Value) {
 			unwindMatch = append(unwindMatch, transformElemMatchForUnwind(arrayName, elem.Value.(bson.D))...)
 		} else {
 			unwindMatch = append(unwindMatch, elem)
 		}
 	}
 	return unwindMatch
+}
+
+func isBsonD(value interface{}) bool {
+	if _, ok := value.(bson.D); ok {
+		return true
+	}
+	return false
 }
 
 // transformElemMatchForUnwind transforms an $elemMatch condition to be applicable after $unwind.
