@@ -112,7 +112,7 @@ func uniqueValuePipeline(field string, match bson.D, skip, limit int64, schemaIn
 		pipeline = append(pipeline,
 			bson.D{{Key: "$unwind", Value: "$" + arrayPath}},
 			//after unwind we need to match again
-			bson.D{{Key: "$match", Value: match}},
+			bson.D{{Key: "$match", Value: matchFiltersForUnwind(arrayPath, match)}},
 		)
 	}
 
@@ -141,6 +141,7 @@ func uniqueValuePipeline(field string, match bson.D, skip, limit int64, schemaIn
 			{Key: "count", Value: 1},
 		}}},
 	)
+	fmt.Println(pipeline)
 	return pipeline
 }
 
@@ -155,5 +156,76 @@ func addUniqueValuesResult(aggregatedResults *armotypes.UniqueValuesResponseV2, 
 			Field: utils.Interface2String(count.Key),
 			Count: count.Count,
 		})
+	}
+}
+
+// matchFiltersForUnwind adjusts filters for use after an $unwind array stage.
+func matchFiltersForUnwind(arrayName string, match bson.D) bson.D {
+	var unwindMatch bson.D
+	for _, elem := range match {
+		if elem.Key == arrayName {
+			unwindMatch = append(unwindMatch, transformElemMatchForUnwind(arrayName, elem.Value.(bson.D))...)
+		} else {
+			unwindMatch = append(unwindMatch, elem)
+		}
+	}
+	return unwindMatch
+}
+
+// transformElemMatchForUnwind transforms an $elemMatch condition to be applicable after $unwind.
+func transformElemMatchForUnwind(arrayName string, elemMatch bson.D) bson.D {
+	var transformed bson.D
+	for _, cond := range elemMatch {
+		if cond.Key == "$elemMatch" {
+			transformed = append(transformed, processElemMatchConditions(arrayName, cond.Value.(bson.D))...)
+		} else {
+			transformed = append(transformed, bson.E{Key: arrayName + "." + cond.Key, Value: cond.Value})
+		}
+	}
+	return transformed
+}
+
+// processElemMatchConditions handles conditions inside $elemMatch after $unwind.
+func processElemMatchConditions(arrayName string, conditions bson.D) bson.D {
+	var transformed bson.D
+	for _, cond := range conditions {
+		if strings.HasPrefix(cond.Key, "$") {
+			transformed = append(transformed, bson.E{Key: cond.Key, Value: addArrayPath2Keys(arrayName, cond.Value)})
+		} else {
+			// Direct field conditions
+			transformed = append(transformed, bson.E{Key: arrayName + "." + cond.Key, Value: cond.Value})
+		}
+	}
+	return transformed
+}
+
+func addArrayPath2Keys(arrayPath string, filterVal interface{}) interface{} {
+	switch v := filterVal.(type) {
+	case bson.D:
+		var newFilter bson.D
+		for _, elem := range v {
+			newFilter = append(newFilter, bson.E{Key: arrayPath + "." + elem.Key, Value: elem.Value})
+		}
+		return newFilter
+	case bson.A:
+		var newArray bson.A
+		for _, elem := range v {
+			newArray = append(newArray, addArrayPath2Keys(arrayPath, elem))
+		}
+		return newArray
+	case bson.M:
+		newFilter := make(bson.M)
+		for key, value := range v {
+			newFilter[arrayPath+"."+key] = value
+		}
+		return newFilter
+	case []bson.M:
+		var newArray []bson.M
+		for _, elem := range v {
+			newArray = append(newArray, addArrayPath2Keys(arrayPath, elem).(bson.M))
+		}
+		return newArray
+	default:
+		return filterVal
 	}
 }

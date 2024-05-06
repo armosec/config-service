@@ -21,9 +21,7 @@ func NewFilterBuilder() *FilterBuilder {
 
 func (f *FilterBuilder) WithFilter(filterBuilder *FilterBuilder) *FilterBuilder {
 	filter := filterBuilder.get()
-	for e := range filter {
-		f.filter = append(f.filter, filter[e])
-	}
+	f.filter = append(f.filter, filter...)
 	return f
 }
 
