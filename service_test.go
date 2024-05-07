@@ -2109,6 +2109,27 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 
 	uniqueValueTestCases := []uniqueValueTest{
 		{
+			testName: "unique values with elem match operator",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"relatedObjects.severity": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"relatedObjects.component|elemMatch":        "component1,component2",
+						"relatedObjects.componentVersion|elemMatch": "version1,version2",
+						"owner": "|exists",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"relatedObjects.severity": { "critical","high"},
+				},
+				FieldsCount: nil,
+			},
+		},
+		{
 			testName: "resources with image layer",
 			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
 				Fields: map[string]string{
