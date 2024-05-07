@@ -22,14 +22,6 @@ func AddRoutes(g *gin.Engine) {
 		TimestampFieldName: ptr.String("creationTimestamp"),
 		MustExcludeFields:  []string{"relatedAlerts"},
 	}
-	guardRelatedAlerts := func(c *gin.Context, docs []*types.RuntimeIncident) (verifiedDocs []*types.RuntimeIncident, valid bool) {
-		for i := range docs {
-			if docs[i].RelatedAlerts != nil {
-				docs[i].RelatedAlerts = nil
-			}
-		}
-		return docs, true
-	}
 
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.RuntimeIncident]().
 		WithPath(consts.RuntimeIncidentPath).
@@ -39,6 +31,5 @@ func AddRoutes(g *gin.Engine) {
 		WithValidatePostMandatoryName(false).
 		WithSchemaInfo(schemaInfo).
 		WithV2ListSearch(true).
-		WithPutValidators(guardRelatedAlerts).
 		Get()...)
 }
