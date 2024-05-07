@@ -1832,6 +1832,11 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	suite.Len(resp.Response, 1)
 	// assuer it has "no alerts"
 	suite.Len(resp.Response[0].RelatedAlerts, 0)
+	// assuer the calling PUT for this incident (with empty alerts) will not change the alerts
+	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPath+"/"+resp.Response[0].GUID, resp.Response[0])
+	suite.Equal(http.StatusOK, w.Code)
+	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPath, resp.Response[0])
+	suite.Equal(http.StatusOK, w.Code)
 	// get alerts of this incident guid paginated
 	alertRequest := armotypes.V2ListRequest{
 		PageSize: ptr.Int(1),
