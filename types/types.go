@@ -402,7 +402,11 @@ type RuntimeIncident armotypes.RuntimeIncident
 var runtimeIncidentReadOnlyFields = append([]string{"creationTimestamp"}, commonReadOnlyFieldsV1...)
 
 func (r *RuntimeIncident) GetReadOnlyFields() []string {
-	return runtimeIncidentReadOnlyFields
+	readOnlyFields := runtimeIncidentReadOnlyFields
+	if r.RelatedAlerts == nil || len(r.RelatedAlerts) == 0 {
+		readOnlyFields = append(readOnlyFields, "relatedAlerts")
+	}
+	return readOnlyFields
 }
 
 func (r *RuntimeIncident) InitNew() {
