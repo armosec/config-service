@@ -123,14 +123,14 @@ func uniqueValuePipeline(fields []string, match bson.D, skip, limit int64, schem
 		filedRef = "$" + fields[0]
 	} else {
 		setM := bson.M{}
-		groupM := bson.M{}
+		groupD := bson.D{}
 		for _, field := range fields {
 			cleanField := strings.ReplaceAll(field, ".", "_")
 			setM[cleanField] = "$" + field
-			groupM[cleanField] = "$" + cleanField
+			groupD = append(groupD, bson.E{Key: cleanField, Value: "$" + field})
 		}
 		pipeline = append(pipeline, bson.D{{Key: "$set", Value: setM}})
-		filedRef = groupM
+		filedRef = groupD
 	}
 	pipeline = append(pipeline,
 		bson.D{{Key: "$group", Value: bson.D{
