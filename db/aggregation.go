@@ -102,20 +102,36 @@ func AggregateWithTemplate[T any](ctx context.Context, limit, cursor int, collec
 	return &results, nil
 }
 
-func uniqueValuePipeline(field string, match bson.D, skip, limit int64, schemaInfo types.SchemaInfo) mongoDB.Pipeline {
-	isArray, arrayPath, _ := schemaInfo.GetArrayDetails(field)
-	filedRef := "$" + field
+func uniqueValuePipeline(fields []string, match bson.D, skip, limit int64, schemaInfo types.SchemaInfo) mongoDB.Pipeline {
 	pipeline := mongoDB.Pipeline{
 		{{Key: "$match", Value: match}},
 	}
-	if isArray {
-		pipeline = append(pipeline,
-			bson.D{{Key: "$unwind", Value: "$" + arrayPath}},
-			//after unwind we need to match again
-			bson.D{{Key: "$match", Value: matchFiltersForUnwind(arrayPath, match)}},
-		)
+	handledArrays := map[string]bool{}
+	for _, field := range fields {
+		isArray, arrayPath, _ := schemaInfo.GetArrayDetails(field)
+		if isArray && !handledArrays[arrayPath] {
+			handledArrays[arrayPath] = true
+			pipeline = append(pipeline,
+				bson.D{{Key: "$unwind", Value: "$" + arrayPath}},
+				//after unwind we need to match again
+				bson.D{{Key: "$match", Value: matchFiltersForUnwind(arrayPath, match)}},
+			)
+		}
 	}
-
+	var filedRef interface{}
+	if len(fields) == 1 {
+		filedRef = "$" + fields[0]
+	} else {
+		setM := bson.M{}
+		groupM := bson.M{}
+		for _, field := range fields {
+			cleanField := strings.ReplaceAll(field, ".", "_")
+			setM[cleanField] = "$" + field
+			groupM[cleanField] = "$" + cleanField
+		}
+		pipeline = append(pipeline, bson.D{{Key: "$set", Value: setM}})
+		filedRef = groupM
+	}
 	pipeline = append(pipeline,
 		bson.D{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: filedRef},

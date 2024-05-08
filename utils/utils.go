@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func BoolPointer(b bool) *bool {
@@ -36,6 +38,13 @@ func Interface2String(value interface{}) string {
 	case time.Time:
 		// If the value is a time.Time, convert it to a string
 		return v.Format(time.RFC3339)
+	case bson.D:
+		// case of aggregated query (e.g. field1|field2)
+		var values []string
+		for _, elem := range v {
+			values = append(values, Interface2String(elem.Value))
+		}
+		return strings.Join(values, "|")
 	default:
 		// If the value is of another type, convert it to a string using fmt.Sprintf
 		return fmt.Sprintf("%v", v)
