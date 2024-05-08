@@ -2112,6 +2112,22 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 			testName: "unique values with elem match operator",
 			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
 				Fields: map[string]string{
+					"relatedObjects.severity|relatedObjects.component": "",
+				},
+				InnerFilters: []map[string]string{},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"relatedObjects.severity|relatedObjects.component": {
+						"critical|component1", "critical|component2", "high|component1", "high|component2"},
+				},
+				FieldsCount: nil,
+			},
+		},
+		{
+			testName: "unique values with elem match operator",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
 					"relatedObjects.severity": "",
 				},
 				InnerFilters: []map[string]string{
@@ -2124,7 +2140,7 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 			},
 			expectedResponse: armotypes.UniqueValuesResponseV2{
 				Fields: map[string][]string{
-					"relatedObjects.severity": { "critical","high"},
+					"relatedObjects.severity": {"critical", "high"},
 				},
 				FieldsCount: nil,
 			},

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -274,10 +275,15 @@ func AdminAggregate(c context.Context, findOps *FindOptions) (*armotypes.UniqueV
 	errGroup, ctx := errgroup.WithContext(c)
 	for _, field := range findOps.group {
 		field := field
-		fieldFilter := NewFilterBuilder().WithFilter(findOps.filter).AddExists(field, true)
+		fields := strings.Split(field, "|")
+		fieldFilter := NewFilterBuilder()
+		for _, f := range fields {
+			fieldFilter.AddExists(f, true)
+		}
+		fieldFilter.WithFilter(findOps.filter)
 		errGroup.Go(func() error {
 			cursor, err := mongo.GetReadCollection(collection).Aggregate(ctx,
-				uniqueValuePipeline(field,
+				uniqueValuePipeline(fields,
 					fieldFilter.get(),
 					findOps.skip,
 					findOps.limit,
