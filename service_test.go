@@ -1635,6 +1635,7 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 					Namespace:   "namespace1",
 				},
 			},
+			Severity: "low",
 			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
 				Designators: identifiers.PortalDesignator{
 					DesignatorType: identifiers.DesignatorAttributes,
@@ -1665,6 +1666,7 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 					Timestamp: ts,
 				},
 			},
+			Severity: "medium",
 			RelatedAlerts: []armotypes.RuntimeAlert{
 				{
 					Message:  "msg1",
@@ -1749,17 +1751,21 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 			},
 			expectedResponse: armotypes.UniqueValuesResponseV2{
 				Fields: map[string][]string{
-					"incidentSeverity": {"", "high"},
+					"incidentSeverity": {"high", "low", "medium"},
 				},
 				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
 					"incidentSeverity": {
 						{
-							Field: "",
-							Count: 2,
-						},
-						{
 
 							Field: "high",
+							Count: 1,
+						},
+						{
+							Field: "low",
+							Count: 1,
+						},
+						{
+							Field: "medium",
 							Count: 1,
 						},
 					},
