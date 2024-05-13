@@ -397,9 +397,13 @@ type PostureExceptionsSeverityUpdate struct {
 	SeverityScore int      `json:"severityScore" binding:"required"`
 }
 
-type RuntimeIncident armotypes.RuntimeIncident
+type RuntimeIncident struct {
+	armotypes.RuntimeIncident `json:",inline" bson:",inline"`
+	CreationDayDate           *time.Time `json:"creationDayDate,omitempty" bson:"creationDayDate,omitempty"`
+	ResolveDayDate            *time.Time `json:"resolveDayDate,omitempty" bson:"resolveDayDate,omitempty"`
+}
 
-var runtimeIncidentReadOnlyFields = append([]string{"creationTimestamp"}, commonReadOnlyFieldsV1...)
+var runtimeIncidentReadOnlyFields = append([]string{"creationTimestamp", "creationDayDate"}, commonReadOnlyFieldsV1...)
 
 func (r *RuntimeIncident) GetReadOnlyFields() []string {
 	readOnlyFields := runtimeIncidentReadOnlyFields
@@ -411,6 +415,8 @@ func (r *RuntimeIncident) GetReadOnlyFields() []string {
 
 func (r *RuntimeIncident) InitNew() {
 	r.CreationTimestamp = time.Now().UTC()
+	cDayDate := time.Date(r.CreationTimestamp.Year(), r.CreationTimestamp.Month(), r.CreationTimestamp.Day(), 0, 0, 0, 0, time.UTC)
+	r.CreationDayDate = &cDayDate
 }
 
 func (r *RuntimeIncident) GetCreationTime() *time.Time {
