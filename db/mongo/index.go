@@ -236,6 +236,69 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			},
 		},
 	},
+	consts.RuntimeIncidentCollection: {
+		{
+			Keys: bson.D{
+				{Key: "guid", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "name", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedAlerts.ruleID", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "relatedAlerts.timestamp", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "guid", Value: 1},
+				// {Key: "customers", Value: 1},
+				{Key: "relatedAlerts.timestamp", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+				{Key: "incidentSeverity", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "isDismissed", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "creationTimestamp", Value: -1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+				{Key: "workloadKind", Value: 1},
+				{Key: "workloadName", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+				{Key: "isDismissed", Value: 1},
+			},
+		},
+	},
 }
 
 // defaultIndex is the default index for all collections unless overridden in collectionIndexes
