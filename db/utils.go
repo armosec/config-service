@@ -43,9 +43,9 @@ func AdminUpdateMany(c context.Context, filter *FilterBuilder, update bson.D) (i
 func GetAllForCustomer[T any](c context.Context, includeGlobals bool) ([]T, error) {
 	findOps := NewFindOptions()
 	if includeGlobals {
-		findOps.Filter().WithNotDeleteForCustomerAndGlobal(c)
+		findOps.Filter().WithCustomerAndGlobal(c)
 	} else {
-		findOps.Filter().WithNotDeleteForCustomer(c)
+		findOps.Filter().WithCustomer(c)
 	}
 	return AdminFind[T](c, findOps)
 }
@@ -55,7 +55,7 @@ func FindForCustomerWithGlobals[T any](c context.Context, findOpts *FindOptions)
 	if findOpts == nil {
 		findOpts = NewFindOptions()
 	}
-	findOpts.Filter().WithNotDeleteForCustomerAndGlobal(c)
+	findOpts.Filter().WithCustomerAndGlobal(c)
 	return AdminFind[T](c, findOpts)
 }
 
@@ -64,7 +64,7 @@ func FindForCustomer[T any](c context.Context, findOpts *FindOptions) ([]T, erro
 	if findOpts == nil {
 		findOpts = NewFindOptions()
 	}
-	findOpts.Filter().WithNotDeleteForCustomer(c)
+	findOpts.Filter().WithCustomer(c)
 	return AdminFind[T](c, findOpts)
 }
 
@@ -105,7 +105,7 @@ func FindPaginatedForCustomer[T any](c context.Context, findOps *FindOptions) (*
 	if findOps == nil {
 		findOps = &FindOptions{}
 	}
-	findOps.Filter().WithNotDeleteForCustomer(c)
+	findOps.Filter().WithCustomer(c)
 	if GetSchemaFromContext(c).GetNestedDocPath() != "" {
 		return AdminFindNestedPaginated[T](c, findOps)
 	}
@@ -253,7 +253,7 @@ func AggregateForCustomer(c context.Context, findOps *FindOptions) (*armotypes.U
 	if findOps == nil {
 		findOps = &FindOptions{}
 	}
-	findOps.Filter().WithNotDeleteForCustomer(c)
+	findOps.Filter().WithCustomer(c)
 	return AdminAggregate(c, findOps)
 }
 
@@ -341,7 +341,7 @@ func UpdateDocument[T any](c context.Context, id string, update bson.D) ([]T, er
 	if err := mongo.GetReadCollection(collection).
 		FindOne(c,
 			NewFilterBuilder().
-				WithNotDeleteForCustomer(c).
+				WithCustomer(c).
 				WithID(id).
 				get()).
 		Decode(&oldDoc); err != nil {
@@ -352,7 +352,7 @@ func UpdateDocument[T any](c context.Context, id string, update bson.D) ([]T, er
 		return nil, err
 	}
 	var newDoc T
-	filter := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id).get()
+	filter := NewFilterBuilder().WithCustomer(c).WithID(id).get()
 	if err := mongo.GetWriteCollection(collection).FindOneAndUpdate(c, filter, update,
 		options.FindOneAndUpdate().SetReturnDocument(options.After)).
 		Decode(&newDoc); err != nil {
@@ -368,7 +368,7 @@ func AddToArray(c context.Context, id string, arrayPath string, values ...interf
 		return 0, err
 	}
 	//filter documents that already have this value in the array
-	filter := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id).get()
+	filter := NewFilterBuilder().WithCustomer(c).WithID(id).get()
 
 	update := GetUpdateAddToSetCommand(arrayPath, values...)
 	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filter, update)
@@ -384,7 +384,7 @@ func UpdateOne(c context.Context, id string, update interface{}) (modified int64
 	if err != nil {
 		return 0, err
 	}
-	filterBuilder := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id)
+	filterBuilder := NewFilterBuilder().WithCustomer(c).WithID(id)
 	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filterBuilder.get(), update)
 	if res != nil {
 		modified = res.ModifiedCount
@@ -398,7 +398,7 @@ func PullFromArray(c context.Context, id string, arrayPath string, values ...int
 	if err != nil {
 		return 0, err
 	}
-	filterBuilder := NewFilterBuilder().WithNotDeleteForCustomer(c).WithID(id)
+	filterBuilder := NewFilterBuilder().WithCustomer(c).WithID(id)
 	update := GetUpdatePullFromSetCommand(arrayPath, values...)
 	res, err := mongo.GetWriteCollection(collection).UpdateOne(c, filterBuilder.get(), update)
 	if res != nil {
@@ -415,7 +415,7 @@ func DocExist(c context.Context, filterBuilder *FilterBuilder) (bool, error) {
 		return false, err
 	}
 	filter := NewFilterBuilder().
-		WithNotDeleteForCustomer(c).
+		WithCustomer(c).
 		WithFilter(filterBuilder).
 		get()
 	n, err := mongo.GetReadCollection(collection).CountDocuments(c, filter, options.Count().SetLimit(1))
@@ -446,7 +446,7 @@ func GetDocByGUID[T any](c context.Context, guid string) (*T, error) {
 	if err := mongo.GetReadCollection(collection).
 		FindOne(c,
 			NewFilterBuilder().
-				WithNotDeleteForCustomer(c).
+				WithCustomer(c).
 				WithID(guid).
 				get(), findOneOpts...).
 		Decode(&result); err != nil {
@@ -494,7 +494,7 @@ func GetDocByName[T any](c context.Context, name string) (*T, error) {
 	if err := mongo.GetReadCollection(collection).
 		FindOne(c,
 			NewFilterBuilder().
-				WithNotDeleteForCustomer(c).
+				WithCustomer(c).
 				WithName(name).
 				get()).
 		Decode(&result); err != nil {
@@ -515,7 +515,7 @@ func CountDocs(c context.Context, filterBuilder *FilterBuilder) (int64, error) {
 		return 0, err
 	}
 	filter := NewFilterBuilder().
-		WithNotDeleteForCustomer(c).
+		WithCustomer(c).
 		WithFilter(filterBuilder).
 		get()
 	return mongo.GetReadCollection(collection).CountDocuments(c, filter)
@@ -613,7 +613,7 @@ func BulkDelete[T types.DocContent](c context.Context, filter FilterBuilder) (de
 	if err != nil {
 		return 0, err
 	}
-	filter.WithNotDeleteForCustomer(c)
+	filter.WithCustomer(c)
 	if res, err := mongo.GetWriteCollection(collection).DeleteMany(c, filter.get()); err != nil {
 		return 0, err
 	} else {

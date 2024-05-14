@@ -33,17 +33,10 @@ func (f *FilterBuilder) get() bson.D {
 	return f.filter
 }
 
-func (f *FilterBuilder) WithNotDeleteForCustomer(c context.Context) *FilterBuilder {
-	return f.WithCustomer(c).WithNotDeleted()
+func (f *FilterBuilder) WithGlobal() *FilterBuilder {
+	return f.WithValue(consts.CustomersField, "")
 }
 
-func (f *FilterBuilder) WithGlobalNotDelete() *FilterBuilder {
-	return f.WithValue(consts.CustomersField, "").WithNotDeleted()
-}
-
-func (f *FilterBuilder) WithNotDeleteForCustomerAndGlobal(c context.Context) *FilterBuilder {
-	return f.WithCustomerAndGlobal(c).WithNotDeleted()
-}
 func (f *FilterBuilder) WithID(id string) *FilterBuilder {
 	return f.WithValue(consts.IdField, id)
 }
@@ -71,14 +64,6 @@ func (f *FilterBuilder) WithCustomerAndGlobal(c context.Context) *FilterBuilder 
 
 func (f *FilterBuilder) WithCustomers(customers []string) *FilterBuilder {
 	return f.WithIn(consts.CustomersField, customers)
-}
-
-func (f *FilterBuilder) WithNotDeleted() *FilterBuilder {
-	return f.WithNotEqual(consts.DeletedField, true)
-}
-
-func (f *FilterBuilder) WithDeleted() *FilterBuilder {
-	return f.WithValue(consts.DeletedField, true)
 }
 
 func (f *FilterBuilder) WithValue(key string, value interface{}) *FilterBuilder {

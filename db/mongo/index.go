@@ -244,6 +244,17 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 		},
 		{
 			Keys: bson.D{
+				{Key: "_id", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "_id", Value: 1},
+				{Key: "customers", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
 				{Key: "name", Value: 1},
 			},
 		},
@@ -265,7 +276,7 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 		{
 			Keys: bson.D{
 				{Key: "guid", Value: 1},
-				// {Key: "customers", Value: 1},
+				// {Key: "customers", Value: 1}, can't have multiple fields in an index from different arrays
 				{Key: "relatedAlerts.timestamp", Value: 1},
 			},
 		},
@@ -296,6 +307,29 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			Keys: bson.D{
 				{Key: "customers", Value: 1},
 				{Key: "isDismissed", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+				{Key: "severityScore", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+				{Key: "timestamp", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+				{Key: "timestamp", Value: 1},
 			},
 		},
 	},

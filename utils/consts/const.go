@@ -56,7 +56,6 @@ const (
 	IdField          = "_id"
 	GUIDField        = "guid"
 	NameField        = "name"
-	DeletedField     = "is_deleted"
 	AttributesField  = "attributes"
 	CustomersField   = "customers"
 	UpdatedTimeField = "updatedTime"
