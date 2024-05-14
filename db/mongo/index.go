@@ -312,18 +312,7 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 		{
 			Keys: bson.D{
 				{Key: "customers", Value: 1},
-			},
-		},
-		{
-			Keys: bson.D{
-				{Key: "customers", Value: 1},
 				{Key: "severityScore", Value: 1},
-			},
-		},
-		{
-			Keys: bson.D{
-				{Key: "customers", Value: 1},
-				{Key: "timestamp", Value: 1},
 			},
 		},
 		{
