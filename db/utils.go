@@ -203,17 +203,17 @@ func AdminFindNestedPaginated[T any](c context.Context, findOps *FindOptions) (*
 
 	filtersList := findOps.filter.get()
 	// extract base doc filters
-	if len(filtersList) < 2 {
+	if len(filtersList) < 1 {
 		return nil, errors.New("missing base doc filters")
 	}
-	matchOnBaseDoc := bson.D{filtersList[len(filtersList)-1], filtersList[len(filtersList)-2], bson.E{Key: consts.IdField, Value: baseDocId}} //customer, not deleted and base doc guid filter
+	matchOnBaseDoc := bson.D{filtersList[len(filtersList)-1], bson.E{Key: consts.IdField, Value: baseDocId}} //customer and base doc guid filter
 	pipeline := mongoDB.Pipeline{
 		{{Key: "$match", Value: matchOnBaseDoc}},
 		{{Key: "$unwind", Value: fmt.Sprintf("$%s", nestedDocPath)}},
 		{{Key: "$replaceRoot", Value: bson.M{"newRoot": fmt.Sprintf("$%s", nestedDocPath)}}},
 	}
-	if len(filtersList) > 2 {
-		matchOnNestedDoc := filtersList[:len(filtersList)-2] //all filters except the last 2
+	if len(filtersList) > 1 {
+		matchOnNestedDoc := filtersList[:len(filtersList)-1] // all filters except the customer guid
 		pipeline = append(pipeline, bson.D{{Key: "$match", Value: bson.D{{Key: "$or", Value: []bson.D{matchOnNestedDoc}}}}})
 	}
 

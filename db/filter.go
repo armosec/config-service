@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.uber.org/zap"
 )
 
 // FilterBuilder builds filters for queries
 type FilterBuilder struct {
-	filter bson.D
+	filter       bson.D
+	customerIsID bool
 }
 
 func NewFilterBuilder() *FilterBuilder {
@@ -39,10 +39,31 @@ func (f *FilterBuilder) WithGlobal() *FilterBuilder {
 }
 
 func (f *FilterBuilder) WithID(id string) *FilterBuilder {
+	idFound := false
+	if f.customerIsID {
+		for i := range f.filter {
+			if f.filter[i].Key == consts.IdField {
+				f.filter[i].Value = id
+				idFound = true
+				return f
+			}
+		}
+	}
+	if idFound {
+		return f
+	}
 	return f.WithValue(consts.IdField, id)
 }
 
 func (f *FilterBuilder) WithIDs(ids []string) *FilterBuilder {
+	if f.customerIsID {
+		for i := range f.filter {
+			if f.filter[i].Key == consts.IdField {
+				f.filter[i].Value = ids
+				return f
+			}
+		}
+	}
 	return f.WithIn(consts.IdField, ids)
 }
 
@@ -53,6 +74,7 @@ func (f *FilterBuilder) WithName(name string) *FilterBuilder {
 func (f *FilterBuilder) WithCustomer(c context.Context) *FilterBuilder {
 	customerGUID, _ := c.Value(consts.CustomerGUID).(string)
 	if collection, _ := c.Value(consts.Collection).(string); collection == consts.CustomersCollection {
+		f.customerIsID = true
 		return f.WithID(customerGUID)
 	}
 	return f.WithValue(consts.CustomersField, customerGUID)
@@ -68,13 +90,6 @@ func (f *FilterBuilder) WithCustomers(customers []string) *FilterBuilder {
 }
 
 func (f *FilterBuilder) WithValue(key string, value interface{}) *FilterBuilder {
-	for i := range f.filter {
-		if f.filter[i].Key == key {
-			f.filter[i].Value = value
-			zap.L().Warn("FilterBuilder.WithValue: key already exists. Overriding it", zap.String("key", key), zap.Any("value", value))
-			return f
-		}
-	}
 	f.filter = append(f.filter, bson.E{Key: key, Value: value})
 	return f
 }

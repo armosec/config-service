@@ -534,13 +534,16 @@ func testGetDeleteByNameAndQuery[T types.DocContent](suite *MainTestSuite, baseP
 
 func testGetWithQuery[T types.DocContent](suite *MainTestSuite, basePath string, getQueries []queryTest[T], expected []T, compareOpts ...cmp.Option) {
 	//get Docs by query params
-	for _, query := range getQueries {
+	for queryID, query := range getQueries {
 		path := fmt.Sprintf("%s?%s", basePath, query.query)
 		var expectedDocs []T
 		for _, index := range query.expectedIndexes {
 			expectedDocs = append(expectedDocs, expected[index])
 		}
 		testGetDocs(suite, path, expectedDocs, compareOpts...)
+		if suite.T().Failed() {
+			suite.FailNow("Failed query: %d", queryID)
+		}
 	}
 }
 
