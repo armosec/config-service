@@ -329,8 +329,14 @@ func (suite *MainTestSuite) TestPostureException() {
 		}
 		return policy
 	}
+	testOptions := testOptions[*types.PostureExceptionPolicy]{
+		mandatoryName:          true,
+		uniqueName:             true,
+		customGUID:             false,
+		allGUIDsAsInnerFilters: true,
+	}
 
-	commonTest(suite, consts.PostureExceptionPolicyPath, posturePolicies, modifyFunc, commonCmpFilter)
+	commonTestWithOptions(suite, consts.PostureExceptionPolicyPath, posturePolicies, modifyFunc, testOptions, commonCmpFilter)
 
 	getQueries := []queryTest[*types.PostureExceptionPolicy]{
 		{

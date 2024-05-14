@@ -22,12 +22,13 @@ import (
 
 // //////////////////////////////////////// Test scenarios //////////////////////////////////////////
 type testOptions[T any] struct {
-	uniqueName    bool
-	mandatoryName bool
-	renameAllowed bool
-	customGUID    bool
-	skipPutTests  bool
-	clondeDocFunc *func(T) T
+	uniqueName             bool
+	mandatoryName          bool
+	renameAllowed          bool
+	customGUID             bool
+	skipPutTests           bool
+	clondeDocFunc          *func(T) T
+	allGUIDsAsInnerFilters bool
 }
 
 func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string, testDocs []T, modifyFunc func(T) T, testOptions testOptions[T], compareNewOpts ...cmp.Option) {
@@ -112,6 +113,29 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 		//bulk post documents with same name should fail
 		sort.Strings(names)
 		testBadRequest(suite, http.MethodPost, path, errorNameExist(names...), documents, http.StatusBadRequest)
+	}
+	if testOptions.allGUIDsAsInnerFilters {
+		guids := []string{}
+		for _, doc := range documents {
+			guids = append(guids, doc.GetGUID())
+		}
+		innerFilters := []map[string]string{
+			{
+				"guid": strings.Join(guids, ","),
+			},
+		}
+		v2Req := armotypes.V2ListRequest{
+			InnerFilters: innerFilters,
+			PageSize:     nil,
+			PageNum:      ptr.Int(1),
+		}
+
+		w := suite.doRequest(http.MethodPost, fmt.Sprintf("%s/query", path), v2Req)
+		suite.Equal(http.StatusOK, w.Code)
+		var result types.SearchResult[T]
+		err := json.Unmarshal(w.Body.Bytes(), &result)
+		suite.NoError(err)
+		suite.Equal(len(guids), result.Total.Value)
 	}
 
 	//PUT

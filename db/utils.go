@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	mongoDB "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -148,6 +149,11 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 	}
 	cursor, err := mongo.GetReadCollection(collection).Aggregate(c, pipeline)
 	if err != nil {
+		if jsonBytes, err := bson.MarshalExtJSON(pipeline, false, false); err != nil {
+			zap.L().Error("Failed to marshal pipeline to JSON", zap.Error(err))
+		} else {
+			zap.L().Info("MongoDB Pipeline", zap.ByteString("pipeline", jsonBytes))
+		}
 		return nil, err
 	}
 	defer cursor.Close(c)
