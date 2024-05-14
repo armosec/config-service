@@ -2114,7 +2114,14 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 				Fields: map[string]string{
 					"relatedObjects.severity|relatedObjects.component": "",
 				},
-				InnerFilters: []map[string]string{},
+				InnerFilters: []map[string]string{{
+					"relatedObjects.component|elemMatch": "component1,component2",
+					"relatedObjects.severity|elemMatch":  "critical,high",
+				},
+					{
+						"relatedObjects.component|elemMatch": "component1,component2",
+						"relatedObjects.severity|elemMatch":  "critical,high",
+					}},
 			},
 			expectedResponse: armotypes.UniqueValuesResponseV2{
 				Fields: map[string][]string{

@@ -126,6 +126,11 @@ func uniqueValuesRequest2FindOptions(ctx *gin.Context, request armotypes.UniqueV
 			findOptions.Filter().WithFilter(filters[0])
 		}
 	}
+	unwindFilters, err := getFiltersForUnwind(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	findOptions.WithUwindFilter(unwindFilters)
 	return findOptions, nil
 }
 
@@ -275,4 +280,42 @@ func getTypedValue(ctx *gin.Context, field, value string) (interface{}, error) {
 		return date, nil
 	}
 	return utils.String2Interface(value), nil
+}
+
+func getFiltersForUnwind(ctx *gin.Context, request armotypes.UniqueValuesRequestV2) (*db.FilterBuilder, error) {
+	if len(request.InnerFilters) == 0 {
+		return nil, nil
+	}
+	cleanFilters := []map[string]string{}
+	foundElemMatch := false
+	for _, filter := range request.InnerFilters {
+		cleanFilter := map[string]string{}
+		for key := range filter {
+			cleanKey := key
+			if strings.Contains(key, armotypes.V2ListOperatorSeparator+armotypes.V2ListElementMatchOperator) {
+				foundElemMatch = true
+				cleanKey = strings.ReplaceAll(key, armotypes.V2ListOperatorSeparator+armotypes.V2ListElementMatchOperator, "")
+			}
+			cleanFilter[cleanKey] = filter[key]
+		}
+		cleanFilters = append(cleanFilters, cleanFilter)
+	}
+	if !foundElemMatch {
+		return nil, nil
+	}
+	filters := []*db.FilterBuilder{}
+	for i := range cleanFilters {
+		if filter, err := buildInnerFilter(ctx, cleanFilters[i], ""); err != nil {
+			return nil, err
+		} else if filter != nil {
+			filters = append(filters, filter)
+		}
+	}
+	filterBuilder := db.NewFilterBuilder()
+	if len(filters) > 1 {
+		filterBuilder.AddOr(filters...)
+	} else if len(filters) == 1 {
+		filterBuilder.WithFilter(filters[0])
+	}
+	return filterBuilder, nil
 }
