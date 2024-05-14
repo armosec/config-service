@@ -10,7 +10,8 @@ import (
 
 // FilterBuilder builds filters for queries
 type FilterBuilder struct {
-	filter bson.D
+	filter       bson.D
+	customerIsID bool
 }
 
 func NewFilterBuilder() *FilterBuilder {
@@ -33,22 +34,36 @@ func (f *FilterBuilder) get() bson.D {
 	return f.filter
 }
 
-func (f *FilterBuilder) WithNotDeleteForCustomer(c context.Context) *FilterBuilder {
-	return f.WithCustomer(c).WithNotDeleted()
+func (f *FilterBuilder) WithGlobal() *FilterBuilder {
+	return f.WithValue(consts.CustomersField, "")
 }
 
-func (f *FilterBuilder) WithGlobalNotDelete() *FilterBuilder {
-	return f.WithValue(consts.CustomersField, "").WithNotDeleted()
-}
-
-func (f *FilterBuilder) WithNotDeleteForCustomerAndGlobal(c context.Context) *FilterBuilder {
-	return f.WithCustomerAndGlobal(c).WithNotDeleted()
-}
 func (f *FilterBuilder) WithID(id string) *FilterBuilder {
+	idFound := false
+	if f.customerIsID {
+		for i := range f.filter {
+			if f.filter[i].Key == consts.IdField {
+				f.filter[i].Value = id
+				idFound = true
+				return f
+			}
+		}
+	}
+	if idFound {
+		return f
+	}
 	return f.WithValue(consts.IdField, id)
 }
 
 func (f *FilterBuilder) WithIDs(ids []string) *FilterBuilder {
+	if f.customerIsID {
+		for i := range f.filter {
+			if f.filter[i].Key == consts.IdField {
+				f.filter[i].Value = ids
+				return f
+			}
+		}
+	}
 	return f.WithIn(consts.IdField, ids)
 }
 
@@ -59,6 +74,7 @@ func (f *FilterBuilder) WithName(name string) *FilterBuilder {
 func (f *FilterBuilder) WithCustomer(c context.Context) *FilterBuilder {
 	customerGUID, _ := c.Value(consts.CustomerGUID).(string)
 	if collection, _ := c.Value(consts.Collection).(string); collection == consts.CustomersCollection {
+		f.customerIsID = true
 		return f.WithID(customerGUID)
 	}
 	return f.WithValue(consts.CustomersField, customerGUID)
@@ -71,14 +87,6 @@ func (f *FilterBuilder) WithCustomerAndGlobal(c context.Context) *FilterBuilder 
 
 func (f *FilterBuilder) WithCustomers(customers []string) *FilterBuilder {
 	return f.WithIn(consts.CustomersField, customers)
-}
-
-func (f *FilterBuilder) WithNotDeleted() *FilterBuilder {
-	return f.WithNotEqual(consts.DeletedField, true)
-}
-
-func (f *FilterBuilder) WithDeleted() *FilterBuilder {
-	return f.WithValue(consts.DeletedField, true)
 }
 
 func (f *FilterBuilder) WithValue(key string, value interface{}) *FilterBuilder {

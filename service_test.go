@@ -1625,64 +1625,72 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 	ts, _ := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147901Z")
 	runtimeIncidents := []*types.RuntimeIncident{
 		{
-			PortalBase: armotypes.PortalBase{
-				Name: "incident1",
-				GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a648",
-			},
-			RuntimeAlert: armotypes.RuntimeAlert{
-				RuntimeAlertK8sDetails: armotypes.RuntimeAlertK8sDetails{
-					ClusterName: "cluster1",
-					Namespace:   "namespace1",
+			RuntimeIncident: armotypes.RuntimeIncident{
+				PortalBase: armotypes.PortalBase{
+					Name: "incident1",
+					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a648",
 				},
-			},
-			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
-				Designators: identifiers.PortalDesignator{
-					DesignatorType: identifiers.DesignatorAttributes,
-					Attributes:     map[string]string{},
+				RuntimeAlert: armotypes.RuntimeAlert{
+					RuntimeAlertK8sDetails: armotypes.RuntimeAlertK8sDetails{
+						ClusterName: "cluster1",
+						Namespace:   "namespace1",
+					},
+				},
+				Severity: "low",
+				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+					Designators: identifiers.PortalDesignator{
+						DesignatorType: identifiers.DesignatorAttributes,
+						Attributes:     map[string]string{},
+					},
 				},
 			},
 		},
 		{
-			PortalBase: armotypes.PortalBase{
-				Name: "incident2",
-				GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a647",
-			},
-			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
-				Designators: identifiers.PortalDesignator{
-					DesignatorType: identifiers.DesignatorAttributes,
-					Attributes:     map[string]string{},
+			RuntimeIncident: armotypes.RuntimeIncident{
+				PortalBase: armotypes.PortalBase{
+					Name: "incident2",
+					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a647",
 				},
+				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+					Designators: identifiers.PortalDesignator{
+						DesignatorType: identifiers.DesignatorAttributes,
+						Attributes:     map[string]string{},
+					},
+				},
+				Severity: "high",
 			},
-			Severity: "high",
 		},
 		{
-			PortalBase: armotypes.PortalBase{
-				Name: "incident3",
-				GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a646",
-			},
-			RuntimeAlert: armotypes.RuntimeAlert{
-				BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
-					Timestamp: ts,
+			RuntimeIncident: armotypes.RuntimeIncident{
+				PortalBase: armotypes.PortalBase{
+					Name: "incident3",
+					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a646",
 				},
-			},
-			RelatedAlerts: []armotypes.RuntimeAlert{
-				{
-					Message:  "msg1",
-					HostName: "host1",
+				RuntimeAlert: armotypes.RuntimeAlert{
+					BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+						Timestamp: ts,
+					},
 				},
-				{
-					Message:  "msg2",
-					HostName: "host2",
+				Severity: "medium",
+				RelatedAlerts: []armotypes.RuntimeAlert{
+					{
+						Message:  "msg1",
+						HostName: "host1",
+					},
+					{
+						Message:  "msg2",
+						HostName: "host2",
+					},
+					{
+						Message:  "msg3",
+						HostName: "host3",
+					},
 				},
-				{
-					Message:  "msg3",
-					HostName: "host3",
-				},
-			},
-			RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
-				Designators: identifiers.PortalDesignator{
-					DesignatorType: identifiers.DesignatorAttributes,
-					Attributes:     map[string]string{},
+				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+					Designators: identifiers.PortalDesignator{
+						DesignatorType: identifiers.DesignatorAttributes,
+						Attributes:     map[string]string{},
+					},
 				},
 			},
 		},
@@ -1706,7 +1714,9 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 		skipPutTests:  false,
 	}
 	cmpFilters := cmp.FilterPath(func(p cmp.Path) bool {
-		return p.String() == "PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" || p.String() == "CreationDate" || p.String() == "PortalBase.UpdatedTime" || p.String() == "UpdatedTime" || strings.HasPrefix(p.String(), "RelatedAlerts")
+		// "RuntimeIncident.RuntimeAlert.RuntimeAlertK8sDetails.HostNetwork"
+		fieldPath := p.String()
+		return fieldPath == "RuntimeIncident.PortalBase.GUID" || fieldPath == "RuntimeIncident.GUID" || fieldPath == "RuntimeIncident.CreationTime" || fieldPath == "RuntimeIncident.CreationDate" || fieldPath == "RuntimeIncident.PortalBase.UpdatedTime" || fieldPath == "RuntimeIncident.UpdatedTime" || fieldPath == "CreationDayDate" || fieldPath == "ResolveDayDate" || strings.HasPrefix(fieldPath, "RuntimeIncident.RelatedAlerts")
 	}, cmp.Ignore())
 	commonTestWithOptions(suite, consts.RuntimeIncidentPath, runtimeIncidents, modifyDocFunc,
 		testOpts, cmpFilters, ignoreTime)
@@ -1749,17 +1759,21 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 			},
 			expectedResponse: armotypes.UniqueValuesResponseV2{
 				Fields: map[string][]string{
-					"incidentSeverity": {"", "high"},
+					"incidentSeverity": {"high", "low", "medium"},
 				},
 				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
 					"incidentSeverity": {
 						{
-							Field: "",
-							Count: 2,
-						},
-						{
 
 							Field: "high",
+							Count: 1,
+						},
+						{
+							Field: "low",
+							Count: 1,
+						},
+						{
+							Field: "medium",
 							Count: 1,
 						},
 					},
@@ -1794,8 +1808,101 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 		},
 	}
 
-	testUniqueValues(suite, consts.RuntimeIncidentPath, runtimeIncidents, uniqueValues, commonCmpFilter, ignoreTime)
+	testUniqueValues(suite, consts.RuntimeIncidentPath, runtimeIncidents, uniqueValues, cmpFilters, ignoreTime)
+}
 
+func (suite *MainTestSuite) TestRuntimeIncidentsDismiss() {
+	runtimeIncidents := getIncidentsMocks()
+	// test put is dismissed
+	w := suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath, runtimeIncidents)
+	suite.Equal(http.StatusCreated, w.Code)
+	// get it first:
+	w = suite.doRequest(http.MethodGet, consts.RuntimeIncidentPath, nil)
+	suite.Equal(http.StatusOK, w.Code)
+	docs, err := decodeResponseArray[types.RuntimeIncident](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	incident := docs[0]
+	incident.RelatedAlerts = nil
+	incident.IsDismissed = true
+	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPath+"/"+incident.GUID, incident)
+	suite.Equal(http.StatusOK, w.Code)
+	updateIncidents, err := decodeResponse[[]types.RuntimeIncident](w)
+	suite.NoError(err)
+	updateIncident := updateIncidents[1]
+	suite.True(updateIncident.IsDismissed)
+	nowDate := time.Now().UTC().Format(time.RFC3339[:10])
+	suite.Equal(nowDate, updateIncident.ResolveDayDate.Format(time.RFC3339[:10]))
+	suite.Equal(nowDate, updateIncident.CreationDayDate.Format(time.RFC3339[:10]))
+	nowDateUnix, _ := time.Parse(time.RFC3339[:10], nowDate)
+	nowDate = fmt.Sprintf("%d000", nowDateUnix.Unix())
+	// test unique values of dismissed/created incidents
+	uniqueValuesTests := []uniqueValueTest{
+		{
+			testName: "unique incidents created",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"creationDayDate": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"creationDayDate": {nowDate},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"creationDayDate": {
+						{
+							Field: nowDate,
+							Count: 3,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique incidents resolved date",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"resolveDayDate": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"resolveDayDate": {nowDate},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"resolveDayDate": {
+						{
+							Field: nowDate,
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range uniqueValuesTests {
+		w := suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath+"/uniqueValues", test.uniqueValuesRequest)
+		suite.Equal(http.StatusOK, w.Code)
+		var result armotypes.UniqueValuesResponseV2
+		err := json.Unmarshal(w.Body.Bytes(), &result)
+		if err != nil {
+			suite.FailNow(err.Error())
+		}
+		if test.expectedResponse.FieldsCount == nil {
+			//skipping fields count comparison
+			test.expectedResponse.FieldsCount = result.FieldsCount
+		}
+		suite.Equal(test.expectedResponse, result, "Unexpected result: %s", test.testName)
+	}
+
+	//bulk delete all docs
+	guids := []string{}
+	for _, doc := range docs {
+		guids = append(guids, doc.GetGUID())
+	}
+	testBulkDeleteByGUIDWithBody(suite, consts.RuntimeIncidentPath, guids)
 }
 func (suite *MainTestSuite) TestRuntimeAlerts() {
 	// feed incidents with nested alerts
@@ -1828,7 +1935,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
-	suite.Equal(resp.Total.Value, 1)
+	suite.Equal(1, resp.Total.Value)
 	suite.Len(resp.Response, 1)
 	// assuer it has "no alerts"
 	suite.Len(resp.Response[0].RelatedAlerts, 0)
@@ -1860,7 +1967,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 		suite.FailNow(err.Error())
 	}
 	suite.Len(alerts.Response, 1)
-	suite.Equal(alerts.Total.Value, 3)
+	suite.Equal(3, alerts.Total.Value)
 	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[0].RuntimeAlert)
 	// filter alerts by message
 	alertRequest = armotypes.V2ListRequest{
@@ -1879,7 +1986,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 		suite.FailNow(err.Error())
 	}
 	suite.Len(alerts.Response, 1)
-	suite.Equal(alerts.Total.Value, 1)
+	suite.Equal(1, alerts.Total.Value)
 	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0].RuntimeAlert)
 
 }
