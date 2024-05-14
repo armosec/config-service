@@ -2,7 +2,7 @@ package db
 
 type FindOptions struct {
 	filter       *FilterBuilder
-	unwindfilter *FilterBuilder //used for unique values aggregation of arrays unwind
+	unwindfilter *FilterBuilder //used for unique values aggregation with unwind arrays
 	projection   *ProjectionBuilder
 	sort         *SortBuilder
 	group        []string
