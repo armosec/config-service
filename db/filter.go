@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.uber.org/zap"
 )
 
 // FilterBuilder builds filters for queries
@@ -67,6 +68,13 @@ func (f *FilterBuilder) WithCustomers(customers []string) *FilterBuilder {
 }
 
 func (f *FilterBuilder) WithValue(key string, value interface{}) *FilterBuilder {
+	for i := range f.filter {
+		if f.filter[i].Key == key {
+			f.filter[i].Value = value
+			zap.L().Warn("FilterBuilder.WithValue: key already exists. Overriding it", zap.String("key", key), zap.Any("value", value))
+			return f
+		}
+	}
 	f.filter = append(f.filter, bson.E{Key: key, Value: value})
 	return f
 }
