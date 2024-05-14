@@ -1935,7 +1935,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
-	suite.Equal(resp.Total.Value, 1)
+	suite.Equal(1, resp.Total.Value)
 	suite.Len(resp.Response, 1)
 	// assuer it has "no alerts"
 	suite.Len(resp.Response[0].RelatedAlerts, 0)
@@ -1967,7 +1967,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 		suite.FailNow(err.Error())
 	}
 	suite.Len(alerts.Response, 1)
-	suite.Equal(alerts.Total.Value, 3)
+	suite.Equal(3, alerts.Total.Value)
 	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[0].RuntimeAlert)
 	// filter alerts by message
 	alertRequest = armotypes.V2ListRequest{
@@ -1986,7 +1986,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 		suite.FailNow(err.Error())
 	}
 	suite.Len(alerts.Response, 1)
-	suite.Equal(alerts.Total.Value, 1)
+	suite.Equal(1, alerts.Total.Value)
 	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0].RuntimeAlert)
 
 }

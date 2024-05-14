@@ -31,20 +31,24 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	findOptions.SetPagination(int64(page), int64(perPage))
 	//sort
 	tsField := db.GetSchemaFromContext(ctx).GetTimestampFieldName()
-	request.ValidateOrderBy(fmt.Sprintf("%s:%s", tsField, armotypes.V2ListDescendingSort))
-	sortFields := strings.Split(request.OrderBy, armotypes.V2ListValueSeparator)
-	for _, sortField := range sortFields {
-		sortNameAndType := strings.Split(sortField, armotypes.V2ListSortTypeSeparator)
-		if len(sortNameAndType) != 2 {
-			return nil, fmt.Errorf("invalid sort field %s", sortField)
-		}
-		switch sortNameAndType[1] {
-		case armotypes.V2ListAscendingSort:
-			findOptions.Sort().AddAscending(sortNameAndType[0])
-		case armotypes.V2ListDescendingSort:
-			findOptions.Sort().AddDescending(sortNameAndType[0])
-		default:
-			return nil, fmt.Errorf("invalid sort type %s", sortNameAndType[1])
+	if perPage > 1 {
+		request.ValidateOrderBy(fmt.Sprintf("%s:%s", tsField, armotypes.V2ListDescendingSort))
+	}
+	if request.OrderBy != "" {
+		sortFields := strings.Split(request.OrderBy, armotypes.V2ListValueSeparator)
+		for _, sortField := range sortFields {
+			sortNameAndType := strings.Split(sortField, armotypes.V2ListSortTypeSeparator)
+			if len(sortNameAndType) != 2 {
+				return nil, fmt.Errorf("invalid sort field %s", sortField)
+			}
+			switch sortNameAndType[1] {
+			case armotypes.V2ListAscendingSort:
+				findOptions.Sort().AddAscending(sortNameAndType[0])
+			case armotypes.V2ListDescendingSort:
+				findOptions.Sort().AddDescending(sortNameAndType[0])
+			default:
+				return nil, fmt.Errorf("invalid sort type %s", sortNameAndType[1])
+			}
 		}
 	}
 	//projection
