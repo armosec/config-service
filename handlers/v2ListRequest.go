@@ -23,6 +23,8 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	var perPage int
 	if request.PageSize != nil && *request.PageSize <= maxV2PageSize {
 		perPage = *request.PageSize
+	} else {
+		perPage = maxV2PageSize
 	}
 	var page int
 	if request.PageNum != nil {

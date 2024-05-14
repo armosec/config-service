@@ -31,7 +31,7 @@ go tool cover -html=coverage.out -o coverage.html
 */
 
 const (
-	mongoDockerCommand = `docker run --name=mongo -d -p 27017:27017 -e  "MONGO_INITDB_ROOT_USERNAME=admin" -e "MONGO_INITDB_ROOT_PASSWORD=admin" mongo`
+	mongoDockerCommand = `docker run --name=mongo -d -p 27017:27017 -e  "MONGO_INITDB_ROOT_USERNAME=admin" -e "MONGO_INITDB_ROOT_PASSWORD=admin" mongo:4.2.8`
 	mongoStopCommand   = "docker stop mongo && docker rm mongo"
 	defaultUserGUID    = "test-customer-guid"
 )
@@ -143,12 +143,18 @@ func (suite *MainTestSuite) doRequest(method, path string, body interface{}) *ht
 	var req *http.Request
 	var reqErr error
 	if body != nil {
-		bodyBytes, err := json.Marshal(body)
-		if err != nil {
-			suite.FailNow("failed to marshal body", err.Error())
+		bodyBytes, ok := body.([]byte)
+		if ok {
+			bodyReader := bytes.NewReader(bodyBytes)
+			req, reqErr = http.NewRequest(method, path, bodyReader)
+		} else {
+			bodyBytes, err := json.Marshal(body)
+			if err != nil {
+				suite.FailNow("failed to marshal body", err.Error())
+			}
+			bodyReader := bytes.NewReader(bodyBytes)
+			req, reqErr = http.NewRequest(method, path, bodyReader)
 		}
-		bodyReader := bytes.NewReader(bodyBytes)
-		req, reqErr = http.NewRequest(method, path, bodyReader)
 	} else {
 		req, reqErr = http.NewRequest(method, path, nil)
 	}
