@@ -1,12 +1,13 @@
 package db
 
 type FindOptions struct {
-	filter     *FilterBuilder
-	projection *ProjectionBuilder
-	sort       *SortBuilder
-	group      []string
-	limit      int64
-	skip       int64
+	filter       *FilterBuilder
+	unwindfilter *FilterBuilder //used for unique values aggregation with unwind arrays
+	projection   *ProjectionBuilder
+	sort         *SortBuilder
+	group        []string
+	limit        int64
+	skip         int64
 }
 
 func NewFindOptions() *FindOptions {
@@ -29,6 +30,18 @@ func (f *FindOptions) GetGroup() []string {
 func (f *FindOptions) WithFilter(filter *FilterBuilder) *FindOptions {
 	f.filter = filter
 	return f
+}
+
+func (f *FindOptions) WithUwindFilter(filter *FilterBuilder) *FindOptions {
+	f.unwindfilter = filter
+	return f
+}
+
+func (f *FindOptions) UnwindFilter() *FilterBuilder {
+	if f.unwindfilter == nil {
+		return f.filter
+	}
+	return f.unwindfilter
 }
 
 func (f *FindOptions) Filter() *FilterBuilder {

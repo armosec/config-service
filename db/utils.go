@@ -296,6 +296,7 @@ func AdminAggregate(c context.Context, findOps *FindOptions) (*armotypes.UniqueV
 			cursor, err := mongo.GetReadCollection(collection).Aggregate(ctx,
 				uniqueValuePipeline(fields,
 					fieldFilter.get(),
+					findOps.UnwindFilter().filter,
 					findOps.skip,
 					findOps.limit,
 					GetSchemaFromContext(c)))
