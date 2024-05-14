@@ -141,11 +141,21 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 	pipeline := mongoDB.Pipeline{
 		{{Key: "$match", Value: findOps.filter.get()}},
 		{{Key: "$facet", Value: bson.M{
-			"limitedResults": resultsPipe,
 			"count": []bson.M{
 				{"$count": "count"},
 			},
 		}}},
+	}
+	if len(resultsPipe) > 0 {
+		pipeline = mongoDB.Pipeline{
+			{{Key: "$match", Value: findOps.filter.get()}},
+			{{Key: "$facet", Value: bson.M{
+				"limitedResults": resultsPipe,
+				"count": []bson.M{
+					{"$count": "count"},
+				},
+			}}},
+		}
 	}
 	cursor, err := mongo.GetReadCollection(collection).Aggregate(c, pipeline)
 	if err != nil {
