@@ -126,7 +126,7 @@ func commonTestWithOptions[T types.DocContent](suite *MainTestSuite, path string
 		}
 		v2Req := armotypes.V2ListRequest{
 			InnerFilters: innerFilters,
-			PageSize:     nil,
+			PageSize:     ptr.Int(0), //only count
 			PageNum:      ptr.Int(1),
 		}
 
