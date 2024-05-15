@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	mongoDB "go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -125,20 +124,20 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 	}
 
 	resultsPipe := []bson.M{}
-	if findOps.Sort().Len() > 0 {
-		resultsPipe = append(resultsPipe, bson.M{"$sort": findOps.sort.get()})
-	}
-	if findOps.skip > 0 {
-		resultsPipe = append(resultsPipe, bson.M{"$skip": findOps.skip})
-	}
 	if findOps.limit > 0 {
+		if findOps.Sort().Len() > 0 {
+			resultsPipe = append(resultsPipe, bson.M{"$sort": findOps.sort.get()})
+		}
+		if findOps.skip > 0 {
+			resultsPipe = append(resultsPipe, bson.M{"$skip": findOps.skip})
+		}
 		resultsPipe = append(resultsPipe, bson.M{"$limit": findOps.limit})
-	}
-	if findOps.Projection().Len() > 0 {
-		resultsPipe = append(resultsPipe, bson.M{"$project": findOps.projection.get()})
+		if findOps.Projection().Len() > 0 {
+			resultsPipe = append(resultsPipe, bson.M{"$project": findOps.projection.get()})
+		}
 	}
 
-	pipeline := mongoDB.Pipeline{
+	pipeline := mongoDB.Pipeline{ // support only count with no actual results (limit = 0)
 		{{Key: "$match", Value: findOps.filter.get()}},
 		{{Key: "$facet", Value: bson.M{
 			"count": []bson.M{
@@ -146,7 +145,7 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 			},
 		}}},
 	}
-	if len(resultsPipe) > 0 {
+	if len(resultsPipe) > 0 { // Regular search with results
 		pipeline = mongoDB.Pipeline{
 			{{Key: "$match", Value: findOps.filter.get()}},
 			{{Key: "$facet", Value: bson.M{
@@ -159,16 +158,6 @@ func AdminFindPaginated[T any](c context.Context, findOps *FindOptions) (*types.
 	}
 	cursor, err := mongo.GetReadCollection(collection).Aggregate(c, pipeline)
 	if err != nil {
-		if jsonBytes, err := bson.MarshalExtJSON(pipeline, false, false); err != nil {
-			zap.L().Error("Failed to marshal pipeline to JSON", zap.Error(err))
-		} else {
-			zap.L().Info("MongoDB Pipeline", zap.ByteString("pipeline", jsonBytes))
-		}
-		if jsonBytes, err := bson.MarshalExtJSON(findOps, false, false); err != nil {
-			zap.L().Error("Failed to marshal findOps to JSON", zap.Error(err))
-		} else {
-			zap.L().Info("MongoDB FindOps", zap.ByteString("findOps", jsonBytes))
-		}
 		return nil, err
 	}
 	defer cursor.Close(c)
@@ -209,17 +198,17 @@ func AdminFindNestedPaginated[T any](c context.Context, findOps *FindOptions) (*
 	}
 
 	resultsPipe := []bson.M{}
-	if findOps.Sort().Len() > 0 {
-		resultsPipe = append(resultsPipe, bson.M{"$sort": findOps.sort.get()})
-	}
-	if findOps.skip > 0 {
-		resultsPipe = append(resultsPipe, bson.M{"$skip": findOps.skip})
-	}
 	if findOps.limit > 0 {
+		if findOps.Sort().Len() > 0 {
+			resultsPipe = append(resultsPipe, bson.M{"$sort": findOps.sort.get()})
+		}
+		if findOps.skip > 0 {
+			resultsPipe = append(resultsPipe, bson.M{"$skip": findOps.skip})
+		}
 		resultsPipe = append(resultsPipe, bson.M{"$limit": findOps.limit})
-	}
-	if findOps.Projection().Len() > 0 {
-		resultsPipe = append(resultsPipe, bson.M{"$project": findOps.projection.get()})
+		if findOps.Projection().Len() > 0 {
+			resultsPipe = append(resultsPipe, bson.M{"$project": findOps.projection.get()})
+		}
 	}
 
 	filtersList := findOps.filter.get()
@@ -237,15 +226,24 @@ func AdminFindNestedPaginated[T any](c context.Context, findOps *FindOptions) (*
 		matchOnNestedDoc := filtersList[:len(filtersList)-1] // all filters except the customer guid
 		pipeline = append(pipeline, bson.D{{Key: "$match", Value: bson.D{{Key: "$or", Value: []bson.D{matchOnNestedDoc}}}}})
 	}
-
-	pipeline = append(pipeline, bson.D{
-		{Key: "$facet", Value: bson.M{
-			"limitedResults": resultsPipe,
-			"count": []bson.M{
-				{"$count": "count"},
-			},
-		}}},
-	)
+	if len(resultsPipe) > 0 {
+		pipeline = append(pipeline, bson.D{
+			{Key: "$facet", Value: bson.M{
+				"limitedResults": resultsPipe,
+				"count": []bson.M{
+					{"$count": "count"},
+				},
+			}}},
+		)
+	} else { // support only count with no actual results (limit = 0)
+		pipeline = append(pipeline, bson.D{
+			{Key: "$facet", Value: bson.M{
+				"count": []bson.M{
+					{"$count": "count"},
+				},
+			}},
+		})
+	}
 
 	cursor, err := mongo.GetReadCollection(collection).Aggregate(c, pipeline)
 	if err != nil {
