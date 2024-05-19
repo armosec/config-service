@@ -35,7 +35,7 @@ env:
   DOCKER_IMAGE_PATH: quay.io/armosec/kubescape-config-service
   DEV_VALUES_DIRS: kubernetes-deployment/Helm/cyberarmor-be-apps/values/eu-dev-3
   STAGING_VALUES_DIRS: kubernetes-deployment/Helm/cyberarmor-be-apps/values/eu-stage-2
-  PRODUCTION_VALUES_DIRS: kubernetes-deployment/Helm/cyberarmor-be-apps/values/eu-prod-1
+  PRODUCTION_VALUES_DIRS: kubernetes-deployment/Helm/cyberarmor-be-apps/values/eu-prod-1,kubernetes-deployment/event-sourcing-chart/release-process-ci-values.yaml
   STAGING_ARGO_APPS: kubescape-config-service-stage
   PRODUCTION_ARGO_APPS: kubescape-config-service-prod
   TESTS_GROUPS: MAPPED_REPO_TESTS
