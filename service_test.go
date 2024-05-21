@@ -416,7 +416,7 @@ func (suite *MainTestSuite) TestPostureException() {
 
 	searchtests := []searchTest{
 		{
-			testName: "testresources array search",
+			testName: "test resources array search",
 			listRequest: armotypes.V2ListRequest{
 				InnerFilters: []map[string]string{
 					{
