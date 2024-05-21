@@ -416,6 +416,17 @@ func (suite *MainTestSuite) TestPostureException() {
 
 	searchtests := []searchTest{
 		{
+			testName: "test resources array search",
+			listRequest: armotypes.V2ListRequest{
+				InnerFilters: []map[string]string{
+					{
+						"resources.attributes.cluster": "cluster1",
+					},
+				},
+			},
+			expectedIndexes: []int{2, 3},
+		},
+		{
 			testName: "test OR score with missing date",
 			listRequest: armotypes.V2ListRequest{
 				InnerFilters: []map[string]string{
@@ -675,6 +686,19 @@ func (suite *MainTestSuite) TestVulnerabilityPolicies() {
 	}
 
 	searchQueries := []searchTest{
+		{
+			testName:         "search in designator attributes array",
+			expectedIndexes:  []int{1, 2},
+			projectedResults: true,
+			listRequest: armotypes.V2ListRequest{
+				FieldsList: []string{"name"},
+				InnerFilters: []map[string]string{
+					{
+						"designators.attributes.cluster": "dwertent",
+					},
+				},
+			},
+		},
 		{
 			testName:         "test filter by range of dates",
 			expectedIndexes:  []int{1, 2},

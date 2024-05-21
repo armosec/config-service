@@ -31,7 +31,7 @@ func AddRoutes(g *gin.Engine) {
 		queryParamsConfig,
 		false,
 		&types.SchemaInfo{
-			ArrayPaths: []string{"posturePolicies"},
+			ArrayPaths: []string{"posturePolicies", "resources"},
 			FieldsType: map[string]types.FieldType{"expirationDate": types.Date},
 		},
 	)
