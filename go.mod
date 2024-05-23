@@ -1,11 +1,11 @@
 module config-service
 
-go 1.21.1
+go 1.22.2
 
-toolchain go1.21.3
+toolchain go1.22.3
 
 require (
-	github.com/armosec/armoapi-go v0.0.402
+	github.com/armosec/armoapi-go v0.0.412
 	github.com/aws/smithy-go v1.13.5
 	github.com/chidiwilliams/flatbson v0.3.0
 	github.com/dchest/uniuri v1.2.0
