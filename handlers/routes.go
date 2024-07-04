@@ -152,13 +152,14 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
 	}
 	if opts.servePostV2ListRequests {
+		putSchemaInContext := SchemaContextMiddleware(opts.schemaInfo)
 		if nestedPath := opts.schemaInfo.GetNestedDocPath(); nestedPath != "" {
-			handlers := []gin.HandlerFunc{SchemaContextMiddleware(opts.schemaInfo), NestedDocContextMiddleware(), HandlePostV2ListRequest[T]}
+			handlers := []gin.HandlerFunc{putSchemaInContext, NestedDocContextMiddleware(), HandlePostV2ListRequest[T]}
 			routerGroup.POST(nestedDocQuerySuffix, handlers...)
 			routerGroup.POST(nestedDocUniqueValuesSuffix, handlers...)
 		} else {
-			putSchemaInContext := SchemaContextMiddleware(opts.schemaInfo)
-			routerGroup.POST(querySuffix, putSchemaInContext, HandlePostV2ListRequest[T])
+			handlers := []gin.HandlerFunc{putSchemaInContext, HandlePostV2ListRequest[T]}
+			routerGroup.POST(querySuffix, handlers...)
 			routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2)
 		}
 	}

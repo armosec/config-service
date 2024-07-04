@@ -22,6 +22,7 @@ func AddRoutes(g *gin.Engine) {
 			"timestamp":               "date",
 			"relatedAlerts.timestamp": "date",
 		},
+		NanosecondsTimestampFieldName: ptr.String("nanoseconds"),
 	}
 
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.RuntimeAlert]().

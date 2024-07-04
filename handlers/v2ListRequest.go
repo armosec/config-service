@@ -38,6 +38,16 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	}
 	if request.OrderBy != "" {
 		sortFields := strings.Split(request.OrderBy, armotypes.V2ListValueSeparator)
+		if nanosTS := db.GetSchemaFromContext(ctx).NanosecondsTimestampFieldName; nanosTS != nil && *nanosTS != "" {
+			// add nanoseconds field to sort before each timestamp field if exists
+			for i, sortField := range sortFields {
+				if strings.HasPrefix(sortField, tsField+armotypes.V2ListSortTypeSeparator) {
+					// take original sort direction
+					sortType := strings.Split(sortField, armotypes.V2ListSortTypeSeparator)[1]
+					sortFields = append(sortFields[:i], append([]string{fmt.Sprintf("%s:%s", *nanosTS, sortType)}, sortFields[i:]...)...)
+				}
+			}
+		}
 		for _, sortField := range sortFields {
 			sortNameAndType := strings.Split(sortField, armotypes.V2ListSortTypeSeparator)
 			if len(sortNameAndType) != 2 {

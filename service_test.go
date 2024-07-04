@@ -1652,7 +1652,11 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 }
 
 func getIncidentsMocks() []*types.RuntimeIncident {
-	ts, _ := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147901Z")
+	ts, err := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147000Z")
+	if err != nil {
+		panic(err)
+	}
+	tsNanos := ts.UnixNano()
 	runtimeIncidents := []*types.RuntimeIncident{
 		{
 			RuntimeIncident: armotypes.RuntimeIncident{
@@ -1706,14 +1710,26 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 					{
 						Message:  "msg1",
 						HostName: "host1",
+						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+							Timestamp:   ts,
+							Nanoseconds: uint64(tsNanos) + 200,
+						},
 					},
 					{
 						Message:  "msg2",
 						HostName: "host2",
+						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+							Timestamp:   ts,
+							Nanoseconds: uint64(tsNanos) + 100,
+						},
 					},
 					{
 						Message:  "msg3",
 						HostName: "host3",
+						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+							Nanoseconds: uint64(tsNanos),
+							Timestamp:   ts,
+						},
 					},
 				},
 				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
@@ -2018,6 +2034,23 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	suite.Len(alerts.Response, 1)
 	suite.Equal(1, alerts.Total.Value)
 	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0].RuntimeAlert)
+	// test alerts sort by timestamp (with nanoseconds)
+	alertRequest = armotypes.V2ListRequest{
+		PageSize: ptr.Int(50),
+		PageNum:  ptr.Int(0),
+		OrderBy:  "timestamp:asc",
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(alerts.Response, 3)
+	suite.Equal(alerts.Total.Value, 3)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0].RuntimeAlert)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[1].RuntimeAlert)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[2].RuntimeAlert)
 
 }
 
