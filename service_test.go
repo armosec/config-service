@@ -1706,14 +1706,23 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 					{
 						Message:  "msg1",
 						HostName: "host1",
+						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+							Timestamp: ts,
+						},
 					},
 					{
 						Message:  "msg2",
 						HostName: "host2",
+						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+							Timestamp: ts.Add(time.Nanosecond * 100),
+						},
 					},
 					{
 						Message:  "msg3",
 						HostName: "host3",
+						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+							Timestamp: ts.Add(time.Nanosecond * 200),
+						},
 					},
 				},
 				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
