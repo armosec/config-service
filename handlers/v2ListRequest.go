@@ -35,6 +35,9 @@ func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.
 	tsField := db.GetSchemaFromContext(ctx).GetTimestampFieldName()
 	if perPage > 1 {
 		request.ValidateOrderBy(fmt.Sprintf("%s:%s", tsField, armotypes.V2ListDescendingSort))
+		if nanosTS := db.GetSchemaFromContext(ctx).NanosecondsTimestampFieldName; nanosTS != nil && *nanosTS != "" {
+			request.OrderBy = strings.Replace(request.OrderBy, tsField, *nanosTS, -1)
+		}
 	}
 	if request.OrderBy != "" {
 		sortFields := strings.Split(request.OrderBy, armotypes.V2ListValueSeparator)
