@@ -21,6 +21,7 @@ import (
 	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/armosec/armoapi-go/notifications"
+	"github.com/armosec/armosec-infra/kdr"
 	rndStr "github.com/dchest/uniuri"
 
 	"github.com/google/go-cmp/cmp"
@@ -1659,7 +1660,7 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 	tsNanos := ts.UnixNano()
 	runtimeIncidents := []*types.RuntimeIncident{
 		{
-			RuntimeIncident: armotypes.RuntimeIncident{
+			RuntimeIncident: kdr.RuntimeIncident{
 				PortalBase: armotypes.PortalBase{
 					Name: "incident1",
 					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a648",
@@ -1671,7 +1672,7 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 					},
 				},
 				Severity: "low",
-				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
 					Designators: identifiers.PortalDesignator{
 						DesignatorType: identifiers.DesignatorAttributes,
 						Attributes:     map[string]string{},
@@ -1680,12 +1681,12 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 			},
 		},
 		{
-			RuntimeIncident: armotypes.RuntimeIncident{
+			RuntimeIncident: kdr.RuntimeIncident{
 				PortalBase: armotypes.PortalBase{
 					Name: "incident2",
 					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a647",
 				},
-				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
 					Designators: identifiers.PortalDesignator{
 						DesignatorType: identifiers.DesignatorAttributes,
 						Attributes:     map[string]string{},
@@ -1695,7 +1696,7 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 			},
 		},
 		{
-			RuntimeIncident: armotypes.RuntimeIncident{
+			RuntimeIncident: kdr.RuntimeIncident{
 				PortalBase: armotypes.PortalBase{
 					Name: "incident3",
 					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a646",
@@ -1706,33 +1707,39 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 					},
 				},
 				Severity: "medium",
-				RelatedAlerts: []armotypes.RuntimeAlert{
+				RelatedAlerts: []kdr.RuntimeAlert{
 					{
-						Message:  "msg1",
-						HostName: "host1",
-						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
-							Timestamp:   ts,
-							Nanoseconds: uint64(tsNanos) + 200,
+						RuntimeAlert: armotypes.RuntimeAlert{
+							Message:  "msg1",
+							HostName: "host1",
+							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+								Timestamp:   ts,
+								Nanoseconds: uint64(tsNanos) + 200,
+							},
 						},
 					},
 					{
-						Message:  "msg2",
-						HostName: "host2",
-						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
-							Timestamp:   ts,
-							Nanoseconds: uint64(tsNanos) + 100,
+						RuntimeAlert: armotypes.RuntimeAlert{
+							Message:  "msg2",
+							HostName: "host2",
+							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+								Timestamp:   ts,
+								Nanoseconds: uint64(tsNanos) + 100,
+							},
 						},
 					},
 					{
-						Message:  "msg3",
-						HostName: "host3",
-						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
-							Nanoseconds: uint64(tsNanos),
-							Timestamp:   ts,
+						RuntimeAlert: armotypes.RuntimeAlert{
+							Message:  "msg3",
+							HostName: "host3",
+							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+								Nanoseconds: uint64(tsNanos),
+								Timestamp:   ts,
+							},
 						},
 					},
 				},
-				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
 					Designators: identifiers.PortalDesignator{
 						DesignatorType: identifiers.DesignatorAttributes,
 						Attributes:     map[string]string{},
@@ -1748,8 +1755,10 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 	runtimeIncidents := getIncidentsMocks()
 	modifyDocFunc := func(doc *types.RuntimeIncident) *types.RuntimeIncident {
 		docCloned := Clone(doc)
-		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, armotypes.RuntimeAlert{
-			Message: "msg" + rndStr.New(),
+		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, kdr.RuntimeAlert{
+			RuntimeAlert: armotypes.RuntimeAlert{
+				Message: "msg" + rndStr.New(),
+			},
 		})
 		return docCloned
 	}
