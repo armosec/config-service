@@ -5,6 +5,7 @@ import (
 	"config-service/routes/prob"
 	"config-service/routes/v1/admin"
 	"config-service/routes/v1/attack_chains"
+	"config-service/routes/v1/cloud_credentials"
 	"config-service/routes/v1/cluster"
 	"config-service/routes/v1/collaboration_config"
 	"config-service/routes/v1/customer"
@@ -90,6 +91,7 @@ func setupRouter() *gin.Engine {
 	runtime_incidents.AddRoutes(router)
 	runtime_alerts.AddRoutes(router)
 	integration_reference.AddRoutes(router)
+	cloud_credentials.AddRoutes(router)
 
 	return router
 }

@@ -37,7 +37,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
 		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability |
-		*RuntimeIncident | *RuntimeAlert | *IntegrationReference
+		*RuntimeIncident | *RuntimeAlert | *IntegrationReference | *CloudCredentials
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
