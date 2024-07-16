@@ -38,7 +38,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
 		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability |
-		*RuntimeIncident | *RuntimeAlert | *IntegrationReference
+		*RuntimeIncident | *RuntimeAlert | *IntegrationReference | *IncidentPolicy
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -451,6 +451,23 @@ func (r *RuntimeAlert) GetCreationTime() *time.Time {
 
 func (r *RuntimeAlert) SetGUID(guid string) {
 
+}
+
+type IncidentPolicy struct {
+	kdr.IncidentPolicy `json:",inline" bson:",inline"`
+	CreationTime       time.Time `json:"creationTime" bson:"creationTime"`
+}
+
+func (i *IncidentPolicy) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsV1
+}
+
+func (i *IncidentPolicy) InitNew() {
+	i.CreationTime = time.Now().UTC()
+}
+
+func (i *IncidentPolicy) GetCreationTime() *time.Time {
+	return &i.CreationTime
 }
 
 type IntegrationReference notifications.IntegrationReference

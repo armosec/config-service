@@ -2063,6 +2063,35 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 
 }
 
+func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
+	defaultPolicies := kdr.GetDefaultPolicies()
+	defaultPoliciesPtr := []*types.IncidentPolicy{}
+	for _, policy := range defaultPolicies {
+		defaultPoliciesPtr = append(defaultPoliciesPtr, &types.IncidentPolicy{
+			IncidentPolicy: policy,
+		})
+	}
+	for _, policy := range defaultPolicies {
+		defaultPoliciesPtr = append(defaultPoliciesPtr, &types.IncidentPolicy{
+			IncidentPolicy: policy,
+		})
+	}
+	modifyDocFunc := func(doc *types.IncidentPolicy) *types.IncidentPolicy {
+		docCloned := Clone(doc)
+		return docCloned
+	}
+	testOpts := testOptions[*types.IncidentPolicy]{
+		mandatoryName: true,
+		renameAllowed: false,
+		uniqueName:    false,
+	}
+	ignore := cmp.FilterPath(func(p cmp.Path) bool {
+		return p.String() == "IncidentPolicy.PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" ||
+			p.String() == "CreationDate" || p.String() == "IncidentPolicy.PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
+	}, cmp.Ignore())
+	commonTestWithOptions(suite, consts.RuntimeIncidentPolicyPath, defaultPoliciesPtr, modifyDocFunc, testOpts, ignore, ignoreTime)
+}
+
 func (suite *MainTestSuite) TestIntegrationReference() {
 	getTestCase := func() []*types.IntegrationReference {
 		return []*types.IntegrationReference{
