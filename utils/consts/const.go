@@ -34,6 +34,7 @@ const (
 	AttackChainsPath                      = "/v1_attack_chains"
 	RuntimeIncidentPath                   = "/v1_runtime_incident"
 	RuntimeAlertPath                      = "/v1_runtime_alert"
+	RuntimeIncidentPolicyPath             = "/v1_runtime_incident_policy"
 	IntegrationReferencePath              = "/v1_integration_reference"
 
 	//DB collections
@@ -50,6 +51,7 @@ const (
 	UsersNotificationsVulnerabilitiesCollection = "v1_users_notifications_vulnerabilities"
 	AttackChainsCollection                      = "v1_attack_chains"
 	RuntimeIncidentCollection                   = "v1_runtime_incidents"
+	RuntimeIncidentPolicyCollection             = "v1_runtime_incident_policies"
 	IntegrationReferenceCollection              = "v1_integration_references"
 
 	//Common document fields

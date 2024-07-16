@@ -7,6 +7,7 @@ import (
 	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/armosec/armoapi-go/configservice"
 	"github.com/armosec/armoapi-go/notifications"
+	"github.com/armosec/armosec-infra/kdr"
 	opapolicy "github.com/kubescape/opa-utils/reporthandling"
 	uuid "github.com/satori/go.uuid"
 )
@@ -37,7 +38,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
 		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability |
-		*RuntimeIncident | *RuntimeAlert | *IntegrationReference
+		*RuntimeIncident | *RuntimeAlert | *IntegrationReference | *IncidentPolicy
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -398,9 +399,9 @@ type PostureExceptionsSeverityUpdate struct {
 }
 
 type RuntimeIncident struct {
-	armotypes.RuntimeIncident `json:",inline" bson:",inline"`
-	CreationDayDate           *time.Time `json:"creationDayDate,omitempty" bson:"creationDayDate,omitempty"`
-	ResolveDayDate            *time.Time `json:"resolveDayDate,omitempty" bson:"resolveDayDate,omitempty"`
+	kdr.RuntimeIncident `json:",inline" bson:",inline"`
+	CreationDayDate     *time.Time `json:"creationDayDate,omitempty" bson:"creationDayDate,omitempty"`
+	ResolveDayDate      *time.Time `json:"resolveDayDate,omitempty" bson:"resolveDayDate,omitempty"`
 }
 
 var runtimeIncidentReadOnlyFields = append([]string{"creationTimestamp", "creationDayDate"}, commonReadOnlyFieldsV1...)
@@ -432,8 +433,8 @@ func (r *RuntimeIncident) SetGUID(guid string) {
 }
 
 type RuntimeAlert struct {
-	armotypes.PortalBase   `json:",inline" bson:"inline"`
-	armotypes.RuntimeAlert `json:",inline" bson:"inline"`
+	armotypes.PortalBase `json:",inline" bson:"inline"`
+	kdr.RuntimeAlert     `json:",inline" bson:"inline"`
 }
 
 func (r *RuntimeAlert) GetReadOnlyFields() []string {
@@ -450,6 +451,23 @@ func (r *RuntimeAlert) GetCreationTime() *time.Time {
 
 func (r *RuntimeAlert) SetGUID(guid string) {
 
+}
+
+type IncidentPolicy struct {
+	kdr.IncidentPolicy `json:",inline" bson:",inline"`
+	CreationTime       time.Time `json:"creationTime" bson:"creationTime"`
+}
+
+func (i *IncidentPolicy) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsV1
+}
+
+func (i *IncidentPolicy) InitNew() {
+	i.CreationTime = time.Now().UTC()
+}
+
+func (i *IncidentPolicy) GetCreationTime() *time.Time {
+	return &i.CreationTime
 }
 
 type IntegrationReference notifications.IntegrationReference
