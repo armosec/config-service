@@ -30,6 +30,12 @@ import (
 //go:embed test_data/clusters.json
 var clustersJson []byte
 
+//go:embed test_data/runtimeIncidentPolicyReq1.json
+var runtimeIncidentPolicyReq1 []byte
+
+//go:embed test_data/runtimeIncidentPolicyReq2.json
+var runtimeIncidentPolicyReq2 []byte
+
 var newClusterCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	switch p.String() {
 	case "PortalBase.GUID", "SubscriptionDate", "LastLoginDate", "PortalBase.UpdatedTime", "ExpirationDate":
@@ -2071,7 +2077,7 @@ func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
 			IncidentPolicy: policy,
 		})
 	}
-	for _, policy := range defaultPolicies {
+	for _, policy := range defaultPolicies { // double the policies for testing
 		defaultPoliciesPtr = append(defaultPoliciesPtr, &types.IncidentPolicy{
 			IncidentPolicy: policy,
 		})
@@ -2090,6 +2096,40 @@ func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
 			p.String() == "CreationDate" || p.String() == "IncidentPolicy.PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
 	}, cmp.Ignore())
 	commonTestWithOptions(suite, consts.RuntimeIncidentPolicyPath, defaultPoliciesPtr, modifyDocFunc, testOpts, ignore, ignoreTime)
+
+	// test request example from event ingester
+	for _, policy := range defaultPolicies { // triple the policies for testing
+		policy.Scope.RiskFactors = []armotypes.RiskFactor{"risk1", "risk2"}
+		policy.Name += "-riskFactors"
+		defaultPoliciesPtr = append(defaultPoliciesPtr, &types.IncidentPolicy{
+			IncidentPolicy: policy,
+		})
+	}
+	testBulkPostDocs(suite, consts.RuntimeIncidentPolicyPath, defaultPoliciesPtr, ignore, ignoreTime)
+	w := suite.doRequest(http.MethodPost, consts.RuntimeIncidentPolicyPath+"/query", runtimeIncidentPolicyReq1)
+	suite.Equal(http.StatusOK, w.Code)
+	newDoc, err := decodeResponse[armotypes.V2ListResponseGeneric[[]*kdr.IncidentPolicy]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(newDoc.Response, newDoc.Total.Value)
+	suite.Len(newDoc.Response, 2)
+	for _, doc := range newDoc.Response {
+		suite.NotNil(doc.GUID)
+		suite.Equal("Anomaly", doc.Name)
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPolicyPath+"/query", runtimeIncidentPolicyReq2)
+	suite.Equal(http.StatusOK, w.Code)
+	newDoc, err = decodeResponse[armotypes.V2ListResponseGeneric[[]*kdr.IncidentPolicy]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(newDoc.Response, newDoc.Total.Value)
+	suite.Len(newDoc.Response, 3)
+	for _, doc := range newDoc.Response {
+		suite.NotNil(doc.GUID)
+		suite.Equal("Anomaly", doc.Name[:7])
+	}
 }
 
 func (suite *MainTestSuite) TestIntegrationReference() {
