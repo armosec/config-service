@@ -64,7 +64,7 @@ func (suite *MainTestSuite) SetupSuite() {
 	//Create routes
 	suite.router = setupRouter()
 	//wait for service to be ready
-	checkReadiness := func() error {
+	checkReadiness := func() error { 
 		w := suite.doRequest(http.MethodGet, "/readiness", nil)
 		if w.Code != http.StatusOK {
 			return fmt.Errorf("failed to get readiness")
