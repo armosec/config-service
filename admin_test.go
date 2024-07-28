@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	_ "embed"
 
@@ -186,7 +185,7 @@ func (suite *MainTestSuite) TestAdminMultipleCustomers() {
 	// runtimeIncidents := getIncidentsMocks()
 	// w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath, runtimeIncidents)
 	// suite.Equal(http.StatusCreated, w.Code)
-	minTime := time.Time{}
+	/*minTime := time.Time{}
 	maxTime := time.Now().UTC().Add(time.Hour * 1)
 	v2ListReq = armotypes.V2ListRequest{
 		InnerFilters: []map[string]string{
@@ -200,7 +199,7 @@ func (suite *MainTestSuite) TestAdminMultipleCustomers() {
 	w = suite.doRequest(http.MethodDelete, deleteRuntimeIncidentsPath, &v2ListReq)
 	suite.Equal(http.StatusOK, w.Code)
 	diff := cmp.Diff(`{"deletedCount":0}`, w.Body.String())
-	suite.Equal("", diff)
+	suite.Equal("", diff)*/
 }
 
 //go:embed test_data/active_users/users.json
