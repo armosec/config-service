@@ -2106,6 +2106,7 @@ func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
 		})
 	}
 	testBulkPostDocs(suite, consts.RuntimeIncidentPolicyPath, defaultPoliciesPtr, ignore, ignoreTime)
+	time.Sleep(3 * time.Second)
 	w := suite.doRequest(http.MethodPost, consts.RuntimeIncidentPolicyPath+"/query", runtimeIncidentPolicyReq1)
 	suite.Equal(http.StatusOK, w.Code)
 	newDoc, err := decodeResponse[armotypes.V2ListResponseGeneric[[]*kdr.IncidentPolicy]](w)
