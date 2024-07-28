@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	_ "embed"
 
@@ -181,14 +182,20 @@ func (suite *MainTestSuite) TestAdminMultipleCustomers() {
 	deleteUsersUrls = fmt.Sprintf("%s/customers", consts.AdminPath)
 	testBadRequest(suite, http.MethodDelete, deleteUsersUrls, errorMissingQueryParams(consts.CustomersParam), nil, http.StatusBadRequest)
 
-	//test deleting runtime incidents by query (only admin can do that)
+	// test deleting runtime incidents by query (only admin can do that)
+	// create incidents
+	runtimeIncidents := getIncidentsMocks()
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath, runtimeIncidents)
+	suite.Equal(http.StatusCreated, w.Code)
 
-	// minTime := time.Time{}
-	// maxTime := time.Now().UTC().Add(time.Hour * 1)
+	// delete all incidents within updatedTime range
+	minTime := time.Now().AddDate(-101, 0, 0)
+	maxTime := time.Now().UTC().Add(time.Hour * 1)
+
 	v2ListReq = armotypes.V2ListRequest{
 		InnerFilters: []map[string]string{
 			{
-				// "updatedTime": fmt.Sprintf("%s&%s|range", minTime.Format(time.RFC3339), minTime.Format(time.RFC3339)),
+				"updatedTime": fmt.Sprintf("%s&%s|range", minTime.Format(time.RFC3339), maxTime.Format(time.RFC3339)),
 			},
 		},
 	}
@@ -196,7 +203,7 @@ func (suite *MainTestSuite) TestAdminMultipleCustomers() {
 	deleteRuntimeIncidentsPath := fmt.Sprintf("%s%s/query", consts.AdminPath, consts.RuntimeIncidentPath)
 	w = suite.doRequest(http.MethodDelete, deleteRuntimeIncidentsPath, &v2ListReq)
 	suite.Equal(http.StatusOK, w.Code)
-	diff := cmp.Diff(`{"deletedCount":0}`, w.Body.String())
+	diff := cmp.Diff(`{"deletedCount":3}`, w.Body.String())
 	suite.Equal("", diff)
 }
 
