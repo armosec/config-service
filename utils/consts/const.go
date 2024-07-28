@@ -53,6 +53,7 @@ const (
 	RuntimeIncidentCollection                   = "v1_runtime_incidents"
 	RuntimeIncidentPolicyCollection             = "v1_runtime_incident_policies"
 	IntegrationReferenceCollection              = "v1_integration_references"
+	TokensCollection                            = "tokens"
 
 	//Common document fields
 	IdField          = "_id"
