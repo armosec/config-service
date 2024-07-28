@@ -182,15 +182,13 @@ func (suite *MainTestSuite) TestAdminMultipleCustomers() {
 	testBadRequest(suite, http.MethodDelete, deleteUsersUrls, errorMissingQueryParams(consts.CustomersParam), nil, http.StatusBadRequest)
 
 	//test deleting runtime incidents by query (only admin can do that)
-	// runtimeIncidents := getIncidentsMocks()
-	// w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath, runtimeIncidents)
-	// suite.Equal(http.StatusCreated, w.Code)
-	/*minTime := time.Time{}
-	maxTime := time.Now().UTC().Add(time.Hour * 1)
+
+	// minTime := time.Time{}
+	// maxTime := time.Now().UTC().Add(time.Hour * 1)
 	v2ListReq = armotypes.V2ListRequest{
 		InnerFilters: []map[string]string{
 			{
-				"updatedTime": fmt.Sprintf("%s&%s|range", minTime.Format(time.RFC3339), maxTime.Format(time.RFC3339)),
+				// "updatedTime": fmt.Sprintf("%s&%s|range", minTime.Format(time.RFC3339), minTime.Format(time.RFC3339)),
 			},
 		},
 	}
@@ -199,7 +197,7 @@ func (suite *MainTestSuite) TestAdminMultipleCustomers() {
 	w = suite.doRequest(http.MethodDelete, deleteRuntimeIncidentsPath, &v2ListReq)
 	suite.Equal(http.StatusOK, w.Code)
 	diff := cmp.Diff(`{"deletedCount":0}`, w.Body.String())
-	suite.Equal("", diff)*/
+	suite.Equal("", diff)
 }
 
 //go:embed test_data/active_users/users.json
