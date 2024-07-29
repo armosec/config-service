@@ -350,6 +350,21 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 	consts.VulnerabilityExceptionPolicyCollection: {
 		{
 			Keys: bson.D{
+				{Key: "guid", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "name", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
 				{Key: "attributes.namespaceOnly", Value: 1},
 				{Key: "designators.attributes.cluster", Value: 1},
 				{Key: "designators.attributes.namespace", Value: 1},
