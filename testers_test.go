@@ -4,7 +4,6 @@ import (
 	"config-service/types"
 	"encoding/json"
 	"fmt"
-	"os"
 	"slices"
 	"time"
 
@@ -665,12 +664,6 @@ func testGetDocsWithOptions[T types.DocContent](suite *MainTestSuite, path strin
 	slices.SortFunc(expectedDocs, sortFunc)
 	diff := cmp.Diff(docs, expectedDocs, compareOpts...)
 	suite.Equal("", diff)
-	if diff != "" {
-		jsonBytesExpected, _ := json.Marshal(expectedDocs)
-		jsonBytesActual, _ := json.Marshal(docs)
-		os.WriteFile("expected.json", jsonBytesExpected, 0644)
-		os.WriteFile("actual.json", jsonBytesActual, 0644)
-	}
 	return docs
 }
 
