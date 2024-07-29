@@ -53,6 +53,8 @@ func AddRoutes(g *gin.Engine) {
 
 	//Post V2 list query on other collections
 	admin.POST("/:path/query", adminSearchCollection)
+	//DELETE V2 by query on other collections
+	admin.DELETE("/:path/query", adminDeleteCollection)
 	//uniqueValues
 	admin.POST("/:path/uniqueValues", adminAggregateCollection)
 }
@@ -89,6 +91,23 @@ func updatePostureExceptionsSeverity(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"updatedCount": updatedCount})
+}
+
+func adminDeleteCollection(c *gin.Context) {
+	path := "/" + c.Param("path")
+	apiInfo := types.GetAPIInfo(path)
+	if apiInfo == nil {
+		handlers.ResponseBadRequest(c, fmt.Sprintf("unknown path %s - available paths are %v", path, types.GetAllPaths()))
+		return
+	}
+	deleteHandler := handlers.GetAdminDeleteHandler(apiInfo.DBCollection)
+	if deleteHandler == nil {
+		handlers.ResponseInternalServerError(c, "delete handler is nil", fmt.Errorf("no delete handler for path %s", path))
+		return
+	}
+	//set the path collection
+	c.Set(consts.Collection, apiInfo.DBCollection)
+	deleteHandler(c)
 }
 
 func adminSearchCollection(c *gin.Context) {
@@ -142,6 +161,23 @@ func getCustomers(c *gin.Context) {
 }
 
 func deleteAllCustomerData(c *gin.Context) {
+	customersGUIDs := c.QueryArray(consts.CustomersParam)
+	if len(customersGUIDs) == 0 {
+		handlers.ResponseMissingQueryParam(c, consts.CustomersParam)
+		return
+	}
+	deleted, err := db.AdminDeleteCustomersDocs(c, customersGUIDs...)
+	if err != nil {
+		log.LogNTraceError(fmt.Sprintf("deleteAllCustomerData completed with errors. %d documents deleted", deleted), err, c)
+		handlers.ResponseInternalServerError(c, fmt.Sprintf("deleted: %d, errors: %v", deleted, err), err)
+		return
+	}
+	log.LogNTrace(fmt.Sprintf("deleteAllCustomerData completed successfully. %d documents of %d users deleted by admin %s ", deleted, len(customersGUIDs), c.GetString(consts.CustomerGUID)), c)
+	c.JSON(http.StatusOK, gin.H{"deleted": deleted})
+
+}
+
+func deleteOldRuntimeIncidents(c *gin.Context) {
 	customersGUIDs := c.QueryArray(consts.CustomersParam)
 	if len(customersGUIDs) == 0 {
 		handlers.ResponseMissingQueryParam(c, consts.CustomersParam)
