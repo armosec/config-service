@@ -19,6 +19,13 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 				{Key: "guid", Value: 1},
 			},
 		},
+		{
+			Keys: bson.D{
+				{Key: "activeSubscription.licenseType", Value: 1},
+				{Key: "activeSubscription.subscriptionStatus", Value: 1},
+				{Key: "subscription_date", Value: 1},
+			},
+		},
 	},
 	consts.UsersNotificationsCacheCollection: {
 		{
@@ -319,6 +326,50 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			Keys: bson.D{
 				{Key: "customers", Value: 1},
 				{Key: "timestamp", Value: 1},
+			},
+		},
+	},
+	consts.ClustersCollection: {
+		{
+			Keys: bson.D{
+				{Key: "_id", Value: 1},
+				{Key: "customers", Value: 1},
+			},
+		},
+	},
+	// We are paying the proce of not handling this index from config service but as a module
+	consts.TokensCollection: {
+		{
+			Keys: bson.D{
+				{Key: "customerGuid", Value: 1},
+				{Key: "value", Value: 1},
+				{Key: "type", Value: 1},
+			},
+		},
+	},
+	consts.VulnerabilityExceptionPolicyCollection: {
+		{
+			Keys: bson.D{
+				{Key: "guid", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "name", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "attributes.namespaceOnly", Value: 1},
+				{Key: "designators.attributes.cluster", Value: 1},
+				{Key: "designators.attributes.namespace", Value: 1},
+				// can't index on both customer and designators, as they are in different arrays
+				// {Key: "customers", Value: 1},
 			},
 		},
 	},
