@@ -368,7 +368,8 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 				{Key: "attributes.namespaceOnly", Value: 1},
 				{Key: "designators.attributes.cluster", Value: 1},
 				{Key: "designators.attributes.namespace", Value: 1},
-				{Key: "customers", Value: 1},
+				// can't index on both customer and designators, as they are in different arrays
+				// {Key: "customers", Value: 1},
 			},
 		},
 	},
