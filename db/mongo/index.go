@@ -86,6 +86,11 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 				{Key: "lastTimeEngineCompleted", Value: 1},
 			},
 		},
+		{
+			Keys: bson.D{
+				{Key: "creationTime", Value: -1},
+			},
+		},
 	},
 	consts.UsersNotificationsVulnerabilitiesCollection: {
 		{
@@ -334,6 +339,16 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			Keys: bson.D{
 				{Key: "_id", Value: 1},
 				{Key: "customers", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "_id", Value: 1},
 			},
 		},
 	},

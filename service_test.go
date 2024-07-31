@@ -2088,7 +2088,7 @@ func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
 	}
 	testOpts := testOptions[*types.IncidentPolicy]{
 		mandatoryName: true,
-		renameAllowed: false,
+		renameAllowed: true,
 		uniqueName:    false,
 	}
 	ignore := cmp.FilterPath(func(p cmp.Path) bool {

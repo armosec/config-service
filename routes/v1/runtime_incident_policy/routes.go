@@ -30,7 +30,8 @@ func AddRoutes(g *gin.Engine) {
 		WithValidatePostUniqueName(false).
 		WithValidatePutGUID(true).
 		WithValidatePostMandatoryName(true).
-		WithV2ListSearch(true)
+		WithV2ListSearch(true).
+		WithValidatePutUniqueName(true)
 
 	handlers.AddRoutes(g, routerOptionsBuilder.Get()...)
 }
