@@ -36,6 +36,9 @@ var runtimeIncidentPolicyReq1 []byte
 //go:embed test_data/runtimeIncidentPolicyReq2.json
 var runtimeIncidentPolicyReq2 []byte
 
+//go:embed test_data/runtimeIncidentPolicyReq3.json
+var runtimeIncidentPolicyReq3 []byte
+
 var newClusterCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	switch p.String() {
 	case "PortalBase.GUID", "SubscriptionDate", "LastLoginDate", "PortalBase.UpdatedTime", "ExpirationDate":
@@ -2088,7 +2091,7 @@ func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
 	}
 	testOpts := testOptions[*types.IncidentPolicy]{
 		mandatoryName: true,
-		renameAllowed: false,
+		renameAllowed: true,
 		uniqueName:    false,
 	}
 	ignore := cmp.FilterPath(func(p cmp.Path) bool {
@@ -2130,6 +2133,13 @@ func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
 	for _, doc := range newDoc.Response {
 		suite.NotNil(doc.GUID)
 		suite.Equal("Anomaly", doc.Name[:7])
+	}
+	// test sort by scope
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPolicyPath+"/query", runtimeIncidentPolicyReq3)
+	suite.Equal(http.StatusOK, w.Code)
+	_, err = decodeResponse[armotypes.V2ListResponseGeneric[[]*kdr.IncidentPolicy]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
 	}
 }
 

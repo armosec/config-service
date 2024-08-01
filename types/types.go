@@ -459,7 +459,7 @@ type IncidentPolicy struct {
 }
 
 func (i *IncidentPolicy) GetReadOnlyFields() []string {
-	return commonReadOnlyFieldsV1
+	return commonReadOnlyFieldsAllowRename
 }
 
 func (i *IncidentPolicy) InitNew() {
