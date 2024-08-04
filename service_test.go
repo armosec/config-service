@@ -2141,6 +2141,32 @@ func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
+	// test update scope designators
+	docWithScope := newDoc.Response[0]
+	docWithScope.Scope.Designators = []kdr.PolicyDesignators{
+		{
+			Cluster:   "cluster1",
+			Kind:      "kind1",
+			Name:      "name1",
+			Namespace: "namespace1",
+		},
+	}
+	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPolicyPath+"/"+docWithScope.GUID, docWithScope)
+	suite.Equal(http.StatusOK, w.Code)
+	upDoc, err := decodeResponse[[]types.IncidentPolicy](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(docWithScope.Scope.Designators, upDoc[1].Scope.Designators)
+	// empty designators
+	docWithScope.Scope.Designators = []kdr.PolicyDesignators{}
+	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPolicyPath+"/"+docWithScope.GUID, docWithScope)
+	suite.Equal(http.StatusOK, w.Code)
+	upDoc, err = decodeResponse[[]types.IncidentPolicy](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(len(docWithScope.Scope.Designators), len(upDoc[1].Scope.Designators))
 }
 
 func (suite *MainTestSuite) TestIntegrationReference() {
