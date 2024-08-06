@@ -159,15 +159,11 @@ func (f *FilterBuilder) AddExists(key string, value bool) *FilterBuilder {
 }
 
 func (f *FilterBuilder) AddOr(filters ...*FilterBuilder) *FilterBuilder {
-	orM := []bson.M{}
-	for _, filter := range filters {
-		m := bson.M{}
-		for i := range filter.filter {
-			m[filter.filter[i].Key] = filter.filter[i].Value
-		}
-		orM = append(orM, m)
+	orD := bson.A{} // bson.A preserves order and allows duplicate keys
+	for i := range filters {
+		orD = append(orD, filters[i].filter)
 	}
-	f.filter = append(f.filter, bson.E{Key: "$or", Value: orM})
+	f.filter = append(f.filter, bson.E{Key: "$or", Value: orD})
 	return f
 }
 

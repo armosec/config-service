@@ -4,16 +4,29 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  GH_ACCESS_TOKEN: ${{ secrets.ARMOSEC_GITHUB_ACCESS_TOKEN }}
+
 jobs:
   build:
+    env:
+      GOPRIVATE: github.com/armosec,github.com/kubescape
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ env.GH_ACCESS_TOKEN }}
+
+    - run: git config --global url.https://${{ env.GH_ACCESS_TOKEN }}@github.com/armosec/.insteadOf https://github.com/armosec/
+    - run: git config --global url.https://${{ env.GH_ACCESS_TOKEN }}@github.com/kubescape/.insteadOf https://github.com/kubescape/
     
     - name: Set up Go
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
-        go-version: "1.21"
+        go-version: "1.22"
+        cache: true
+        check-latest: true
 
     - uses: actions/cache@v2
       with:

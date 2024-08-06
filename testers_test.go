@@ -4,6 +4,7 @@ import (
 	"config-service/types"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/armosec/armoapi-go/armotypes"
@@ -652,12 +653,15 @@ func testGetDocsWithOptions[T types.DocContent](suite *MainTestSuite, path strin
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
-	sort.Slice(docs, func(i, j int) bool {
-		return docs[i].GetName() < docs[j].GetName()
-	})
-	sort.Slice(expectedDocs, func(i, j int) bool {
-		return expectedDocs[i].GetName() < expectedDocs[j].GetName()
-	})
+	sortFunc := func(a T, b T) int {
+		if nameInt := strings.Compare(a.GetName(), b.GetName()); nameInt != 0 {
+			return nameInt
+		} else {
+			return strings.Compare(a.GetGUID(), b.GetGUID())
+		}
+	}
+	slices.SortFunc(docs, sortFunc)
+	slices.SortFunc(expectedDocs, sortFunc)
 	diff := cmp.Diff(docs, expectedDocs, compareOpts...)
 	suite.Equal("", diff)
 	return docs

@@ -16,6 +16,7 @@ import (
 	"config-service/routes/v1/registry_cron_job"
 	"config-service/routes/v1/repository"
 	"config-service/routes/v1/runtime_alerts"
+	"config-service/routes/v1/runtime_incident_policy"
 	"config-service/routes/v1/runtime_incidents"
 	"config-service/routes/v1/users_notifications_vulnerabilities"
 
@@ -90,6 +91,7 @@ func setupRouter() *gin.Engine {
 	attack_chains.AddRoutes(router)
 	runtime_incidents.AddRoutes(router)
 	runtime_alerts.AddRoutes(router)
+	runtime_incident_policy.AddRoutes(router)
 	integration_reference.AddRoutes(router)
 	cloud_credentials.AddRoutes(router)
 

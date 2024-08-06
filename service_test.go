@@ -21,6 +21,7 @@ import (
 	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/armosec/armoapi-go/notifications"
+	"github.com/armosec/armosec-infra/kdr"
 	rndStr "github.com/dchest/uniuri"
 
 	"github.com/google/go-cmp/cmp"
@@ -28,6 +29,15 @@ import (
 
 //go:embed test_data/clusters.json
 var clustersJson []byte
+
+//go:embed test_data/runtimeIncidentPolicyReq1.json
+var runtimeIncidentPolicyReq1 []byte
+
+//go:embed test_data/runtimeIncidentPolicyReq2.json
+var runtimeIncidentPolicyReq2 []byte
+
+//go:embed test_data/runtimeIncidentPolicyReq3.json
+var runtimeIncidentPolicyReq3 []byte
 
 var newClusterCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	switch p.String() {
@@ -1659,7 +1669,7 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 	tsNanos := ts.UnixNano()
 	runtimeIncidents := []*types.RuntimeIncident{
 		{
-			RuntimeIncident: armotypes.RuntimeIncident{
+			RuntimeIncident: kdr.RuntimeIncident{
 				PortalBase: armotypes.PortalBase{
 					Name: "incident1",
 					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a648",
@@ -1671,7 +1681,7 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 					},
 				},
 				Severity: "low",
-				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
 					Designators: identifiers.PortalDesignator{
 						DesignatorType: identifiers.DesignatorAttributes,
 						Attributes:     map[string]string{},
@@ -1680,12 +1690,12 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 			},
 		},
 		{
-			RuntimeIncident: armotypes.RuntimeIncident{
+			RuntimeIncident: kdr.RuntimeIncident{
 				PortalBase: armotypes.PortalBase{
 					Name: "incident2",
 					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a647",
 				},
-				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
 					Designators: identifiers.PortalDesignator{
 						DesignatorType: identifiers.DesignatorAttributes,
 						Attributes:     map[string]string{},
@@ -1695,7 +1705,7 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 			},
 		},
 		{
-			RuntimeIncident: armotypes.RuntimeIncident{
+			RuntimeIncident: kdr.RuntimeIncident{
 				PortalBase: armotypes.PortalBase{
 					Name: "incident3",
 					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a646",
@@ -1706,33 +1716,39 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 					},
 				},
 				Severity: "medium",
-				RelatedAlerts: []armotypes.RuntimeAlert{
+				RelatedAlerts: []kdr.RuntimeAlert{
 					{
-						Message:  "msg1",
-						HostName: "host1",
-						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
-							Timestamp:   ts,
-							Nanoseconds: uint64(tsNanos) + 200,
+						RuntimeAlert: armotypes.RuntimeAlert{
+							Message:  "msg1",
+							HostName: "host1",
+							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+								Timestamp:   ts,
+								Nanoseconds: uint64(tsNanos) + 200,
+							},
 						},
 					},
 					{
-						Message:  "msg2",
-						HostName: "host2",
-						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
-							Timestamp:   ts,
-							Nanoseconds: uint64(tsNanos) + 100,
+						RuntimeAlert: armotypes.RuntimeAlert{
+							Message:  "msg2",
+							HostName: "host2",
+							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+								Timestamp:   ts,
+								Nanoseconds: uint64(tsNanos) + 100,
+							},
 						},
 					},
 					{
-						Message:  "msg3",
-						HostName: "host3",
-						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
-							Nanoseconds: uint64(tsNanos),
-							Timestamp:   ts,
+						RuntimeAlert: armotypes.RuntimeAlert{
+							Message:  "msg3",
+							HostName: "host3",
+							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+								Nanoseconds: uint64(tsNanos),
+								Timestamp:   ts,
+							},
 						},
 					},
 				},
-				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
 					Designators: identifiers.PortalDesignator{
 						DesignatorType: identifiers.DesignatorAttributes,
 						Attributes:     map[string]string{},
@@ -1748,8 +1764,10 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 	runtimeIncidents := getIncidentsMocks()
 	modifyDocFunc := func(doc *types.RuntimeIncident) *types.RuntimeIncident {
 		docCloned := Clone(doc)
-		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, armotypes.RuntimeAlert{
-			Message: "msg" + rndStr.New(),
+		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, kdr.RuntimeAlert{
+			RuntimeAlert: armotypes.RuntimeAlert{
+				Message: "msg" + rndStr.New(),
+			},
 		})
 		return docCloned
 	}
@@ -2052,6 +2070,103 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[1].RuntimeAlert)
 	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[2].RuntimeAlert)
 
+}
+
+func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
+	defaultPolicies := kdr.GetDefaultPolicies()
+	defaultPoliciesPtr := []*types.IncidentPolicy{}
+	for _, policy := range defaultPolicies {
+		defaultPoliciesPtr = append(defaultPoliciesPtr, &types.IncidentPolicy{
+			IncidentPolicy: policy,
+		})
+	}
+	for _, policy := range defaultPolicies { // double the policies for testing
+		defaultPoliciesPtr = append(defaultPoliciesPtr, &types.IncidentPolicy{
+			IncidentPolicy: policy,
+		})
+	}
+	modifyDocFunc := func(doc *types.IncidentPolicy) *types.IncidentPolicy {
+		docCloned := Clone(doc)
+		return docCloned
+	}
+	testOpts := testOptions[*types.IncidentPolicy]{
+		mandatoryName: true,
+		renameAllowed: true,
+		uniqueName:    false,
+	}
+	ignore := cmp.FilterPath(func(p cmp.Path) bool {
+		return p.String() == "IncidentPolicy.PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" ||
+			p.String() == "CreationDate" || p.String() == "IncidentPolicy.PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
+	}, cmp.Ignore())
+	commonTestWithOptions(suite, consts.RuntimeIncidentPolicyPath, defaultPoliciesPtr, modifyDocFunc, testOpts, ignore, ignoreTime)
+
+	// test request example from event ingester
+	for _, policy := range defaultPolicies { // triple the policies for testing
+		policy.Scope.RiskFactors = []armotypes.RiskFactor{"risk1", "risk2"}
+		policy.Name += "-riskFactors"
+		defaultPoliciesPtr = append(defaultPoliciesPtr, &types.IncidentPolicy{
+			IncidentPolicy: policy,
+		})
+	}
+	testBulkPostDocs(suite, consts.RuntimeIncidentPolicyPath, defaultPoliciesPtr, ignore, ignoreTime)
+	time.Sleep(3 * time.Second)
+	w := suite.doRequest(http.MethodPost, consts.RuntimeIncidentPolicyPath+"/query", runtimeIncidentPolicyReq1)
+	suite.Equal(http.StatusOK, w.Code)
+	newDoc, err := decodeResponse[armotypes.V2ListResponseGeneric[[]*kdr.IncidentPolicy]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(newDoc.Response, newDoc.Total.Value)
+	suite.Len(newDoc.Response, 2)
+	for _, doc := range newDoc.Response {
+		suite.NotNil(doc.GUID)
+		suite.Equal("Anomaly", doc.Name)
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPolicyPath+"/query", runtimeIncidentPolicyReq2)
+	suite.Equal(http.StatusOK, w.Code)
+	newDoc, err = decodeResponse[armotypes.V2ListResponseGeneric[[]*kdr.IncidentPolicy]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(newDoc.Response, newDoc.Total.Value)
+	suite.Len(newDoc.Response, 3)
+	for _, doc := range newDoc.Response {
+		suite.NotNil(doc.GUID)
+		suite.Equal("Anomaly", doc.Name[:7])
+	}
+	// test sort by scope
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPolicyPath+"/query", runtimeIncidentPolicyReq3)
+	suite.Equal(http.StatusOK, w.Code)
+	_, err = decodeResponse[armotypes.V2ListResponseGeneric[[]*kdr.IncidentPolicy]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	// test update scope designators
+	docWithScope := newDoc.Response[0]
+	docWithScope.Scope.Designators = []kdr.PolicyDesignators{
+		{
+			Cluster:   "cluster1",
+			Kind:      "kind1",
+			Name:      "name1",
+			Namespace: "namespace1",
+		},
+	}
+	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPolicyPath+"/"+docWithScope.GUID, docWithScope)
+	suite.Equal(http.StatusOK, w.Code)
+	upDoc, err := decodeResponse[[]types.IncidentPolicy](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(docWithScope.Scope.Designators, upDoc[1].Scope.Designators)
+	// empty designators
+	docWithScope.Scope.Designators = []kdr.PolicyDesignators{}
+	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPolicyPath+"/"+docWithScope.GUID, docWithScope)
+	suite.Equal(http.StatusOK, w.Code)
+	upDoc, err = decodeResponse[[]types.IncidentPolicy](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(len(docWithScope.Scope.Designators), len(upDoc[1].Scope.Designators))
 }
 
 func (suite *MainTestSuite) TestIntegrationReference() {

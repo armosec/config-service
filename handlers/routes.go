@@ -245,6 +245,13 @@ func GetAdminQueryHandler(collection string) gin.HandlerFunc {
 	return coll2AdminQueryHandler[collection]
 }
 
+// map of collection name to admin delete handler
+var coll2AdminDeleteHandler = map[string]gin.HandlerFunc{}
+
+func GetAdminDeleteHandler(collection string) gin.HandlerFunc {
+	return coll2AdminDeleteHandler[collection]
+}
+
 // keep the api info for each route
 func addRouteInfo[T types.DocContent](options *routerOptions[T]) {
 	apiInfo := types.APIInfo{
@@ -255,6 +262,7 @@ func addRouteInfo[T types.DocContent](options *routerOptions[T]) {
 	types.SetAPIInfo(options.path, apiInfo)
 	//keep the admin query handler for this route
 	coll2AdminQueryHandler[options.dbCollection] = HandleAdminPostV2ListRequest[T]
+	coll2AdminDeleteHandler[options.dbCollection] = HandleDeleteByQuery[T]
 }
 
 type RouterOption[T types.DocContent] func(*routerOptions[T])
@@ -477,4 +485,5 @@ func AddRouteInfo[T types.DocContent](apiInfo types.APIInfo) {
 	types.SetAPIInfo(apiInfo.BasePath, apiInfo)
 	//keep the admin query handler for this route
 	coll2AdminQueryHandler[apiInfo.DBCollection] = HandleAdminPostV2ListRequest[T]
+	coll2AdminDeleteHandler[apiInfo.DBCollection] = HandleDeleteByQuery[T]
 }
