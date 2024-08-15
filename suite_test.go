@@ -25,7 +25,7 @@ import (
 
 /*
 Coverage report cmd
-go test -timeout 30s  -coverpkg=./handlers,./db,./types,./routes/prob,./routes/login,./routes/cluster,./routes/posture_exception,./routes/vulnerability_exception,./routes/customer,./routes/customer_config -coverprofile coverage.out  \
+go test -timeout 30s  -coverpkg=./handlers,./db,./types,./routes/prob,./routes/login,./routes/cluster,./routes/posture_exception,./routes/vulnerability_exception,./routes/customer,./routes/customer_config,.routes/cloud_credentials -coverprofile coverage.out  \
 && \
 go tool cover -html=coverage.out -o coverage.html
 */

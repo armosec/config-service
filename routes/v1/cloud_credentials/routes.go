@@ -9,13 +9,17 @@ import (
 )
 
 func AddRoutes(g *gin.Engine) {
-	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.CloudCredentials]().
+	schemaInfo := types.SchemaInfo{
+		ArrayPaths: []string{"credentials.regions", "credentials.services"},
+	}
+	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.CloudAccount]().
 		WithPath(consts.CloudCredentialsPath).
 		WithDBCollection(consts.CloudCredentialsCollection).
+		WithSchemaInfo(schemaInfo).
 		WithValidatePostUniqueName(true).
 		WithValidatePutGUID(true).
 		WithDeleteByName(false).
-		WithUniqueShortName(handlers.NameValueGetter[*types.CloudCredentials]).
+		WithUniqueShortName(handlers.NameValueGetter[*types.CloudAccount]).
 		WithV2ListSearch(true).
 		WithNameQuery(consts.NameField).
 		Get()...)
