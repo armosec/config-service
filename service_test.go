@@ -2530,17 +2530,29 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 	testUniqueValues(suite, consts.IntegrationReferencePath, getTestCase(), uniqueValueTestCases, commonCmpFilter, ignoreTime)
 }
 
-var newAccountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
+var accountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	// IDO: take out Regions and Services from the comparison , supposed to be ok
 	switch p.String() {
 	//all the fields that are not supposed to be compared because they are cannot be empty.
-	case "PortalBase.GUID", "PortalBase.UpdatedTime", "AccountID", "PortalBase.Name","Provider", "Enabled", "CreationTime", "Credentials.AwsCredentials.Services", "Credentials.AwsCredentials.Regions":
+	case "PortalBase.GUID", "PortalBase.UpdatedTime","PortalBase.Name" , "CreationTime", "Credentials.AwsCredentials.Services", "Credentials.AwsCredentials.Regions":
 		zap.L().Info("path", zap.String("path", p.String()))
 
 		return true
 	}
 	return false
 }, cmp.Ignore())
+
+var updateAccountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
+	// IDO: take out Regions and Services from the comparison , supposed to be ok
+	switch p.String() {
+	//all the fields that are not supposed to be compared because they are cannot be empty.
+	case "AccountID", "Provider":
+		zap.L().Info("path", zap.String("path", p.String()))
+
+		return true
+	}
+	return false
+} , cmp.Ignore())
 
 func (suite *MainTestSuite) TestCloudAccount() {
 	accounts, _ := loadJson[*types.CloudAccount](cloudAccountsJson)
@@ -2550,7 +2562,7 @@ func (suite *MainTestSuite) TestCloudAccount() {
 		return account
 	}
 
-	commonTest(suite, consts.CloudCredentialsPath, accounts, modifyFunc, newAccountCompareFilter)
+	commonTest(suite, consts.CloudCredentialsPath, accounts, modifyFunc, accountCompareFilter)
 
 	projectedDocs := []*types.CloudAccount{
 		{
@@ -2698,7 +2710,7 @@ func (suite *MainTestSuite) TestCloudAccount() {
 	}
 
 	zap.L().Info("search test", zap.Any("searchQueries", searchQueries), zap.Any("accounts", projectedDocs))
-	testPostV2ListRequest(suite, consts.CloudCredentialsPath, accounts, projectedDocs, searchQueries, newAccountCompareFilter, ignoreTime)
+	testPostV2ListRequest(suite, consts.CloudCredentialsPath, accounts, projectedDocs, searchQueries, accountCompareFilter, ignoreTime)
 
 	uniqueValues := []uniqueValueTest{
 		{
@@ -2763,9 +2775,9 @@ func (suite *MainTestSuite) TestCloudAccount() {
 	}
 	zap.L().Info("unique values test", zap.Any("uniqueValues", uniqueValues))
 
-	testUniqueValues(suite, consts.CloudCredentialsPath, accounts, uniqueValues, newAccountCompareFilter, ignoreTime)
+	testUniqueValues(suite, consts.CloudCredentialsPath, accounts, uniqueValues,accountCompareFilter, ignoreTime)
 
-	testPartialUpdate(suite, consts.CloudCredentialsPath, &types.CloudAccount{}, newAccountCompareFilter, ignoreTime)
+	testPartialUpdate(suite, consts.CloudCredentialsPath, &types.CloudAccount{}, accountCompareFilter,updateAccountCompareFilter , ignoreTime)
 
-	testGetByName(suite, consts.CloudCredentialsPath, "name", accounts, newAccountCompareFilter, ignoreTime)
+	testGetByName(suite, consts.CloudCredentialsPath, "name", accounts, accountCompareFilter, ignoreTime)
 }

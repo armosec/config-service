@@ -413,6 +413,10 @@ func (b *RouterOptionsBuilder[T]) WithPutValidators(validators ...MutatorValidat
 }
 
 func (b *RouterOptionsBuilder[T]) WithPostValidators(validators ...MutatorValidator[T]) *RouterOptionsBuilder[T] {
+	// add docs validators before POST requests(for creating new docs)
+	// get a list of function of this format :
+	//func ExampleValidator() func(c *gin.Context, docs []*types.ExampleType) ([]*types.ExampleType, bool) {
+	//return func(c *gin.Context, docs []*types.ExampleType) ([]*types.ExampleType, bool)
 	b.options = append(b.options, func(opts *routerOptions[T]) {
 		opts.postValidators = validators
 	})
