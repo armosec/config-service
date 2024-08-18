@@ -2533,8 +2533,8 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 var newAccountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	// IDO: take out Regions and Services from the comparison , supposed to be ok
 	switch p.String() {
-		//all the fields that are not supposed to be compared because they are cannot be empty.
-	case "PortalBase.GUID","PortalBase.UpdatedTime", "AccountID" ,"Provider", "Enabled" , "CreationTime" , "Credentials.AwsCredentials.Services", "Credentials.AwsCredentials.Regions":
+	//all the fields that are not supposed to be compared because they are cannot be empty.
+	case "PortalBase.GUID", "PortalBase.UpdatedTime", "AccountID", "PortalBase.Name","Provider", "Enabled", "CreationTime", "Credentials.AwsCredentials.Services", "Credentials.AwsCredentials.Regions":
 		zap.L().Info("path", zap.String("path", p.String()))
 
 		return true

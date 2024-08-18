@@ -517,4 +517,4 @@ var clusterReadOnlyFields = append([]string{"subscription_date"}, commonReadOnly
 var repositoryReadOnlyFields = append([]string{"creationDate"}, commonReadOnlyFields...)
 var croneJobReadOnlyFields = append([]string{"creationTime", "clusterName", "registryName"}, commonReadOnlyFields...)
 var attackChainReadOnlyFields = append([]string{"creationTime", "customerGUID", "clusterName"}, commonReadOnlyFieldsV1...)
-var CloudCredentialsReadOnlyFields = append([]string{"Provider", ""}, commonReadOnlyFieldsV1...)
+var CloudCredentialsReadOnlyFields = append([]string{"provider","accountID", "creationTime"}, baseReadOnlyFields...)
