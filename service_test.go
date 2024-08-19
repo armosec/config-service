@@ -2534,7 +2534,7 @@ var accountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	// IDO: take out Regions and Services from the comparison , supposed to be ok
 	switch p.String() {
 	//all the fields that are not supposed to be compared because they are cannot be empty.
-	case "PortalBase.GUID", "PortalBase.UpdatedTime","PortalBase.Name" , "CreationTime", "Credentials.AwsCredentials.Services", "Credentials.AwsCredentials.Regions":
+	case "PortalBase.GUID", "PortalBase.UpdatedTime", "PortalBase.Name", "CreationTime", "Credentials.AwsCredentials.Services", "Credentials.AwsCredentials.Regions":
 		zap.L().Info("path", zap.String("path", p.String()))
 
 		return true
@@ -2552,7 +2552,7 @@ var updateAccountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 		return true
 	}
 	return false
-} , cmp.Ignore())
+}, cmp.Ignore())
 
 func (suite *MainTestSuite) TestCloudAccount() {
 	accounts, _ := loadJson[*types.CloudAccount](cloudAccountsJson)
@@ -2775,9 +2775,9 @@ func (suite *MainTestSuite) TestCloudAccount() {
 	}
 	zap.L().Info("unique values test", zap.Any("uniqueValues", uniqueValues))
 
-	testUniqueValues(suite, consts.CloudCredentialsPath, accounts, uniqueValues,accountCompareFilter, ignoreTime)
+	testUniqueValues(suite, consts.CloudCredentialsPath, accounts, uniqueValues, accountCompareFilter, ignoreTime)
 
-	testPartialUpdate(suite, consts.CloudCredentialsPath, &types.CloudAccount{}, accountCompareFilter,updateAccountCompareFilter , ignoreTime)
+	testPartialUpdate(suite, consts.CloudCredentialsPath, &types.CloudAccount{}, accountCompareFilter, updateAccountCompareFilter, ignoreTime)
 
 	testGetByName(suite, consts.CloudCredentialsPath, "name", accounts, accountCompareFilter, ignoreTime)
 }

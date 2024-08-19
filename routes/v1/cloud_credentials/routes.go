@@ -18,9 +18,12 @@ func AddRoutes(g *gin.Engine) {
 		WithPath(consts.CloudCredentialsPath).
 		WithDBCollection(consts.CloudCredentialsCollection).
 		WithValidatePostUniqueName(true).
+		WithDeleteByName(true).
 		WithValidatePutGUID(true).
 		WithSchemaInfo(schemaInfo).
 		WithPostValidators(validatePostMustParams()).
+		WithV2ListSearch(true).
+		WithNameQuery(consts.NameField).
 		Get()...)
 }
 
