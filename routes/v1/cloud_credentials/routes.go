@@ -15,8 +15,8 @@ func AddRoutes(g *gin.Engine) {
 	}
 	//IDO: understnd how do not update the name if it is empty
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.CloudAccount]().
-		WithPath(consts.CloudCredentialsPath).
-		WithDBCollection(consts.CloudCredentialsCollection).
+		WithPath(consts.CloudAccountPath).
+		WithDBCollection(consts.CloudAccountsCollection).
 		WithValidatePostUniqueName(true).
 		WithDeleteByName(true).
 		WithValidatePutGUID(true).

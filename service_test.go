@@ -2562,7 +2562,7 @@ func (suite *MainTestSuite) TestCloudAccount() {
 		return account
 	}
 
-	commonTest(suite, consts.CloudCredentialsPath, accounts, modifyFunc, accountCompareFilter)
+	commonTest(suite, consts.CloudAccountPath, accounts, modifyFunc, accountCompareFilter)
 
 	projectedDocs := []*types.CloudAccount{
 		{
@@ -2710,7 +2710,7 @@ func (suite *MainTestSuite) TestCloudAccount() {
 	}
 
 	zap.L().Info("search test", zap.Any("searchQueries", searchQueries), zap.Any("accounts", projectedDocs))
-	testPostV2ListRequest(suite, consts.CloudCredentialsPath, accounts, projectedDocs, searchQueries, accountCompareFilter, ignoreTime)
+	testPostV2ListRequest(suite, consts.CloudAccountPath, accounts, projectedDocs, searchQueries, accountCompareFilter, ignoreTime)
 
 	uniqueValues := []uniqueValueTest{
 		{
@@ -2775,9 +2775,9 @@ func (suite *MainTestSuite) TestCloudAccount() {
 	}
 	zap.L().Info("unique values test", zap.Any("uniqueValues", uniqueValues))
 
-	testUniqueValues(suite, consts.CloudCredentialsPath, accounts, uniqueValues, accountCompareFilter, ignoreTime)
+	testUniqueValues(suite, consts.CloudAccountPath, accounts, uniqueValues, accountCompareFilter, ignoreTime)
 
-	testPartialUpdate(suite, consts.CloudCredentialsPath, &types.CloudAccount{}, accountCompareFilter, updateAccountCompareFilter, ignoreTime)
+	testPartialUpdate(suite, consts.CloudAccountPath, &types.CloudAccount{}, accountCompareFilter, updateAccountCompareFilter, ignoreTime)
 
-	testGetByName(suite, consts.CloudCredentialsPath, "name", accounts, accountCompareFilter, ignoreTime)
+	testGetByName(suite, consts.CloudAccountPath, "name", accounts, accountCompareFilter, ignoreTime)
 }

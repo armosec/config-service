@@ -36,7 +36,7 @@ const (
 	RuntimeAlertPath                      = "/v1_runtime_alert"
 	RuntimeIncidentPolicyPath             = "/v1_runtime_incident_policy"
 	IntegrationReferencePath              = "/v1_integration_reference"
-	CloudCredentialsPath                  = "/v1_cloud_credentials"
+	CloudAccountPath                      = "/v1_cloud_account"
 
 	//DB collections
 	ClustersCollection                          = "clusters"
@@ -55,7 +55,7 @@ const (
 	RuntimeIncidentPolicyCollection             = "v1_runtime_incident_policies"
 	IntegrationReferenceCollection              = "v1_integration_references"
 	TokensCollection                            = "tokens"
-	CloudCredentialsCollection                  = "v1_cloud_credentials"
+	CloudAccountsCollection                     = "v1_cloud_accounts"
 
 	//Common document fields
 	IdField          = "_id"
