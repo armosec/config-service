@@ -2149,10 +2149,10 @@ func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
 	docWithScope := newDoc.Response[0]
 	docWithScope.Scope.Designators = []kdr.PolicyDesignators{
 		{
-			Cluster:   "cluster1",
-			Kind:      "kind1",
-			Name:      "name1",
-			Namespace: "namespace1",
+			Cluster:   ptr.String("cluster1"),
+			Kind:       ptr.String("kind1"),
+			Name:       ptr.String("name1"),
+			Namespace:  ptr.String("namespace1"),
 		},
 	}
 	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPolicyPath+"/"+docWithScope.GUID, docWithScope)
@@ -2531,10 +2531,9 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 }
 
 var accountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
-	// IDO: take out Regions and Services from the comparison , supposed to be ok
 	switch p.String() {
-	//all the fields that are not supposed to be compared because they are cannot be empty.
-	case "PortalBase.GUID", "PortalBase.UpdatedTime", "PortalBase.Name", "CreationTime", "Credentials.AwsCredentials.Services", "Credentials.AwsCredentials.Regions":
+	//all the fields that are not supposed to be compared because they cannot be empty.
+	case "PortalBase.GUID", "PortalBase.UpdatedTime", "PortalBase.Name", "CreationTime":
 		zap.L().Info("path", zap.String("path", p.String()))
 
 		return true
@@ -2543,7 +2542,6 @@ var accountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 }, cmp.Ignore())
 
 var updateAccountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
-	// IDO: take out Regions and Services from the comparison , supposed to be ok
 	switch p.String() {
 	//all the fields that are not supposed to be compared because they are cannot be empty.
 	case "AccountID", "Provider":

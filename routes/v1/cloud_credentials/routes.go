@@ -4,7 +4,6 @@ import (
 	"config-service/handlers"
 	"config-service/types"
 	"config-service/utils/consts"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,7 +12,6 @@ func AddRoutes(g *gin.Engine) {
 	schemaInfo := types.SchemaInfo{
 		ArrayPaths: []string{"credentials.regions", "credentials.services"},
 	}
-	//IDO: understnd how do not update the name if it is empty
 	handlers.AddRoutes(g, handlers.NewRouterOptionsBuilder[*types.CloudAccount]().
 		WithPath(consts.CloudAccountPath).
 		WithDBCollection(consts.CloudAccountsCollection).
@@ -30,7 +28,6 @@ func AddRoutes(g *gin.Engine) {
 func validatePostMustParams() func(c *gin.Context, docs []*types.CloudAccount) ([]*types.CloudAccount, bool) {
 	return func(c *gin.Context, docs []*types.CloudAccount) ([]*types.CloudAccount, bool) {
 		for i := range docs {
-			fmt.Println(docs[i], docs[i].Enabled)
 			if docs[i].Provider == "" {
 				return docs, false
 			}
