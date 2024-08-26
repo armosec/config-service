@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/aws/smithy-go/ptr"
+	"go.uber.org/zap"
 
 	_ "embed"
 
@@ -29,6 +30,9 @@ import (
 
 //go:embed test_data/clusters.json
 var clustersJson []byte
+
+//go:embed test_data/cloud-credentials.json
+var cloudAccountsJson []byte
 
 //go:embed test_data/runtimeIncidentPolicyReq1.json
 var runtimeIncidentPolicyReq1 []byte
@@ -2524,5 +2528,254 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 	}
 
 	testUniqueValues(suite, consts.IntegrationReferencePath, getTestCase(), uniqueValueTestCases, commonCmpFilter, ignoreTime)
+}
 
+var accountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
+	switch p.String() {
+	//all the fields that are not supposed to be compared because they cannot be empty.
+	case "PortalBase.GUID", "PortalBase.UpdatedTime", "PortalBase.Name", "CreationTime":
+		zap.L().Info("path", zap.String("path", p.String()))
+
+		return true
+	}
+	return false
+}, cmp.Ignore())
+
+var updateAccountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
+	switch p.String() {
+	//all the fields that are not supposed to be compared because they are cannot be empty.
+	case "AccountID", "Provider":
+		zap.L().Info("path", zap.String("path", p.String()))
+
+		return true
+	}
+	return false
+}, cmp.Ignore())
+
+func (suite *MainTestSuite) TestCloudAccount() {
+	accounts, _ := loadJson[*types.CloudAccount](cloudAccountsJson)
+
+	modifyFunc := func(account *types.CloudAccount) *types.CloudAccount {
+		account.UpdatedTime = time.Now().UTC().Format(time.RFC3339)
+		return account
+	}
+
+	commonTest(suite, consts.CloudAccountPath, accounts, modifyFunc, accountCompareFilter)
+
+	projectedDocs := []*types.CloudAccount{
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "AWS-Test-Account",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "AWS-Test-Account-No-Regions",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "Azure-Test-Account",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "GCP-Test-Account",
+			},
+		},
+	}
+
+	searchQueries := []searchTest{
+		{
+			testName:        "get all",
+			expectedIndexes: []int{0, 1, 2, 3},
+			listRequest:     armotypes.V2ListRequest{},
+		},
+		{
+			testName:        "get first page",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				PageSize: ptr.Int(2),
+				PageNum:  ptr.Int(0),
+			},
+		},
+		{
+			testName:        "get multiple names",
+			expectedIndexes: []int{0, 2, 3},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "AWS-Test-Account,Azure-Test-Account,GCP-Test-Account",
+					},
+				},
+			},
+		},
+		{
+			testName:        "field or match",
+			expectedIndexes: []int{2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "Azure-Test-Account",
+					},
+				},
+			},
+		},
+		{
+			testName:        "fields and match",
+			expectedIndexes: []int{0},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"provider": "aws",
+						"name":     "AWS-Test-Account",
+					},
+				},
+			},
+		},
+		{
+			testName:        "filters exist operator",
+			expectedIndexes: []int{0, 1, 2, 3},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"provider": "|exists",
+					},
+				},
+			},
+		},
+		{
+			testName:        "like ignorecase match",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "AWS-Test|like&ignorecase",
+					},
+				},
+			},
+		},
+		{
+			testName:        "like with multi results",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"credentials.awsCredentials.encryptedRoleARN": "arn:aws|like",
+					},
+				},
+			},
+		},
+		{
+			testName:         "projection test",
+			expectedIndexes:  []int{0, 1, 2, 3},
+			projectedResults: true,
+			listRequest: armotypes.V2ListRequest{
+				OrderBy:    "name:asc",
+				FieldsList: []string{"name"},
+			},
+		},
+		{
+			testName:        "credentials.azureCredentials.encryptedTenantID exists",
+			expectedIndexes: []int{2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"credentials.azureCredentials.encryptedTenantID": "|exists",
+					},
+				},
+			},
+		},
+		{
+			testName:        "credentials.encryptedPrincipalID exists",
+			expectedIndexes: []int{3},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"credentials.gcpCredentials.encryptedPrincipalID": "|exists",
+					},
+				},
+			},
+		},
+	}
+
+	zap.L().Info("search test", zap.Any("searchQueries", searchQueries), zap.Any("accounts", projectedDocs))
+	testPostV2ListRequest(suite, consts.CloudAccountPath, accounts, projectedDocs, searchQueries, accountCompareFilter, ignoreTime)
+
+	uniqueValues := []uniqueValueTest{
+		{
+			testName: "unique providers",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"provider": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"provider": {"aws", "azure", "gcp"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"provider": {
+						{
+							Field: "aws",
+							Count: 2,
+						},
+						{
+							Field: "azure",
+							Count: 1,
+						},
+						{
+							Field: "gcp",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique names with aws filter",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"provider": "aws",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name": {"AWS-Test-Account", "AWS-Test-Account-No-Regions"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+							Field: "AWS-Test-Account",
+							Count: 1,
+						},
+						{
+							Field: "AWS-Test-Account-No-Regions",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+	zap.L().Info("unique values test", zap.Any("uniqueValues", uniqueValues))
+
+	testUniqueValues(suite, consts.CloudAccountPath, accounts, uniqueValues, accountCompareFilter, ignoreTime)
+
+	testPartialUpdate(suite, consts.CloudAccountPath, &types.CloudAccount{}, accountCompareFilter, updateAccountCompareFilter, ignoreTime)
+
+	testGetByName(suite, consts.CloudAccountPath, "name", accounts, accountCompareFilter, ignoreTime)
 }

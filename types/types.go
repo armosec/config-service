@@ -7,6 +7,7 @@ import (
 	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/armosec/armoapi-go/configservice"
 	"github.com/armosec/armoapi-go/notifications"
+	cloudposture "github.com/armosec/armosec-infra/cloudPosture"
 	"github.com/armosec/armosec-infra/kdr"
 	opapolicy "github.com/kubescape/opa-utils/reporthandling"
 	uuid "github.com/satori/go.uuid"
@@ -38,7 +39,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
 		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability |
-		*RuntimeIncident | *RuntimeAlert | *IntegrationReference | *IncidentPolicy
+		*RuntimeIncident | *RuntimeAlert | *IntegrationReference | *IncidentPolicy | *CloudAccount
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -484,6 +485,30 @@ func (i *IntegrationReference) GetCreationTime() *time.Time {
 	return &i.CreationTime
 }
 
+type CloudAccount cloudposture.CloudAccount
+
+func (cc *CloudAccount) GetReadOnlyFields() []string {
+	return CloudCredentialsReadOnlyFields
+}
+func (cc *CloudAccount) InitNew() {
+	cc.CreationTime = time.Now().UTC().Format(time.RFC3339)
+}
+
+func (cc *CloudAccount) GetName() string {
+	return cc.Name
+}
+
+func (cc *CloudAccount) GetCreationTime() *time.Time {
+	if cc.CreationTime == "" {
+		return nil
+	}
+	creationTime, err := time.Parse(time.RFC3339, cc.CreationTime)
+	if err != nil {
+		return nil
+	}
+	return &creationTime
+}
+
 var baseReadOnlyFields = []string{consts.IdField, consts.GUIDField}
 var commonReadOnlyFields = append([]string{consts.NameField}, baseReadOnlyFields...)
 var commonReadOnlyFieldsV1 = append([]string{"creationTime"}, commonReadOnlyFields...)
@@ -492,3 +517,4 @@ var clusterReadOnlyFields = append([]string{"subscription_date"}, commonReadOnly
 var repositoryReadOnlyFields = append([]string{"creationDate"}, commonReadOnlyFields...)
 var croneJobReadOnlyFields = append([]string{"creationTime", "clusterName", "registryName"}, commonReadOnlyFields...)
 var attackChainReadOnlyFields = append([]string{"creationTime", "customerGUID", "clusterName"}, commonReadOnlyFieldsV1...)
+var CloudCredentialsReadOnlyFields = append([]string{"provider","accountID", "creationTime"}, baseReadOnlyFields...)
