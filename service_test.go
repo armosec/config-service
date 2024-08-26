@@ -2150,9 +2150,9 @@ func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
 	docWithScope.Scope.Designators = []kdr.PolicyDesignators{
 		{
 			Cluster:   ptr.String("cluster1"),
-			Kind:       ptr.String("kind1"),
-			Name:       ptr.String("name1"),
-			Namespace:  ptr.String("namespace1"),
+			Kind:      ptr.String("kind1"),
+			Name:      ptr.String("name1"),
+			Namespace: ptr.String("namespace1"),
 		},
 	}
 	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPolicyPath+"/"+docWithScope.GUID, docWithScope)
