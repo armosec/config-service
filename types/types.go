@@ -399,6 +399,12 @@ type PostureExceptionsSeverityUpdate struct {
 	SeverityScore int      `json:"severityScore" binding:"required"`
 }
 
+type BulkResolveRuntimeIncidents struct {
+	CustomerGUID string              `json:"customerGUID" binding:"required"`
+	UserEmail    string              `json:"userEmail" binding:"required"` // user email claims
+	InnerFilters []map[string]string `json:"innerFilters"`
+}
+
 type RuntimeIncident struct {
 	kdr.RuntimeIncident `json:",inline" bson:",inline"`
 	CreationDayDate     *time.Time `json:"creationDayDate,omitempty" bson:"creationDayDate,omitempty"`
@@ -517,4 +523,4 @@ var clusterReadOnlyFields = append([]string{"subscription_date"}, commonReadOnly
 var repositoryReadOnlyFields = append([]string{"creationDate"}, commonReadOnlyFields...)
 var croneJobReadOnlyFields = append([]string{"creationTime", "clusterName", "registryName"}, commonReadOnlyFields...)
 var attackChainReadOnlyFields = append([]string{"creationTime", "customerGUID", "clusterName"}, commonReadOnlyFieldsV1...)
-var CloudCredentialsReadOnlyFields = append([]string{"provider","accountID", "creationTime"}, baseReadOnlyFields...)
+var CloudCredentialsReadOnlyFields = append([]string{"provider", "accountID", "creationTime"}, baseReadOnlyFields...)

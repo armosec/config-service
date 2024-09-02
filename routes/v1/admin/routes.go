@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slices"
 )
@@ -50,6 +51,10 @@ func AddRoutes(g *gin.Engine) {
 	admin.PUT("/updatePostureExceptionsSeverity",
 		handlers.DBContextMiddleware(consts.PostureExceptionPolicyCollection),
 		updatePostureExceptionsSeverity)
+
+	admin.PUT("/markRuntimeIncidentsAsResolved",
+		handlers.DBContextMiddleware(consts.RuntimeIncidentCollection),
+		markRuntimeIncidentsAsResolved)
 
 	//Post V2 list query on other collections
 	admin.POST("/:path/query", adminSearchCollection)
@@ -245,4 +250,38 @@ func getActiveCustomers(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func markRuntimeIncidentsAsResolved(c *gin.Context) {
+	var updateReq types.BulkResolveRuntimeIncidents
+	err := c.BindJSON(&updateReq)
+	if err != nil {
+		handlers.ResponseFailedToBindJson(c, err)
+		return
+	}
+
+	req := armotypes.V2ListRequest{InnerFilters: updateReq.InnerFilters}
+	findOpts, err := handlers.V2List2FindOptionsNotPaginated(c, req)
+	if err != nil {
+		handlers.ResponseBadRequest(c, err.Error())
+		return
+	}
+	filter := findOpts.Filter().WithCustomers([]string{updateReq.CustomerGUID})
+	nowTime := time.Now().UTC()
+
+	// mark customer incidents as resolved
+	update := db.GetMultipleUpdateSetFieldCommand(map[string]interface{}{
+		"isDismissed": true,
+		"seenAt":      &nowTime,
+		"seenBy":      updateReq.UserEmail,
+		"resolvedAt":  &nowTime,
+		"resolvedBy":  updateReq.UserEmail,
+	})
+
+	updatedCount, err := db.AdminUpdateMany(c, filter, update)
+	if err != nil {
+		handlers.ResponseInternalServerError(c, "failed to update runtime incidents", err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"updatedCount": updatedCount})
 }
