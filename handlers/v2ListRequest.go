@@ -16,24 +16,37 @@ import (
 
 const maxV2PageSize = 150
 
-func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.FindOptions, error) {
-	request.ValidatePageProperties(maxV2PageSize)
+func V2List2FindOptionsPaginated(ctx *gin.Context, request armotypes.V2ListRequest) (*db.FindOptions, error) {
+	return v2List2FindOptions(ctx, request, true)
+}
+
+func V2List2FindOptionsNotPaginated(ctx *gin.Context, request armotypes.V2ListRequest) (*db.FindOptions, error) {
+	return v2List2FindOptions(ctx, request, false)
+}
+
+func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest, withPagination bool) (*db.FindOptions, error) {
+	if withPagination {
+		request.ValidatePageProperties(maxV2PageSize)
+	}
+
 	findOptions := db.NewFindOptions()
-	//pages
 	var perPage int
-	if request.PageSize != nil && *request.PageSize <= maxV2PageSize {
-		perPage = *request.PageSize
-	} else {
-		perPage = maxV2PageSize
+	if withPagination {
+		//pages
+		if request.PageSize != nil && *request.PageSize <= maxV2PageSize {
+			perPage = *request.PageSize
+		} else {
+			perPage = maxV2PageSize
+		}
+		var page int
+		if request.PageNum != nil {
+			page = *request.PageNum
+		}
+		findOptions.SetPagination(int64(page), int64(perPage))
 	}
-	var page int
-	if request.PageNum != nil {
-		page = *request.PageNum
-	}
-	findOptions.SetPagination(int64(page), int64(perPage))
 	//sort
 	tsField := db.GetSchemaFromContext(ctx).GetTimestampFieldName()
-	if perPage > 1 {
+	if withPagination && perPage > 1 {
 		request.ValidateOrderBy(fmt.Sprintf("%s:%s", tsField, armotypes.V2ListDescendingSort))
 	}
 	if request.OrderBy != "" {
