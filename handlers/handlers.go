@@ -183,6 +183,27 @@ func PostDBDocumentHandler[T types.DocContent](c *gin.Context, dbDoc types.Docum
 	}
 }
 
+func HandlePostV2CountRequest(c *gin.Context) {
+	defer log.LogNTraceEnterExit("HandlePostV2CountRequest", c)()
+	var req armotypes.V2ListRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		ResponseFailedToBindJson(c, err)
+		return
+	}
+	findOpts, err := V2List2FindOptionsNotPaginated(c, req)
+	if err != nil {
+		ResponseBadRequest(c, err.Error())
+		return
+	}
+	result, err := db.FindCountForCustomer(c, findOpts)
+	if err != nil {
+		ResponseInternalServerError(c, "failed to count documents", err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
 	defer log.LogNTraceEnterExit("HandlePostV2ListRequest", c)()
 	var req armotypes.V2ListRequest

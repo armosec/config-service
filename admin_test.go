@@ -636,5 +636,14 @@ func (suite *MainTestSuite) getRuntimeIncidentsByQuery(filters []map[string]stri
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
+
+	// test /count endpoint
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath+"/count", getIncidentRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	var countRes types.CountResult
+	countRes, err = decodeResponse[types.CountResult](w)
+	suite.NoError(err)
+	suite.Equal(countRes.Total.Value, len(response.Response))
+
 	return response.Response
 }

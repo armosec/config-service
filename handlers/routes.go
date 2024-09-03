@@ -46,6 +46,7 @@ const (
 	ContainerTypeArray ContainerType = "array"
 	ContainerTypeMap   ContainerType = "map"
 
+	countSuffix        = "/count"
 	bulkSuffix         = "/bulk"
 	querySuffix        = "/query"
 	uniqueValuesSuffix = "/uniqueValues"
@@ -161,6 +162,7 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 			handlers := []gin.HandlerFunc{putSchemaInContext, HandlePostV2ListRequest[T]}
 			routerGroup.POST(querySuffix, handlers...)
 			routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2)
+			routerGroup.POST(countSuffix, putSchemaInContext, HandlePostV2CountRequest)
 		}
 	}
 	//add array handlers
