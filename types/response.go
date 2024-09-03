@@ -16,3 +16,12 @@ func (s *SearchResult[T]) SetResults(result []T) {
 	s.Response = result
 
 }
+
+type CountResult struct {
+	Total armotypes.RespTotal `json:"total"`
+}
+
+func (s *CountResult) SetCount(count int64) {
+	s.Total.Relation = "eq"
+	s.Total.Value = int(count)
+}
