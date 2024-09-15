@@ -9,6 +9,8 @@ import (
 	"github.com/armosec/armoapi-go/notifications"
 	cloudposture "github.com/armosec/armosec-infra/cloudPosture"
 	"github.com/armosec/armosec-infra/kdr"
+	"github.com/armosec/armosec-infra/workflows"
+
 	opapolicy "github.com/kubescape/opa-utils/reporthandling"
 	uuid "github.com/satori/go.uuid"
 )
@@ -39,7 +41,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
 		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability |
-		*RuntimeIncident | *RuntimeAlert | *IntegrationReference | *IncidentPolicy | *CloudAccount
+		*RuntimeIncident | *RuntimeAlert | *IntegrationReference | *IncidentPolicy | *CloudAccount | *Workflow
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -513,6 +515,23 @@ func (cc *CloudAccount) GetCreationTime() *time.Time {
 		return nil
 	}
 	return &creationTime
+}
+
+type Workflow struct {
+	workflows.Workflow `json:",inline" bson:",inline"`
+	CreationTime       time.Time `json:"creationTime" bson:"creationTime"`
+}
+
+func (i *Workflow) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsAllowRename
+}
+
+func (i *Workflow) InitNew() {
+	i.CreationTime = time.Now().UTC()
+}
+
+func (i *Workflow) GetCreationTime() *time.Time {
+	return &i.CreationTime
 }
 
 var baseReadOnlyFields = []string{consts.IdField, consts.GUIDField}

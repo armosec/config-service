@@ -37,6 +37,7 @@ const (
 	RuntimeIncidentPolicyPath             = "/v1_runtime_incident_policy"
 	IntegrationReferencePath              = "/v1_integration_reference"
 	CloudAccountPath                      = "/v1_cloud_account"
+	WorkflowPath                          = "/v1_workflow"
 
 	//DB collections
 	ClustersCollection                          = "clusters"
@@ -56,6 +57,7 @@ const (
 	IntegrationReferenceCollection              = "v1_integration_references"
 	TokensCollection                            = "tokens"
 	CloudAccountsCollection                     = "v1_cloud_accounts"
+	WorkflowCollection                          = "v1_workflows"
 
 	//Common document fields
 	IdField          = "_id"

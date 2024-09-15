@@ -19,6 +19,7 @@ import (
 	"config-service/routes/v1/runtime_incident_policy"
 	"config-service/routes/v1/runtime_incidents"
 	"config-service/routes/v1/users_notifications_vulnerabilities"
+	"config-service/routes/v1/workflows"
 
 	"config-service/routes/v1/users_notifications_cache"
 	"config-service/routes/v1/vulnerability_exception"
@@ -94,6 +95,7 @@ func setupRouter() *gin.Engine {
 	runtime_incident_policy.AddRoutes(router)
 	integration_reference.AddRoutes(router)
 	cloud_credentials.AddRoutes(router)
+	workflows.AddRoutes(router)
 
 	return router
 }

@@ -23,6 +23,8 @@ import (
 	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/armosec/armoapi-go/notifications"
 	"github.com/armosec/armosec-infra/kdr"
+	"github.com/armosec/armosec-infra/workflows"
+
 	rndStr "github.com/dchest/uniuri"
 
 	"github.com/google/go-cmp/cmp"
@@ -42,6 +44,12 @@ var runtimeIncidentPolicyReq2 []byte
 
 //go:embed test_data/runtimeIncidentPolicyReq3.json
 var runtimeIncidentPolicyReq3 []byte
+
+//go:embed test_data/workflows.json
+var workflowsJson []byte
+
+//go:embed test_data/workflowsSortReq.json
+var workflowsSortReq []byte
 
 var newClusterCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	switch p.String() {
@@ -2778,4 +2786,37 @@ func (suite *MainTestSuite) TestCloudAccount() {
 	testPartialUpdate(suite, consts.CloudAccountPath, &types.CloudAccount{}, accountCompareFilter, updateAccountCompareFilter, ignoreTime)
 
 	testGetByName(suite, consts.CloudAccountPath, "name", accounts, accountCompareFilter, ignoreTime)
+}
+
+func (suite *MainTestSuite) TestWorkflows() {
+	// load workflows from json
+	workflowsObj, _ := loadJson[*types.Workflow](workflowsJson)
+
+	modifyDocFunc := func(doc *types.Workflow) *types.Workflow {
+		docCloned := Clone(doc)
+		return docCloned
+	}
+	testOpts := testOptions[*types.Workflow]{
+		mandatoryName: true,
+		renameAllowed: true,
+		uniqueName:    false,
+	}
+	ignore := cmp.FilterPath(func(p cmp.Path) bool {
+		return p.String() == "Workflow.PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" ||
+			p.String() == "CreationDate" || p.String() == "Workflow.PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
+	}, cmp.Ignore())
+	commonTestWithOptions(suite, consts.WorkflowPath, workflowsObj, modifyDocFunc, testOpts, ignore, ignoreTime)
+
+	// test sort and pagination
+	testBulkPostDocs(suite, consts.WorkflowPath, workflowsObj, ignore, ignoreTime)
+	time.Sleep(3 * time.Second)
+	w := suite.doRequest(http.MethodPost, consts.WorkflowPath+"/query", workflowsSortReq)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err := decodeResponse[armotypes.V2ListResponseGeneric[[]*workflows.Workflow]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	suite.Len(res.Response, 2)
+
 }
