@@ -1,0 +1,118 @@
+[
+    {
+      "guid": "123e4567-e89b-12d3-a456-426614174001",
+      "name": "Vulnerability Assessment Workflow",
+      "updatedTime": "2024-09-12T08:00:00Z",
+      "enabled": true,
+      "scope": [
+        {
+          "cluster": "cluster-1",
+          "namespace": "namespace-prod"
+        }
+      ],
+      "updatedBy": "security_admin@example.com",
+      "conditions": [
+        {
+          "category": "Vulnerability",
+          "parameters": {
+            "severities": ["High", "Critical"],
+            "knownExploited": true,
+            "cvss": 8.0,
+            "inUse": true,
+            "fixable": false
+          }
+        }
+      ],
+      "notifications": [
+        {
+          "provider": "slack",
+          "slackChannels": [
+            {
+              "id": "slack-channel-id-1",
+              "name": "vulnerability-alerts"
+            }
+          ]
+        },
+        {
+          "provider": "jira",
+          "jiraTicketIdentifiers": {
+            "siteId": "site-1",
+            "projectId": "proj-1",
+            "issueTypeId": "bug",
+            "fields": {
+              "field1": "Critical vulnerability in production",
+              "field2": "Immediate action required",
+              "field3": "High"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "guid": "123e4567-e89b-12d3-a456-426614174002",
+      "name": "Compliance Drift Monitoring",
+      "updatedTime": "2024-09-11T10:30:00Z",
+      "enabled": false,
+      "scope": [
+        {
+          "cluster": "cluster-2",
+          "namespace": "namespace-compliance"
+        }
+      ],
+      "updatedBy": "compliance_team@example.com",
+      "conditions": [
+        {
+          "category": "Compliance",
+          "parameters": {
+            "driftPercentage": 20
+          }
+        }
+      ],
+      "notifications": [
+        {
+          "provider": "teams",
+          "teamsWebhookURLs": [
+            "https://teams.webhook.url/compliance1"
+          ]
+        }
+      ]
+    },
+    {
+      "guid": "123e4567-e89b-12d3-a456-426614174003",
+      "name": "Security Risks Evaluation",
+      "updatedTime": "2024-09-10T15:45:00Z",
+      "enabled": true,
+      "scope": [
+        {
+          "cluster": "cluster-3"
+        }
+      ],
+      "updatedBy": "risk_manager@example.com",
+      "conditions": [
+        {
+          "category": "SecurityRisks",
+          "parameters": {
+            "securityRiskID": "risk-12345"
+          }
+        }
+      ],
+      "notifications": [
+        {
+          "provider": "teams",
+          "teamsWebhookURLs": [
+            "https://teams.webhook.url/security-risk-alert"
+          ]
+        },
+        {
+          "provider": "slack",
+          "slackChannels": [
+            {
+              "id": "slack-channel-id-3",
+              "name": "security-risk-alerts"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+  
