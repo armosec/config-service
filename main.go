@@ -13,6 +13,7 @@ import (
 	"config-service/routes/v1/framework"
 	"config-service/routes/v1/integration_reference"
 	"config-service/routes/v1/posture_exception"
+	"config-service/routes/v1/registry"
 	"config-service/routes/v1/registry_cron_job"
 	"config-service/routes/v1/repository"
 	"config-service/routes/v1/runtime_alerts"
@@ -96,6 +97,7 @@ func setupRouter() *gin.Engine {
 	integration_reference.AddRoutes(router)
 	cloud_credentials.AddRoutes(router)
 	workflows.AddRoutes(router)
+	registry.AddRoutes(router)
 
 	return router
 }

@@ -388,6 +388,18 @@ var collectionIndexes = map[string][]mongo.IndexModel{
 			},
 		},
 	},
+	consts.ContainerImageRegistriesCollection: {
+		{
+			Keys: bson.D{
+				{Key: "guid", Value: 1},
+			},
+		},
+		{
+			Keys: bson.D{
+				{Key: "customers", Value: 1},
+			},
+		},
+	},
 }
 
 // defaultIndex is the default index for all collections unless overridden in collectionIndexes
