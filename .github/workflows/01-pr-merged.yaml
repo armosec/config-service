@@ -39,7 +39,6 @@ env:
   PRODUCTION_US_VALUES_DIRS: kubernetes-deployment/event-sourcing-chart/prod-ohio-env-values.yaml
   STAGING_ARGO_APPS: kubescape-config-service-stage
   PRODUCTION_ARGO_APPS: kubescape-config-service-prod
-  PRODUCTION_US_ARGO_APPS: armo-platform-prod-us
   TESTS_GROUPS: MAPPED_REPO_TESTS
   CD_WORKFLOW_NAME: e-cd-release-process
 
@@ -79,4 +78,4 @@ jobs:
           repo: armosec/shared-workflows
           ref: main
           token: ${{ secrets.ARMOSEC_GITHUB_ACCESS_TOKEN }}
-          inputs: '{"GITHUB_REPOSITORY":"${{ env.GITHUB_REPOSITORY }}","PR_OPENER":"${{ env.PR_OPENER }}","DOCKER_IMAGE_PATH":"${{ env.DOCKER_IMAGE_PATH }}","DEV_VALUES_DIRS":"${{ env.DEV_VALUES_DIRS }}","STAGING_VALUES_DIRS":"${{ env.STAGING_VALUES_DIRS }}","PRODUCTION_VALUES_DIRS":"${{ env.PRODUCTION_VALUES_DIRS }}","PRODUCTION_US_VALUES_DIRS":"${{ env.PRODUCTION_US_VALUES_DIRS }}","STAGING_ARGO_APPS":"${{ env.STAGING_ARGO_APPS }}","PRODUCTION_ARGO_APPS":"${{ env.PRODUCTION_ARGO_APPS }}","PRODUCTION_US_ARGO_APPS":"${{ env.PRODUCTION_US_ARGO_APPS }}","TESTS_GROUPS":"${{ env.TESTS_GROUPS }}"}'
+          inputs: '{"GITHUB_REPOSITORY":"${{ env.GITHUB_REPOSITORY }}","PR_OPENER":"${{ env.PR_OPENER }}","DOCKER_IMAGE_PATH":"${{ env.DOCKER_IMAGE_PATH }}","DEV_VALUES_DIRS":"${{ env.DEV_VALUES_DIRS }}","STAGING_VALUES_DIRS":"${{ env.STAGING_VALUES_DIRS }}","PRODUCTION_VALUES_DIRS":"${{ env.PRODUCTION_VALUES_DIRS }}","PRODUCTION_US_VALUES_DIRS":"${{ env.PRODUCTION_US_VALUES_DIRS }}","STAGING_ARGO_APPS":"${{ env.STAGING_ARGO_APPS }}","PRODUCTION_ARGO_APPS":"${{ env.PRODUCTION_ARGO_APPS }}","TESTS_GROUPS":"${{ env.TESTS_GROUPS }}"}'
