@@ -51,6 +51,12 @@ var workflowsJson []byte
 //go:embed test_data/workflowsSortReq.json
 var workflowsSortReq []byte
 
+//go:embed test_data/containerImageRegistries.json
+var containerImageRegistriesJson []byte
+
+//go:embed test_data/containerImageRegistriesSortReq.json
+var containerImageRegistriesSortReq []byte
+
 var newClusterCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	switch p.String() {
 	case "PortalBase.GUID", "SubscriptionDate", "LastLoginDate", "PortalBase.UpdatedTime", "ExpirationDate":
@@ -2818,5 +2824,35 @@ func (suite *MainTestSuite) TestWorkflows() {
 	}
 
 	suite.Len(res.Response, 2)
+
+}
+
+func (suite *MainTestSuite) TestContainerImageRegistries() {
+	// load registries from json
+	containerImageRegistriesObj, _ := loadJson[*types.ContainerImageRegistry](containerImageRegistriesJson)
+
+	modifyDocFunc := func(doc *types.ContainerImageRegistry) *types.ContainerImageRegistry {
+		docCloned := Clone(doc)
+		return docCloned
+	}
+	testOpts := testOptions[*types.ContainerImageRegistry]{renameAllowed: true}
+
+	ignore := cmp.FilterPath(func(p cmp.Path) bool {
+		return p.String() == "BaseContainerImageRegistry.PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" ||
+			p.String() == "CreationDate" || p.String() == "BaseContainerImageRegistry.PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
+	}, cmp.Ignore())
+	commonTestWithOptions(suite, consts.ContainerImageRegistriesPath, containerImageRegistriesObj, modifyDocFunc, testOpts, ignore, ignoreTime)
+
+	// test sort and pagination
+	testBulkPostDocs(suite, consts.ContainerImageRegistriesPath, containerImageRegistriesObj, ignore, ignoreTime)
+	time.Sleep(3 * time.Second)
+	w := suite.doRequest(http.MethodPost, consts.ContainerImageRegistriesPath+"/query", containerImageRegistriesSortReq)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err := decodeResponse[armotypes.V2ListResponseGeneric[[]*armotypes.BaseContainerImageRegistry]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	suite.Len(res.Response, 3)
 
 }
