@@ -41,7 +41,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
 		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability |
-		*RuntimeIncident | *RuntimeAlert | *IntegrationReference | *IncidentPolicy | *CloudAccount | *Workflow
+		*RuntimeIncident | *RuntimeAlert | *IntegrationReference | *IncidentPolicy | *CloudAccount | *Workflow | *ContainerImageRegistry
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -532,6 +532,23 @@ func (i *Workflow) InitNew() {
 
 func (i *Workflow) GetCreationTime() *time.Time {
 	return &i.CreationTime
+}
+
+type ContainerImageRegistry struct {
+	armotypes.BaseContainerImageRegistry `json:",inline" bson:",inline"`
+	CreationTime                         time.Time `json:"creationTime" bson:"creationTime"`
+}
+
+func (c *ContainerImageRegistry) GetReadOnlyFields() []string {
+	return append([]string{"provider"}, commonReadOnlyFieldsAllowRename...)
+}
+
+func (c *ContainerImageRegistry) InitNew() {
+	c.CreationTime = time.Now().UTC()
+}
+
+func (c *ContainerImageRegistry) GetCreationTime() *time.Time {
+	return &c.CreationTime
 }
 
 var baseReadOnlyFields = []string{consts.IdField, consts.GUIDField}

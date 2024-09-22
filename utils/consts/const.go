@@ -38,6 +38,7 @@ const (
 	IntegrationReferencePath              = "/v1_integration_reference"
 	CloudAccountPath                      = "/v1_cloud_account"
 	WorkflowPath                          = "/v1_workflow"
+	ContainerImageRegistriesPath          = "/v1_container_image_registries"
 
 	//DB collections
 	ClustersCollection                          = "clusters"
@@ -58,6 +59,7 @@ const (
 	TokensCollection                            = "tokens"
 	CloudAccountsCollection                     = "v1_cloud_accounts"
 	WorkflowCollection                          = "v1_workflows"
+	ContainerImageRegistriesCollection          = "v1_container_image_registries"
 
 	//Common document fields
 	IdField          = "_id"
