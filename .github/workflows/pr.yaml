@@ -16,7 +16,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        token: ${{ env.GH_ACCESS_TOKEN }}
+        token: "blabla"
 
     - run: git config --global url.https://${{ env.GH_ACCESS_TOKEN }}@github.com/armosec/.insteadOf https://github.com/armosec/
     - run: git config --global url.https://${{ env.GH_ACCESS_TOKEN }}@github.com/kubescape/.insteadOf https://github.com/kubescape/
