@@ -21,6 +21,7 @@ import (
 	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/armosec/armoapi-go/notifications"
+	"github.com/armosec/armosec-infra/kdr"
 	rndStr "github.com/dchest/uniuri"
 
 	"github.com/google/go-cmp/cmp"
@@ -1655,19 +1656,19 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 	ts, _ := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147901Z")
 	runtimeIncidents := []*types.RuntimeIncident{
 		{
-			RuntimeIncident: armotypes.RuntimeIncident{
+			RuntimeIncident: kdr.RuntimeIncident{
 				PortalBase: armotypes.PortalBase{
 					Name: "incident1",
 					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a648",
 				},
-				RuntimeAlert: armotypes.RuntimeAlert{
+				RuntimeAlert: kdr.RuntimeAlert{
 					RuntimeAlertK8sDetails: armotypes.RuntimeAlertK8sDetails{
 						ClusterName: "cluster1",
 						Namespace:   "namespace1",
 					},
 				},
 				Severity: "low",
-				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
 					Designators: identifiers.PortalDesignator{
 						DesignatorType: identifiers.DesignatorAttributes,
 						Attributes:     map[string]string{},
@@ -1676,12 +1677,12 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 			},
 		},
 		{
-			RuntimeIncident: armotypes.RuntimeIncident{
+			RuntimeIncident: kdr.RuntimeIncident{
 				PortalBase: armotypes.PortalBase{
 					Name: "incident2",
 					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a647",
 				},
-				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
 					Designators: identifiers.PortalDesignator{
 						DesignatorType: identifiers.DesignatorAttributes,
 						Attributes:     map[string]string{},
@@ -1691,18 +1692,18 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 			},
 		},
 		{
-			RuntimeIncident: armotypes.RuntimeIncident{
+			RuntimeIncident: kdr.RuntimeIncident{
 				PortalBase: armotypes.PortalBase{
 					Name: "incident3",
 					GUID: "1c0e9d28-7e71-4370-999e-9b3e8f69a646",
 				},
-				RuntimeAlert: armotypes.RuntimeAlert{
+				RuntimeAlert: kdr.RuntimeAlert{
 					BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
 						Timestamp: ts,
 					},
 				},
 				Severity: "medium",
-				RelatedAlerts: []armotypes.RuntimeAlert{
+				RelatedAlerts: []kdr.RuntimeAlert{
 					{
 						Message:  "msg1",
 						HostName: "host1",
@@ -1716,7 +1717,8 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 						HostName: "host3",
 					},
 				},
-				RuntimeIncidentResource: armotypes.RuntimeIncidentResource{
+
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
 					Designators: identifiers.PortalDesignator{
 						DesignatorType: identifiers.DesignatorAttributes,
 						Attributes:     map[string]string{},
@@ -1725,6 +1727,7 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 			},
 		},
 	}
+
 	return runtimeIncidents
 }
 
@@ -1732,7 +1735,8 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 	runtimeIncidents := getIncidentsMocks()
 	modifyDocFunc := func(doc *types.RuntimeIncident) *types.RuntimeIncident {
 		docCloned := Clone(doc)
-		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, armotypes.RuntimeAlert{
+		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, kdr.RuntimeAlert{
+
 			Message: "msg" + rndStr.New(),
 		})
 		return docCloned
@@ -1981,24 +1985,24 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	}
 	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
 	suite.Equal(http.StatusOK, w.Code)
-	alerts, err := decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	alerts, err := decodeResponse[armotypes.V2ListResponseGeneric[[]kdr.RuntimeAlert]](w)
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
 	suite.Len(alerts.Response, 1)
 	suite.Equal(alerts.Total.Value, 3)
-	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[0].RuntimeAlert)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[0])
 	// get next page
 	alertRequest.PageNum = ptr.Int(2)
 	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
 	suite.Equal(http.StatusOK, w.Code)
-	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]kdr.RuntimeAlert]](w)
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
 	suite.Len(alerts.Response, 1)
 	suite.Equal(3, alerts.Total.Value)
-	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[0].RuntimeAlert)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[0])
 	// filter alerts by message
 	alertRequest = armotypes.V2ListRequest{
 		PageSize: ptr.Int(1),
@@ -2011,13 +2015,13 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	}
 	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
 	suite.Equal(http.StatusOK, w.Code)
-	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]kdr.RuntimeAlert]](w)
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
 	suite.Len(alerts.Response, 1)
 	suite.Equal(1, alerts.Total.Value)
-	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0].RuntimeAlert)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0])
 
 }
 
