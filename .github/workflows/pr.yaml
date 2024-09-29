@@ -18,6 +18,8 @@ jobs:
         fetch-depth: 0
         token: ${{ env.GH_ACCESS_TOKEN }}
 
+        
+
     - run: git config --global url.https://${{ env.GH_ACCESS_TOKEN }}@github.com/armosec/.insteadOf https://github.com/armosec/
     - run: git config --global url.https://${{ env.GH_ACCESS_TOKEN }}@github.com/kubescape/.insteadOf https://github.com/kubescape/
     
