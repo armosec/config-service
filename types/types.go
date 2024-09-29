@@ -12,7 +12,6 @@ import (
 	"github.com/armosec/armosec-infra/kdr"
 	"github.com/armosec/armosec-infra/workflows"
 
-
 	opapolicy "github.com/kubescape/opa-utils/reporthandling"
 	uuid "github.com/satori/go.uuid"
 )
@@ -446,7 +445,6 @@ func (r *RuntimeIncident) SetGUID(guid string) {
 type RuntimeAlert struct {
 	armotypes.PortalBase `json:",inline" bson:"inline"`
 	kdr.RuntimeAlert     `json:",inline" bson:"inline"`
-	Timestamp            time.Time `json:"timestamp" bson:"timestamp"`
 }
 
 func (r *RuntimeAlert) GetReadOnlyFields() []string {
@@ -454,11 +452,11 @@ func (r *RuntimeAlert) GetReadOnlyFields() []string {
 }
 
 func (r *RuntimeAlert) InitNew() {
-	r.Timestamp = time.Now().UTC()
+	r.BaseRuntimeAlert.Timestamp = time.Now().UTC()
 }
 
 func (r *RuntimeAlert) GetCreationTime() *time.Time {
-	return &r.Timestamp
+	return &r.BaseRuntimeAlert.Timestamp
 }
 
 func (r *RuntimeAlert) SetGUID(guid string) {
