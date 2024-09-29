@@ -2019,7 +2019,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	// assuer the calling PUT for this incident (with empty alerts) will not change the alerts
 	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPath+"/"+resp.Response[0].GUID, resp.Response[0])
 	suite.Equal(http.StatusOK, w.Code)
-	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPath, resp.Response[0])
+	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPath, resp.Response[0].RuntimeAlert)
 	suite.Equal(http.StatusOK, w.Code)
 	// get alerts of this incident guid paginated
 	alertRequest := armotypes.V2ListRequest{
@@ -2034,7 +2034,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	}
 	suite.Len(alerts.Response, 1)
 	suite.Equal(alerts.Total.Value, 3)
-	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[0])
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[0].RuntimeAlert)
 	// get next page
 	alertRequest.PageNum = ptr.Int(2)
 	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
@@ -2045,7 +2045,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	}
 	suite.Len(alerts.Response, 1)
 	suite.Equal(3, alerts.Total.Value)
-	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[0])
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[0].RuntimeAlert)
 	// filter alerts by message
 	alertRequest = armotypes.V2ListRequest{
 		PageSize: ptr.Int(1),
@@ -2065,7 +2065,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	suite.Len(alerts.Response, 1)
 	suite.Equal(1, alerts.Total.Value)
 
-	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0])
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0].RuntimeAlert)
 	// test alerts sort by timestamp (with nanoseconds)
 	alertRequest = armotypes.V2ListRequest{
 		PageSize: ptr.Int(50),
@@ -2080,9 +2080,9 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	}
 	suite.Len(alerts.Response, 3)
 	suite.Equal(alerts.Total.Value, 3)
-	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0])
-	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[1])
-	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[2])
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0].RuntimeAlert)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[1].RuntimeAlert)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[2].RuntimeAlert)
 
 }
 
