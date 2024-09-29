@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/aws/smithy-go/ptr"
+	"go.uber.org/zap"
 
 	_ "embed"
 
@@ -22,6 +23,9 @@ import (
 	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/armosec/armoapi-go/notifications"
 	"github.com/armosec/armosec-infra/kdr"
+
+	"github.com/armosec/armosec-infra/workflows"
+
 	rndStr "github.com/dchest/uniuri"
 
 	"github.com/google/go-cmp/cmp"
@@ -29,6 +33,30 @@ import (
 
 //go:embed test_data/clusters.json
 var clustersJson []byte
+
+//go:embed test_data/cloud-credentials.json
+var cloudAccountsJson []byte
+
+//go:embed test_data/runtimeIncidentPolicyReq1.json
+var runtimeIncidentPolicyReq1 []byte
+
+//go:embed test_data/runtimeIncidentPolicyReq2.json
+var runtimeIncidentPolicyReq2 []byte
+
+//go:embed test_data/runtimeIncidentPolicyReq3.json
+var runtimeIncidentPolicyReq3 []byte
+
+//go:embed test_data/workflows.json
+var workflowsJson []byte
+
+//go:embed test_data/workflowsSortReq.json
+var workflowsSortReq []byte
+
+//go:embed test_data/containerImageRegistries.json
+var containerImageRegistriesJson []byte
+
+//go:embed test_data/containerImageRegistriesSortReq.json
+var containerImageRegistriesSortReq []byte
 
 var newClusterCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
 	switch p.String() {
@@ -1653,7 +1681,11 @@ func (suite *MainTestSuite) TestAttackChainsStates() {
 }
 
 func getIncidentsMocks() []*types.RuntimeIncident {
-	ts, _ := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147901Z")
+	ts, err := time.Parse(time.RFC3339, "2022-04-28T14:00:00.147000Z")
+	if err != nil {
+		panic(err)
+	}
+	tsNanos := ts.UnixNano()
 	runtimeIncidents := []*types.RuntimeIncident{
 		{
 			RuntimeIncident: kdr.RuntimeIncident{
@@ -1705,19 +1737,36 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 				Severity: "medium",
 				RelatedAlerts: []kdr.RuntimeAlert{
 					{
-						Message:  "msg1",
-						HostName: "host1",
+						RuntimeAlert: armotypes.RuntimeAlert{
+							Message:  "msg1",
+							HostName: "host1",
+							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+								Timestamp:   ts,
+								Nanoseconds: uint64(tsNanos) + 200,
+							},
+						},
 					},
 					{
-						Message:  "msg2",
-						HostName: "host2",
+						RuntimeAlert: armotypes.RuntimeAlert{
+							Message:  "msg2",
+							HostName: "host2",
+							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+								Timestamp:   ts,
+								Nanoseconds: uint64(tsNanos) + 100,
+							},
+						},
 					},
 					{
-						Message:  "msg3",
-						HostName: "host3",
+						RuntimeAlert: armotypes.RuntimeAlert{
+							Message:  "msg3",
+							HostName: "host3",
+							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+								Nanoseconds: uint64(tsNanos),
+								Timestamp:   ts,
+							},
+						},
 					},
 				},
-
 				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
 					Designators: identifiers.PortalDesignator{
 						DesignatorType: identifiers.DesignatorAttributes,
@@ -1738,6 +1787,7 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, kdr.RuntimeAlert{
 
 			Message: "msg" + rndStr.New(),
+
 		})
 		return docCloned
 	}
@@ -2021,8 +2071,124 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	}
 	suite.Len(alerts.Response, 1)
 	suite.Equal(1, alerts.Total.Value)
-	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0])
 
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0])
+	// test alerts sort by timestamp (with nanoseconds)
+	alertRequest = armotypes.V2ListRequest{
+		PageSize: ptr.Int(50),
+		PageNum:  ptr.Int(0),
+		OrderBy:  "timestamp:asc",
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(alerts.Response, 3)
+	suite.Equal(alerts.Total.Value, 3)
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0])
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[1])
+	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[2])
+
+
+}
+
+func (suite *MainTestSuite) TestRuntimeIncidentPolicies() {
+	defaultPolicies := kdr.GetDefaultPolicies()
+	defaultPoliciesPtr := []*types.IncidentPolicy{}
+	for _, policy := range defaultPolicies {
+		defaultPoliciesPtr = append(defaultPoliciesPtr, &types.IncidentPolicy{
+			IncidentPolicy: policy,
+		})
+	}
+	for _, policy := range defaultPolicies { // double the policies for testing
+		defaultPoliciesPtr = append(defaultPoliciesPtr, &types.IncidentPolicy{
+			IncidentPolicy: policy,
+		})
+	}
+	modifyDocFunc := func(doc *types.IncidentPolicy) *types.IncidentPolicy {
+		docCloned := Clone(doc)
+		return docCloned
+	}
+	testOpts := testOptions[*types.IncidentPolicy]{
+		mandatoryName: true,
+		renameAllowed: true,
+		uniqueName:    false,
+	}
+	ignore := cmp.FilterPath(func(p cmp.Path) bool {
+		return p.String() == "IncidentPolicy.PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" ||
+			p.String() == "CreationDate" || p.String() == "IncidentPolicy.PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
+	}, cmp.Ignore())
+	commonTestWithOptions(suite, consts.RuntimeIncidentPolicyPath, defaultPoliciesPtr, modifyDocFunc, testOpts, ignore, ignoreTime)
+
+	// test request example from event ingester
+	for _, policy := range defaultPolicies { // triple the policies for testing
+		policy.Scope.RiskFactors = []armotypes.RiskFactor{"risk1", "risk2"}
+		policy.Name += "-riskFactors"
+		defaultPoliciesPtr = append(defaultPoliciesPtr, &types.IncidentPolicy{
+			IncidentPolicy: policy,
+		})
+	}
+	testBulkPostDocs(suite, consts.RuntimeIncidentPolicyPath, defaultPoliciesPtr, ignore, ignoreTime)
+	time.Sleep(3 * time.Second)
+	w := suite.doRequest(http.MethodPost, consts.RuntimeIncidentPolicyPath+"/query", runtimeIncidentPolicyReq1)
+	suite.Equal(http.StatusOK, w.Code)
+	newDoc, err := decodeResponse[armotypes.V2ListResponseGeneric[[]*kdr.IncidentPolicy]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(newDoc.Response, newDoc.Total.Value)
+	suite.Len(newDoc.Response, 2)
+	for _, doc := range newDoc.Response {
+		suite.NotNil(doc.GUID)
+		suite.Equal("Anomaly", doc.Name)
+	}
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPolicyPath+"/query", runtimeIncidentPolicyReq2)
+	suite.Equal(http.StatusOK, w.Code)
+	newDoc, err = decodeResponse[armotypes.V2ListResponseGeneric[[]*kdr.IncidentPolicy]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Len(newDoc.Response, newDoc.Total.Value)
+	suite.Len(newDoc.Response, 3)
+	for _, doc := range newDoc.Response {
+		suite.NotNil(doc.GUID)
+		suite.Equal("Anomaly", doc.Name[:7])
+	}
+	// test sort by scope
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPolicyPath+"/query", runtimeIncidentPolicyReq3)
+	suite.Equal(http.StatusOK, w.Code)
+	_, err = decodeResponse[armotypes.V2ListResponseGeneric[[]*kdr.IncidentPolicy]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	// test update scope designators
+	docWithScope := newDoc.Response[0]
+	docWithScope.Scope.Designators = []kdr.PolicyDesignators{
+		{
+			Cluster:   ptr.String("cluster1"),
+			Kind:      ptr.String("kind1"),
+			Name:      ptr.String("name1"),
+			Namespace: ptr.String("namespace1"),
+		},
+	}
+	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPolicyPath+"/"+docWithScope.GUID, docWithScope)
+	suite.Equal(http.StatusOK, w.Code)
+	upDoc, err := decodeResponse[[]types.IncidentPolicy](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(docWithScope.Scope.Designators, upDoc[1].Scope.Designators)
+	// empty designators
+	docWithScope.Scope.Designators = []kdr.PolicyDesignators{}
+	w = suite.doRequest(http.MethodPut, consts.RuntimeIncidentPolicyPath+"/"+docWithScope.GUID, docWithScope)
+	suite.Equal(http.StatusOK, w.Code)
+	upDoc, err = decodeResponse[[]types.IncidentPolicy](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+	suite.Equal(len(docWithScope.Scope.Designators), len(upDoc[1].Scope.Designators))
 }
 
 func (suite *MainTestSuite) TestIntegrationReference() {
@@ -2380,5 +2546,317 @@ func (suite *MainTestSuite) TestIntegrationReference() {
 	}
 
 	testUniqueValues(suite, consts.IntegrationReferencePath, getTestCase(), uniqueValueTestCases, commonCmpFilter, ignoreTime)
+}
+
+var accountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
+	switch p.String() {
+	//all the fields that are not supposed to be compared because they cannot be empty.
+	case "PortalBase.GUID", "PortalBase.UpdatedTime", "PortalBase.Name", "CreationTime":
+		zap.L().Info("path", zap.String("path", p.String()))
+
+		return true
+	}
+	return false
+}, cmp.Ignore())
+
+var updateAccountCompareFilter = cmp.FilterPath(func(p cmp.Path) bool {
+	switch p.String() {
+	//all the fields that are not supposed to be compared because they are cannot be empty.
+	case "AccountID", "Provider":
+		zap.L().Info("path", zap.String("path", p.String()))
+
+		return true
+	}
+	return false
+}, cmp.Ignore())
+
+func (suite *MainTestSuite) TestCloudAccount() {
+	accounts, _ := loadJson[*types.CloudAccount](cloudAccountsJson)
+
+	modifyFunc := func(account *types.CloudAccount) *types.CloudAccount {
+		account.UpdatedTime = time.Now().UTC().Format(time.RFC3339)
+		return account
+	}
+
+	commonTest(suite, consts.CloudAccountPath, accounts, modifyFunc, accountCompareFilter)
+
+	projectedDocs := []*types.CloudAccount{
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "AWS-Test-Account",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "AWS-Test-Account-No-Regions",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "Azure-Test-Account",
+			},
+		},
+		{
+			PortalBase: armotypes.PortalBase{
+				Name: "GCP-Test-Account",
+			},
+		},
+	}
+
+	searchQueries := []searchTest{
+		{
+			testName:        "get all",
+			expectedIndexes: []int{0, 1, 2, 3},
+			listRequest:     armotypes.V2ListRequest{},
+		},
+		{
+			testName:        "get first page",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				PageSize: ptr.Int(2),
+				PageNum:  ptr.Int(0),
+			},
+		},
+		{
+			testName:        "get multiple names",
+			expectedIndexes: []int{0, 2, 3},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "AWS-Test-Account,Azure-Test-Account,GCP-Test-Account",
+					},
+				},
+			},
+		},
+		{
+			testName:        "field or match",
+			expectedIndexes: []int{2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "Azure-Test-Account",
+					},
+				},
+			},
+		},
+		{
+			testName:        "fields and match",
+			expectedIndexes: []int{0},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"provider": "aws",
+						"name":     "AWS-Test-Account",
+					},
+				},
+			},
+		},
+		{
+			testName:        "filters exist operator",
+			expectedIndexes: []int{0, 1, 2, 3},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"provider": "|exists",
+					},
+				},
+			},
+		},
+		{
+			testName:        "like ignorecase match",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"name": "AWS-Test|like&ignorecase",
+					},
+				},
+			},
+		},
+		{
+			testName:        "like with multi results",
+			expectedIndexes: []int{0, 1},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"credentials.awsCredentials.encryptedRoleARN": "arn:aws|like",
+					},
+				},
+			},
+		},
+		{
+			testName:         "projection test",
+			expectedIndexes:  []int{0, 1, 2, 3},
+			projectedResults: true,
+			listRequest: armotypes.V2ListRequest{
+				OrderBy:    "name:asc",
+				FieldsList: []string{"name"},
+			},
+		},
+		{
+			testName:        "credentials.azureCredentials.encryptedTenantID exists",
+			expectedIndexes: []int{2},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"credentials.azureCredentials.encryptedTenantID": "|exists",
+					},
+				},
+			},
+		},
+		{
+			testName:        "credentials.encryptedPrincipalID exists",
+			expectedIndexes: []int{3},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"credentials.gcpCredentials.encryptedPrincipalID": "|exists",
+					},
+				},
+			},
+		},
+	}
+
+	zap.L().Info("search test", zap.Any("searchQueries", searchQueries), zap.Any("accounts", projectedDocs))
+	testPostV2ListRequest(suite, consts.CloudAccountPath, accounts, projectedDocs, searchQueries, accountCompareFilter, ignoreTime)
+
+	uniqueValues := []uniqueValueTest{
+		{
+			testName: "unique providers",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"provider": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"provider": {"aws", "azure", "gcp"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"provider": {
+						{
+							Field: "aws",
+							Count: 2,
+						},
+						{
+							Field: "azure",
+							Count: 1,
+						},
+						{
+							Field: "gcp",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique names with aws filter",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"name": "",
+				},
+				InnerFilters: []map[string]string{
+					{
+						"provider": "aws",
+					},
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"name": {"AWS-Test-Account", "AWS-Test-Account-No-Regions"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"name": {
+						{
+							Field: "AWS-Test-Account",
+							Count: 1,
+						},
+						{
+							Field: "AWS-Test-Account-No-Regions",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+	zap.L().Info("unique values test", zap.Any("uniqueValues", uniqueValues))
+
+	testUniqueValues(suite, consts.CloudAccountPath, accounts, uniqueValues, accountCompareFilter, ignoreTime)
+
+	testPartialUpdate(suite, consts.CloudAccountPath, &types.CloudAccount{}, accountCompareFilter, updateAccountCompareFilter, ignoreTime)
+
+	testGetByName(suite, consts.CloudAccountPath, "name", accounts, accountCompareFilter, ignoreTime)
+}
+
+func (suite *MainTestSuite) TestWorkflows() {
+	// load workflows from json
+	workflowsObj, _ := loadJson[*types.Workflow](workflowsJson)
+
+	modifyDocFunc := func(doc *types.Workflow) *types.Workflow {
+		docCloned := Clone(doc)
+		return docCloned
+	}
+	testOpts := testOptions[*types.Workflow]{
+		mandatoryName: true,
+		renameAllowed: true,
+		uniqueName:    false,
+	}
+	ignore := cmp.FilterPath(func(p cmp.Path) bool {
+		return p.String() == "Workflow.PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" ||
+			p.String() == "CreationDate" || p.String() == "Workflow.PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
+	}, cmp.Ignore())
+	commonTestWithOptions(suite, consts.WorkflowPath, workflowsObj, modifyDocFunc, testOpts, ignore, ignoreTime)
+
+	// test sort and pagination
+	testBulkPostDocs(suite, consts.WorkflowPath, workflowsObj, ignore, ignoreTime)
+	time.Sleep(3 * time.Second)
+	w := suite.doRequest(http.MethodPost, consts.WorkflowPath+"/query", workflowsSortReq)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err := decodeResponse[armotypes.V2ListResponseGeneric[[]*workflows.Workflow]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	suite.Len(res.Response, 2)
+
+}
+
+func (suite *MainTestSuite) TestContainerImageRegistries() {
+	// load registries from json
+	containerImageRegistriesObj, _ := loadJson[*types.ContainerImageRegistry](containerImageRegistriesJson)
+
+	modifyDocFunc := func(doc *types.ContainerImageRegistry) *types.ContainerImageRegistry {
+		docCloned := Clone(doc)
+		return docCloned
+	}
+	testOpts := testOptions[*types.ContainerImageRegistry]{renameAllowed: true}
+
+	ignore := cmp.FilterPath(func(p cmp.Path) bool {
+		return p.String() == "BaseContainerImageRegistry.PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" ||
+			p.String() == "CreationDate" || p.String() == "BaseContainerImageRegistry.PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
+	}, cmp.Ignore())
+	commonTestWithOptions(suite, consts.ContainerImageRegistriesPath, containerImageRegistriesObj, modifyDocFunc, testOpts, ignore, ignoreTime)
+
+	// test sort and pagination
+	testBulkPostDocs(suite, consts.ContainerImageRegistriesPath, containerImageRegistriesObj, ignore, ignoreTime)
+	time.Sleep(3 * time.Second)
+	w := suite.doRequest(http.MethodPost, consts.ContainerImageRegistriesPath+"/query", containerImageRegistriesSortReq)
+	suite.Equal(http.StatusOK, w.Code)
+	res, err := decodeResponse[armotypes.V2ListResponseGeneric[[]*armotypes.BaseContainerImageRegistry]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	suite.Len(res.Response, 3)
 
 }

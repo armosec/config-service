@@ -5,6 +5,7 @@ import (
 	"config-service/routes/prob"
 	"config-service/routes/v1/admin"
 	"config-service/routes/v1/attack_chains"
+	"config-service/routes/v1/cloud_credentials"
 	"config-service/routes/v1/cluster"
 	"config-service/routes/v1/collaboration_config"
 	"config-service/routes/v1/customer"
@@ -12,11 +13,14 @@ import (
 	"config-service/routes/v1/framework"
 	"config-service/routes/v1/integration_reference"
 	"config-service/routes/v1/posture_exception"
+	"config-service/routes/v1/registry"
 	"config-service/routes/v1/registry_cron_job"
 	"config-service/routes/v1/repository"
 	"config-service/routes/v1/runtime_alerts"
+	"config-service/routes/v1/runtime_incident_policy"
 	"config-service/routes/v1/runtime_incidents"
 	"config-service/routes/v1/users_notifications_vulnerabilities"
+	"config-service/routes/v1/workflows"
 
 	"config-service/routes/v1/users_notifications_cache"
 	"config-service/routes/v1/vulnerability_exception"
@@ -89,7 +93,11 @@ func setupRouter() *gin.Engine {
 	attack_chains.AddRoutes(router)
 	runtime_incidents.AddRoutes(router)
 	runtime_alerts.AddRoutes(router)
+	runtime_incident_policy.AddRoutes(router)
 	integration_reference.AddRoutes(router)
+	cloud_credentials.AddRoutes(router)
+	workflows.AddRoutes(router)
+	registry.AddRoutes(router)
 
 	return router
 }

@@ -1,0 +1,5 @@
+{
+    "pageSize": 2,
+    "pageNum": 0,
+    "orderBy": "conditions.category:asc,name:asc,updatedTime:asc,enabled:desc"
+}

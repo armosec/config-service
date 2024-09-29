@@ -46,6 +46,7 @@ const (
 	ContainerTypeArray ContainerType = "array"
 	ContainerTypeMap   ContainerType = "map"
 
+	countSuffix        = "/count"
 	bulkSuffix         = "/bulk"
 	querySuffix        = "/query"
 	uniqueValuesSuffix = "/uniqueValues"
@@ -152,14 +153,16 @@ func AddRoutes[T types.DocContent](g *gin.Engine, options ...RouterOption[T]) *g
 		routerGroup.DELETE("/:"+consts.GUIDField, HandleDeleteDoc[T])
 	}
 	if opts.servePostV2ListRequests {
+		putSchemaInContext := SchemaContextMiddleware(opts.schemaInfo)
 		if nestedPath := opts.schemaInfo.GetNestedDocPath(); nestedPath != "" {
-			handlers := []gin.HandlerFunc{SchemaContextMiddleware(opts.schemaInfo), NestedDocContextMiddleware(), HandlePostV2ListRequest[T]}
+			handlers := []gin.HandlerFunc{putSchemaInContext, NestedDocContextMiddleware(), HandlePostV2ListRequest[T]}
 			routerGroup.POST(nestedDocQuerySuffix, handlers...)
 			routerGroup.POST(nestedDocUniqueValuesSuffix, handlers...)
 		} else {
-			putSchemaInContext := SchemaContextMiddleware(opts.schemaInfo)
-			routerGroup.POST(querySuffix, putSchemaInContext, HandlePostV2ListRequest[T])
+			handlers := []gin.HandlerFunc{putSchemaInContext, HandlePostV2ListRequest[T]}
+			routerGroup.POST(querySuffix, handlers...)
 			routerGroup.POST(uniqueValuesSuffix, putSchemaInContext, HandlePostUniqueValuesRequestV2)
+			routerGroup.POST(countSuffix, putSchemaInContext, HandlePostV2CountRequest)
 		}
 	}
 	//add array handlers
@@ -244,6 +247,13 @@ func GetAdminQueryHandler(collection string) gin.HandlerFunc {
 	return coll2AdminQueryHandler[collection]
 }
 
+// map of collection name to admin delete handler
+var coll2AdminDeleteHandler = map[string]gin.HandlerFunc{}
+
+func GetAdminDeleteHandler(collection string) gin.HandlerFunc {
+	return coll2AdminDeleteHandler[collection]
+}
+
 // keep the api info for each route
 func addRouteInfo[T types.DocContent](options *routerOptions[T]) {
 	apiInfo := types.APIInfo{
@@ -254,6 +264,7 @@ func addRouteInfo[T types.DocContent](options *routerOptions[T]) {
 	types.SetAPIInfo(options.path, apiInfo)
 	//keep the admin query handler for this route
 	coll2AdminQueryHandler[options.dbCollection] = HandleAdminPostV2ListRequest[T]
+	coll2AdminDeleteHandler[options.dbCollection] = HandleDeleteByQuery[T]
 }
 
 type RouterOption[T types.DocContent] func(*routerOptions[T])
@@ -404,6 +415,10 @@ func (b *RouterOptionsBuilder[T]) WithPutValidators(validators ...MutatorValidat
 }
 
 func (b *RouterOptionsBuilder[T]) WithPostValidators(validators ...MutatorValidator[T]) *RouterOptionsBuilder[T] {
+	// add docs validators before POST requests(for creating new docs)
+	// get a list of function of this format :
+	//func ExampleValidator() func(c *gin.Context, docs []*types.ExampleType) ([]*types.ExampleType, bool) {
+	//return func(c *gin.Context, docs []*types.ExampleType) ([]*types.ExampleType, bool)
 	b.options = append(b.options, func(opts *routerOptions[T]) {
 		opts.postValidators = validators
 	})
@@ -476,4 +491,5 @@ func AddRouteInfo[T types.DocContent](apiInfo types.APIInfo) {
 	types.SetAPIInfo(apiInfo.BasePath, apiInfo)
 	//keep the admin query handler for this route
 	coll2AdminQueryHandler[apiInfo.DBCollection] = HandleAdminPostV2ListRequest[T]
+	coll2AdminDeleteHandler[apiInfo.DBCollection] = HandleDeleteByQuery[T]
 }

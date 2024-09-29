@@ -1,10 +1,10 @@
 module config-service
 
 go 1.22.4
-
 require (
 	github.com/armosec/armoapi-go v0.0.452
 	github.com/armosec/armosec-infra v0.0.69-0.20240929101252-3977ec0a0ba5
+
 	github.com/aws/smithy-go v1.20.2
 	github.com/chidiwilliams/flatbson v0.3.0
 	github.com/dchest/uniuri v1.2.0

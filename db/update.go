@@ -65,3 +65,11 @@ func GetUpdateSetFieldCommand(fieldName string, value interface{}) bson.D {
 func GetUpdateUnsetFieldCommand(fieldName string) bson.D {
 	return bson.D{bson.E{Key: "$unset", Value: bson.D{bson.E{Key: fieldName, Value: ""}}}}
 }
+
+func GetMultipleUpdateSetFieldCommand(fieldNameToValue map[string]interface{}) bson.D {
+	res := bson.D{}
+	for fieldName, value := range fieldNameToValue {
+		res = append(res, bson.E{Key: "$set", Value: bson.D{bson.E{Key: fieldName, Value: value}}})
+	}
+	return res
+}

@@ -8,10 +8,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	_ "embed"
 
 	"github.com/armosec/armoapi-go/armotypes"
+	"github.com/armosec/armoapi-go/identifiers"
+	"github.com/armosec/armosec-infra/kdr"
 	"github.com/aws/smithy-go/ptr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
@@ -181,6 +184,29 @@ func (suite *MainTestSuite) TestAdminMultipleCustomers() {
 	deleteUsersUrls = fmt.Sprintf("%s/customers", consts.AdminPath)
 	testBadRequest(suite, http.MethodDelete, deleteUsersUrls, errorMissingQueryParams(consts.CustomersParam), nil, http.StatusBadRequest)
 
+	// test deleting runtime incidents by query (only admin can do that)
+	// create incidents
+	runtimeIncidents := getIncidentsMocks()
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath, runtimeIncidents)
+	suite.Equal(http.StatusCreated, w.Code)
+
+	// delete all incidents within updatedTime range
+	minTime := time.Now().AddDate(-101, 0, 0)
+	maxTime := time.Now().UTC().Add(time.Hour * 1)
+
+	v2ListReq = armotypes.V2ListRequest{
+		InnerFilters: []map[string]string{
+			{
+				"updatedTime": fmt.Sprintf("%s&%s|range", minTime.Format(time.RFC3339), maxTime.Format(time.RFC3339)),
+			},
+		},
+	}
+
+	deleteRuntimeIncidentsPath := fmt.Sprintf("%s%s/query", consts.AdminPath, consts.RuntimeIncidentPath)
+	w = suite.doRequest(http.MethodDelete, deleteRuntimeIncidentsPath, &v2ListReq)
+	suite.Equal(http.StatusOK, w.Code)
+	diff := cmp.Diff(`{"deletedCount":3}`, w.Body.String())
+	suite.Equal("", diff)
 }
 
 //go:embed test_data/active_users/users.json
@@ -422,4 +448,202 @@ func (suite *MainTestSuite) TestAdminUpdateMany() {
 	suite.Equal(resp.Response[0].VulnerabilityPolicies[0].SeverityScore, 500)
 	suite.Equal(resp.Response[1].VulnerabilityPolicies[0].SeverityScore, 500)
 	suite.Equal(resp.Response[2].VulnerabilityPolicies[0].SeverityScore, 300)
+
+	//test mark runtime incidents as resolved - only admin can do that
+	// create incidents
+	testCustomerGuid := "test-customer-guid"
+	suite.login(testCustomerGuid)
+	runtimeIncidents := getRuntimeIncidentsMocks()
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath, runtimeIncidents)
+	suite.Equal(http.StatusCreated, w.Code)
+
+	// get all customer incidents (without filters)
+	incidents := suite.getRuntimeIncidentsByQuery([]map[string]string{
+		{
+			"isDismissed": "false",
+		},
+	})
+	suite.Len(incidents, 6)
+
+	// login as admin and mark incidents with incident type I002 as resolved
+	suite.loginAsAdmin("admin-guid")
+	bulkUpdateReq := &types.BulkResolveRuntimeIncidents{
+		CustomerGUID: testCustomerGuid,
+		UserEmail:    "test@test.com",
+		InnerFilters: []map[string]string{
+			{
+				"incidentTypeID":                 "I002",
+				"designators.attributes.cluster": "cluster-1,cluster-3",
+			},
+		},
+	}
+	path = fmt.Sprintf("%s/%s", consts.AdminPath, "markRuntimeIncidentsAsResolved")
+	w = suite.doRequest(http.MethodPut, path, bulkUpdateReq)
+	suite.Equal(http.StatusOK, w.Code)
+	suite.Equal(`{"updatedCount":3}`, w.Body.String())
+
+	suite.login(testCustomerGuid)
+	incidents = suite.getRuntimeIncidentsByQuery([]map[string]string{
+		{
+			"isDismissed": "true",
+		},
+	})
+	suite.Len(incidents, 3)
+	for _, x := range incidents {
+		suite.Equal(x.IsDismissed, true)
+		suite.Equal(*x.ResolvedBy, "test@test.com")
+	}
+}
+
+func getRuntimeIncidentsMocks() []*types.RuntimeIncident {
+	runtimeIncidents := []*types.RuntimeIncident{
+		{
+			RuntimeIncident: kdr.RuntimeIncident{
+				IncidentTypeID: "I002",
+				PortalBase: armotypes.PortalBase{
+					Name: "incident1",
+					GUID: "1c0e9d28-7e71-4370-999e-000000000001",
+				},
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
+					Designators: identifiers.PortalDesignator{
+						DesignatorType: identifiers.DesignatorAttributes,
+						Attributes: map[string]string{
+							"podName":       "cartservice-6f4fc7c4c4-c2scm",
+							"cluster":       "cluster-1",
+							"kind":          "Deployment",
+							"name":          "deployment-1",
+							"namespace":     "namespace-1",
+							"nodeName":      "pool-4e04xojue-rdrif",
+							"containerName": "server",
+						},
+					},
+				},
+			},
+		},
+		{
+			RuntimeIncident: kdr.RuntimeIncident{
+				IncidentTypeID: "I002",
+				PortalBase: armotypes.PortalBase{
+					Name: "incident2",
+					GUID: "1c0e9d28-7e71-4370-999e-000000000002",
+				},
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
+					Designators: identifiers.PortalDesignator{
+						DesignatorType: identifiers.DesignatorAttributes,
+						Attributes: map[string]string{
+							"podName":       "cartservice-6f4fc7c4c4-c2scm",
+							"cluster":       "cluster-2",
+							"kind":          "Deployment",
+							"name":          "deployment-2",
+							"namespace":     "namespace-2",
+							"nodeName":      "pool-4e04xojue-rdrif",
+							"containerName": "server",
+						},
+					},
+				},
+			},
+		},
+		{
+			RuntimeIncident: kdr.RuntimeIncident{
+				IncidentTypeID: "I002",
+				PortalBase: armotypes.PortalBase{
+					Name: "incident3",
+					GUID: "1c0e9d28-7e71-4370-999e-000000000003",
+				},
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
+					Designators: identifiers.PortalDesignator{
+						DesignatorType: identifiers.DesignatorAttributes,
+						Attributes: map[string]string{
+							"cluster":   "cluster-3",
+							"name":      "deployment-3",
+							"namespace": "namespace-4",
+						},
+					},
+				},
+			},
+		},
+		{
+			RuntimeIncident: kdr.RuntimeIncident{
+				IncidentTypeID: "I002",
+				PortalBase: armotypes.PortalBase{
+					Name: "incident4",
+					GUID: "1c0e9d28-7e71-4370-999e-000000000004",
+				},
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
+					Designators: identifiers.PortalDesignator{
+						DesignatorType: identifiers.DesignatorAttributes,
+						Attributes: map[string]string{
+							"cluster":   "cluster-3",
+							"name":      "deployment-4",
+							"namespace": "namespace-1",
+						},
+					},
+				},
+			},
+		},
+		{
+			RuntimeIncident: kdr.RuntimeIncident{
+				IncidentTypeID: "I003",
+				PortalBase: armotypes.PortalBase{
+					Name: "incident5",
+					GUID: "1c0e9d28-7e71-4370-999e-000000000005",
+				},
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
+					Designators: identifiers.PortalDesignator{
+						DesignatorType: identifiers.DesignatorAttributes,
+						Attributes: map[string]string{
+							"cluster":   "cluster-3",
+							"name":      "deployment-4",
+							"namespace": "namespace-1",
+						},
+					},
+				},
+			},
+		},
+		{
+			RuntimeIncident: kdr.RuntimeIncident{
+				IncidentTypeID: "I003",
+				PortalBase: armotypes.PortalBase{
+					Name: "incident6",
+					GUID: "1c0e9d28-7e71-4370-999e-000000000006",
+				},
+				RuntimeIncidentResource: kdr.RuntimeIncidentResource{
+					Designators: identifiers.PortalDesignator{
+						DesignatorType: identifiers.DesignatorAttributes,
+						Attributes: map[string]string{
+							"cluster":   "cluster-1",
+							"name":      "deployment-4",
+							"namespace": "namespace-1",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return runtimeIncidents
+}
+
+func (suite *MainTestSuite) getRuntimeIncidentsByQuery(filters []map[string]string) []types.RuntimeIncident {
+	getIncidentRequest := armotypes.V2ListRequest{
+		PageSize:     ptr.Int(200),
+		PageNum:      ptr.Int(0),
+		InnerFilters: filters,
+	}
+	w := suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath+"/query", getIncidentRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	response, err := decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeIncident]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	// test /count endpoint
+	w = suite.doRequest(http.MethodPost, consts.RuntimeIncidentPath+"/count", getIncidentRequest)
+	suite.Equal(http.StatusOK, w.Code)
+	var countRes types.CountResult
+	countRes, err = decodeResponse[types.CountResult](w)
+	suite.NoError(err)
+	suite.Equal(countRes.Total.Value, len(response.Response))
+
+	return response.Response
 }

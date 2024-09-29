@@ -16,28 +16,51 @@ import (
 
 const maxV2PageSize = 150
 
-func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest) (*db.FindOptions, error) {
-	request.ValidatePageProperties(maxV2PageSize)
+func V2List2FindOptionsPaginated(ctx *gin.Context, request armotypes.V2ListRequest) (*db.FindOptions, error) {
+	return v2List2FindOptions(ctx, request, true)
+}
+
+func V2List2FindOptionsNotPaginated(ctx *gin.Context, request armotypes.V2ListRequest) (*db.FindOptions, error) {
+	return v2List2FindOptions(ctx, request, false)
+}
+
+func v2List2FindOptions(ctx *gin.Context, request armotypes.V2ListRequest, withPagination bool) (*db.FindOptions, error) {
+	if withPagination {
+		request.ValidatePageProperties(maxV2PageSize)
+	}
+
 	findOptions := db.NewFindOptions()
-	//pages
 	var perPage int
-	if request.PageSize != nil && *request.PageSize <= maxV2PageSize {
-		perPage = *request.PageSize
-	} else {
-		perPage = maxV2PageSize
+	if withPagination {
+		//pages
+		if request.PageSize != nil && *request.PageSize <= maxV2PageSize {
+			perPage = *request.PageSize
+		} else {
+			perPage = maxV2PageSize
+		}
+		var page int
+		if request.PageNum != nil {
+			page = *request.PageNum
+		}
+		findOptions.SetPagination(int64(page), int64(perPage))
 	}
-	var page int
-	if request.PageNum != nil {
-		page = *request.PageNum
-	}
-	findOptions.SetPagination(int64(page), int64(perPage))
 	//sort
 	tsField := db.GetSchemaFromContext(ctx).GetTimestampFieldName()
-	if perPage > 1 {
+	if withPagination && perPage > 1 {
 		request.ValidateOrderBy(fmt.Sprintf("%s:%s", tsField, armotypes.V2ListDescendingSort))
 	}
 	if request.OrderBy != "" {
 		sortFields := strings.Split(request.OrderBy, armotypes.V2ListValueSeparator)
+		if nanosTS := db.GetSchemaFromContext(ctx).NanosecondsTimestampFieldName; nanosTS != nil && *nanosTS != "" {
+			// add nanoseconds field to sort before each timestamp field if exists
+			for i, sortField := range sortFields {
+				if strings.HasPrefix(sortField, tsField+armotypes.V2ListSortTypeSeparator) {
+					// take original sort direction
+					sortType := strings.Split(sortField, armotypes.V2ListSortTypeSeparator)[1]
+					sortFields = append(sortFields[:i], append([]string{fmt.Sprintf("%s:%s", *nanosTS, sortType)}, sortFields[i:]...)...)
+				}
+			}
+		}
 		for _, sortField := range sortFields {
 			sortNameAndType := strings.Split(sortField, armotypes.V2ListSortTypeSeparator)
 			if len(sortNameAndType) != 2 {

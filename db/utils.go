@@ -100,6 +100,21 @@ func AdminFind[T any](c context.Context, findOps *FindOptions) ([]T, error) {
 	return result, nil
 }
 
+func FindCountForCustomer(c context.Context, findOps *FindOptions) (*types.CountResult, error) {
+	defer log.LogNTraceEnterExit(fmt.Sprintf("FindCountForCustomer %+v", findOps), c)()
+	if findOps == nil {
+		findOps = &FindOptions{}
+	}
+	filter := findOps.Filter().WithCustomer(c)
+	count, err := CountDocs(c, filter)
+	if err != nil {
+		return nil, err
+	}
+	countRes := &types.CountResult{}
+	countRes.SetCount(count)
+	return countRes, nil
+}
+
 func FindPaginatedForCustomer[T any](c context.Context, findOps *FindOptions) (*types.SearchResult[T], error) {
 	defer log.LogNTraceEnterExit(fmt.Sprintf("FindPaginatedForCustomer %+v", findOps), c)()
 	if findOps == nil {

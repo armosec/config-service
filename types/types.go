@@ -7,7 +7,12 @@ import (
 	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/armosec/armoapi-go/configservice"
 	"github.com/armosec/armoapi-go/notifications"
+
+	cloudposture "github.com/armosec/armosec-infra/cloudPosture"
 	"github.com/armosec/armosec-infra/kdr"
+	"github.com/armosec/armosec-infra/workflows"
+
+
 	opapolicy "github.com/kubescape/opa-utils/reporthandling"
 	uuid "github.com/satori/go.uuid"
 )
@@ -38,7 +43,7 @@ func NewDocument[T DocContent](content T, customerGUID string) Document[T] {
 type DocContent interface {
 	*CustomerConfig | *Cluster | *PostureExceptionPolicy | *VulnerabilityExceptionPolicy | *Customer |
 		*Framework | *Repository | *RegistryCronJob | *CollaborationConfig | *Cache | *ClusterAttackChainState | *AggregatedVulnerability |
-		*RuntimeIncident | *RuntimeAlert | *IntegrationReference
+		*RuntimeIncident | *RuntimeAlert | *IntegrationReference | *IncidentPolicy | *CloudAccount | *Workflow | *ContainerImageRegistry
 	InitNew()
 	GetReadOnlyFields() []string
 	//default implementation exist in portal base
@@ -398,6 +403,12 @@ type PostureExceptionsSeverityUpdate struct {
 	SeverityScore int      `json:"severityScore" binding:"required"`
 }
 
+type BulkResolveRuntimeIncidents struct {
+	CustomerGUID string              `json:"customerGUID" binding:"required"`
+	UserEmail    string              `json:"userEmail" binding:"required"` // user email claims
+	InnerFilters []map[string]string `json:"innerFilters"`
+}
+
 type RuntimeIncident struct {
 	kdr.RuntimeIncident `json:",inline" bson:",inline"`
 	CreationDayDate     *time.Time `json:"creationDayDate,omitempty" bson:"creationDayDate,omitempty"`
@@ -454,6 +465,23 @@ func (r *RuntimeAlert) SetGUID(guid string) {
 
 }
 
+type IncidentPolicy struct {
+	kdr.IncidentPolicy `json:",inline" bson:",inline"`
+	CreationTime       time.Time `json:"creationTime" bson:"creationTime"`
+}
+
+func (i *IncidentPolicy) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsAllowRename
+}
+
+func (i *IncidentPolicy) InitNew() {
+	i.CreationTime = time.Now().UTC()
+}
+
+func (i *IncidentPolicy) GetCreationTime() *time.Time {
+	return &i.CreationTime
+}
+
 type IntegrationReference notifications.IntegrationReference
 
 func (i *IntegrationReference) GetReadOnlyFields() []string {
@@ -468,6 +496,64 @@ func (i *IntegrationReference) GetCreationTime() *time.Time {
 	return &i.CreationTime
 }
 
+type CloudAccount cloudposture.CloudAccount
+
+func (cc *CloudAccount) GetReadOnlyFields() []string {
+	return CloudCredentialsReadOnlyFields
+}
+func (cc *CloudAccount) InitNew() {
+	cc.CreationTime = time.Now().UTC().Format(time.RFC3339)
+}
+
+func (cc *CloudAccount) GetName() string {
+	return cc.Name
+}
+
+func (cc *CloudAccount) GetCreationTime() *time.Time {
+	if cc.CreationTime == "" {
+		return nil
+	}
+	creationTime, err := time.Parse(time.RFC3339, cc.CreationTime)
+	if err != nil {
+		return nil
+	}
+	return &creationTime
+}
+
+type Workflow struct {
+	workflows.Workflow `json:",inline" bson:",inline"`
+	CreationTime       time.Time `json:"creationTime" bson:"creationTime"`
+}
+
+func (i *Workflow) GetReadOnlyFields() []string {
+	return commonReadOnlyFieldsAllowRename
+}
+
+func (i *Workflow) InitNew() {
+	i.CreationTime = time.Now().UTC()
+}
+
+func (i *Workflow) GetCreationTime() *time.Time {
+	return &i.CreationTime
+}
+
+type ContainerImageRegistry struct {
+	armotypes.BaseContainerImageRegistry `json:",inline" bson:",inline"`
+	CreationTime                         time.Time `json:"creationTime" bson:"creationTime"`
+}
+
+func (c *ContainerImageRegistry) GetReadOnlyFields() []string {
+	return append([]string{"provider"}, commonReadOnlyFieldsAllowRename...)
+}
+
+func (c *ContainerImageRegistry) InitNew() {
+	c.CreationTime = time.Now().UTC()
+}
+
+func (c *ContainerImageRegistry) GetCreationTime() *time.Time {
+	return &c.CreationTime
+}
+
 var baseReadOnlyFields = []string{consts.IdField, consts.GUIDField}
 var commonReadOnlyFields = append([]string{consts.NameField}, baseReadOnlyFields...)
 var commonReadOnlyFieldsV1 = append([]string{"creationTime"}, commonReadOnlyFields...)
@@ -476,3 +562,4 @@ var clusterReadOnlyFields = append([]string{"subscription_date"}, commonReadOnly
 var repositoryReadOnlyFields = append([]string{"creationDate"}, commonReadOnlyFields...)
 var croneJobReadOnlyFields = append([]string{"creationTime", "clusterName", "registryName"}, commonReadOnlyFields...)
 var attackChainReadOnlyFields = append([]string{"creationTime", "customerGUID", "clusterName"}, commonReadOnlyFieldsV1...)
+var CloudCredentialsReadOnlyFields = append([]string{"provider", "accountID", "creationTime"}, baseReadOnlyFields...)

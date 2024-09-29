@@ -1,0 +1,32 @@
+{
+    "pageSize": 100,
+    "pageNum": 0,
+    "innerFilters": [
+        {
+            "enabled": "true",
+            "managedRuleSetIDs": "c9fe6345-c393-4595-bd7b-22110dbafe61",
+            "ruleSetType": "Managed",
+            "scope.designators.cluster": "gke_elated-pottery-310110_us-central1-c_bez-longrun-3,|missing",
+            "scope.designators.kind": "Deployment,|missing",
+            "scope.designators.labels": ",|missing",
+            "scope.designators.name": "redis-sleep,|missing",
+            "scope.designators.namespace": "systest-ns-o9zz,|missing",
+            "scope.riskFactors": "risk1,|missing"
+        },
+        {
+            "enabled": "true",
+            "incidentTypeIDs": "I013,|missing",
+            "ruleSetType": "Custom",
+            "scope.designators.cluster": "gke_elated-pottery-310110_us-central1-c_bez-longrun-3,|missing",
+            "scope.designators.kind": "Deployment,|missing",
+            "scope.designators.labels": ",|missing",
+            "scope.designators.name": "redis-sleep,|missing",
+            "scope.designators.namespace": "systest-ns-o9zz,|missing",
+            "scope.riskFactors": "|missing"
+        }
+    ],
+    "includeFields": [
+        "guid",
+        "name"
+    ]
+}

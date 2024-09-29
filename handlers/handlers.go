@@ -183,6 +183,27 @@ func PostDBDocumentHandler[T types.DocContent](c *gin.Context, dbDoc types.Docum
 	}
 }
 
+func HandlePostV2CountRequest(c *gin.Context) {
+	defer log.LogNTraceEnterExit("HandlePostV2CountRequest", c)()
+	var req armotypes.V2ListRequest
+	err := c.BindJSON(&req)
+	if err != nil {
+		ResponseFailedToBindJson(c, err)
+		return
+	}
+	findOpts, err := V2List2FindOptionsNotPaginated(c, req)
+	if err != nil {
+		ResponseBadRequest(c, err.Error())
+		return
+	}
+	result, err := db.FindCountForCustomer(c, findOpts)
+	if err != nil {
+		ResponseInternalServerError(c, "failed to count documents", err)
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
 	defer log.LogNTraceEnterExit("HandlePostV2ListRequest", c)()
 	var req armotypes.V2ListRequest
@@ -191,7 +212,7 @@ func HandlePostV2ListRequest[T types.DocContent](c *gin.Context) {
 		ResponseFailedToBindJson(c, err)
 		return
 	}
-	findOpts, err := v2List2FindOptions(c, req)
+	findOpts, err := V2List2FindOptionsPaginated(c, req)
 	if err != nil {
 		ResponseBadRequest(c, err.Error())
 		return
@@ -234,7 +255,7 @@ func HandleAdminPostV2ListRequest[T types.DocContent](c *gin.Context) {
 		ResponseFailedToBindJson(c, err)
 		return
 	}
-	findOpts, err := v2List2FindOptions(c, req)
+	findOpts, err := V2List2FindOptionsPaginated(c, req)
 	if err != nil {
 		ResponseBadRequest(c, err.Error())
 		return
@@ -332,7 +353,7 @@ func HandleDeleteByQuery[T types.DocContent](c *gin.Context) {
 		ResponseFailedToBindJson(c, err)
 		return
 	}
-	findOpts, err := v2List2FindOptions(c, req)
+	findOpts, err := V2List2FindOptionsPaginated(c, req)
 	if err != nil {
 		ResponseBadRequest(c, err.Error())
 		return

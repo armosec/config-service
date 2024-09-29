@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/armosec/armoapi-go/armotypes"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/exp/slices"
 )
@@ -51,8 +52,14 @@ func AddRoutes(g *gin.Engine) {
 		handlers.DBContextMiddleware(consts.PostureExceptionPolicyCollection),
 		updatePostureExceptionsSeverity)
 
+	admin.PUT("/markRuntimeIncidentsAsResolved",
+		handlers.DBContextMiddleware(consts.RuntimeIncidentCollection),
+		markRuntimeIncidentsAsResolved)
+
 	//Post V2 list query on other collections
 	admin.POST("/:path/query", adminSearchCollection)
+	//DELETE V2 by query on other collections
+	admin.DELETE("/:path/query", adminDeleteCollection)
 	//uniqueValues
 	admin.POST("/:path/uniqueValues", adminAggregateCollection)
 }
@@ -89,6 +96,23 @@ func updatePostureExceptionsSeverity(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"updatedCount": updatedCount})
+}
+
+func adminDeleteCollection(c *gin.Context) {
+	path := "/" + c.Param("path")
+	apiInfo := types.GetAPIInfo(path)
+	if apiInfo == nil {
+		handlers.ResponseBadRequest(c, fmt.Sprintf("unknown path %s - available paths are %v", path, types.GetAllPaths()))
+		return
+	}
+	deleteHandler := handlers.GetAdminDeleteHandler(apiInfo.DBCollection)
+	if deleteHandler == nil {
+		handlers.ResponseInternalServerError(c, "delete handler is nil", fmt.Errorf("no delete handler for path %s", path))
+		return
+	}
+	//set the path collection
+	c.Set(consts.Collection, apiInfo.DBCollection)
+	deleteHandler(c)
 }
 
 func adminSearchCollection(c *gin.Context) {
@@ -158,6 +182,23 @@ func deleteAllCustomerData(c *gin.Context) {
 
 }
 
+func deleteOldRuntimeIncidents(c *gin.Context) {
+	customersGUIDs := c.QueryArray(consts.CustomersParam)
+	if len(customersGUIDs) == 0 {
+		handlers.ResponseMissingQueryParam(c, consts.CustomersParam)
+		return
+	}
+	deleted, err := db.AdminDeleteCustomersDocs(c, customersGUIDs...)
+	if err != nil {
+		log.LogNTraceError(fmt.Sprintf("deleteAllCustomerData completed with errors. %d documents deleted", deleted), err, c)
+		handlers.ResponseInternalServerError(c, fmt.Sprintf("deleted: %d, errors: %v", deleted, err), err)
+		return
+	}
+	log.LogNTrace(fmt.Sprintf("deleteAllCustomerData completed successfully. %d documents of %d users deleted by admin %s ", deleted, len(customersGUIDs), c.GetString(consts.CustomerGUID)), c)
+	c.JSON(http.StatusOK, gin.H{"deleted": deleted})
+
+}
+
 func getActiveCustomers(c *gin.Context) {
 	defer log.LogNTraceEnterExit("activeCustomers", c)()
 	var err error
@@ -209,4 +250,38 @@ func getActiveCustomers(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, result)
+}
+
+func markRuntimeIncidentsAsResolved(c *gin.Context) {
+	var updateReq types.BulkResolveRuntimeIncidents
+	err := c.BindJSON(&updateReq)
+	if err != nil {
+		handlers.ResponseFailedToBindJson(c, err)
+		return
+	}
+
+	req := armotypes.V2ListRequest{InnerFilters: updateReq.InnerFilters}
+	findOpts, err := handlers.V2List2FindOptionsNotPaginated(c, req)
+	if err != nil {
+		handlers.ResponseBadRequest(c, err.Error())
+		return
+	}
+	filter := findOpts.Filter().WithCustomers([]string{updateReq.CustomerGUID})
+	nowTime := time.Now().UTC()
+
+	// mark customer incidents as resolved
+	update := db.GetMultipleUpdateSetFieldCommand(map[string]interface{}{
+		"isDismissed": true,
+		"seenAt":      &nowTime,
+		"seenBy":      updateReq.UserEmail,
+		"resolvedAt":  &nowTime,
+		"resolvedBy":  updateReq.UserEmail,
+	})
+
+	updatedCount, err := db.AdminUpdateMany(c, filter, update)
+	if err != nil {
+		handlers.ResponseInternalServerError(c, "failed to update runtime incidents", err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"updatedCount": updatedCount})
 }
