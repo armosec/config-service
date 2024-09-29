@@ -1737,33 +1737,27 @@ func getIncidentsMocks() []*types.RuntimeIncident {
 				Severity: "medium",
 				RelatedAlerts: []kdr.RuntimeAlert{
 					{
-						RuntimeAlert: armotypes.RuntimeAlert{
-							Message:  "msg1",
-							HostName: "host1",
-							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
-								Timestamp:   ts,
-								Nanoseconds: uint64(tsNanos) + 200,
-							},
+						Message:  "msg1",
+						HostName: "host1",
+						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+							Timestamp:   ts,
+							Nanoseconds: uint64(tsNanos) + 200,
 						},
 					},
 					{
-						RuntimeAlert: armotypes.RuntimeAlert{
-							Message:  "msg2",
-							HostName: "host2",
-							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
-								Timestamp:   ts,
-								Nanoseconds: uint64(tsNanos) + 100,
-							},
+						Message:  "msg2",
+						HostName: "host2",
+						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+							Timestamp:   ts,
+							Nanoseconds: uint64(tsNanos) + 100,
 						},
 					},
 					{
-						RuntimeAlert: armotypes.RuntimeAlert{
-							Message:  "msg3",
-							HostName: "host3",
-							BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
-								Nanoseconds: uint64(tsNanos),
-								Timestamp:   ts,
-							},
+						Message:  "msg3",
+						HostName: "host3",
+						BaseRuntimeAlert: armotypes.BaseRuntimeAlert{
+							Nanoseconds: uint64(tsNanos),
+							Timestamp:   ts,
 						},
 					},
 				},
@@ -1787,7 +1781,6 @@ func (suite *MainTestSuite) TestRuntimeIncidents() {
 		docCloned.RelatedAlerts = append(docCloned.RelatedAlerts, kdr.RuntimeAlert{
 
 			Message: "msg" + rndStr.New(),
-
 		})
 		return docCloned
 	}
@@ -2035,7 +2028,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	}
 	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
 	suite.Equal(http.StatusOK, w.Code)
-	alerts, err := decodeResponse[armotypes.V2ListResponseGeneric[[]kdr.RuntimeAlert]](w)
+	alerts, err := decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
@@ -2046,7 +2039,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	alertRequest.PageNum = ptr.Int(2)
 	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
 	suite.Equal(http.StatusOK, w.Code)
-	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]kdr.RuntimeAlert]](w)
+	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
@@ -2065,7 +2058,7 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	}
 	w = suite.doRequest(http.MethodPost, consts.RuntimeAlertPath+"/"+resp.Response[0].GUID+"/query", alertRequest)
 	suite.Equal(http.StatusOK, w.Code)
-	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]kdr.RuntimeAlert]](w)
+	alerts, err = decodeResponse[armotypes.V2ListResponseGeneric[[]types.RuntimeAlert]](w)
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
@@ -2090,7 +2083,6 @@ func (suite *MainTestSuite) TestRuntimeAlerts() {
 	suite.Equal(runtimeIncidents[2].RelatedAlerts[2], alerts.Response[0])
 	suite.Equal(runtimeIncidents[2].RelatedAlerts[1], alerts.Response[1])
 	suite.Equal(runtimeIncidents[2].RelatedAlerts[0], alerts.Response[2])
-
 
 }
 
