@@ -47,7 +47,7 @@ func (suite *MainTestSuite) TestUsersNotificationsVulnerabilities() {
 			},
 			expectedResponse: armotypes.UniqueValuesResponseV2{
 				Fields: map[string][]string{
-					"images": {"image1", "image2", "image3", "image4", "image5", "image6"},
+					"images": {"image1", "image2", "image3", "image4", "image5", "image6", "quay.io/armosec/backend-conf-reloader:v1.0"},
 				},
 				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
 					"images": {
@@ -75,6 +75,10 @@ func (suite *MainTestSuite) TestUsersNotificationsVulnerabilities() {
 						{
 							Field: "image6",
 							Count: 1,
+						},
+						{
+							Field: "quay.io/armosec/backend-conf-reloader:v1.0",
+							Count: 3,
 						},
 					},
 				},
@@ -111,6 +115,75 @@ func (suite *MainTestSuite) TestUsersNotificationsVulnerabilities() {
 				},
 			},
 		},
+		{
+			testName: "unique cves",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				Fields: map[string]string{
+					"cveID": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"cveID": {"CVE-2023-1234", "CVE-2023-1235", "CVE-2023-1236", "CVE-2023-1237", "CVE-2024-45490", "CVE-2024-45491", "CVE-2024-45492"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"cveID": {
+						{
+							Field: "CVE-2023-1234",
+							Count: 2,
+						},
+						{
+							Field: "CVE-2023-1235",
+							Count: 1,
+						},
+						{
+							Field: "CVE-2023-1236",
+							Count: 1,
+						},
+						{
+							Field: "CVE-2023-1237",
+							Count: 1,
+						},
+						{
+
+							Field: "CVE-2024-45490",
+							Count: 1,
+						},
+						{
+							Field: "CVE-2024-45491",
+							Count: 1,
+						},
+						{
+							Field: "CVE-2024-45492",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
+		{
+			testName: "unique cves paginated",
+			uniqueValuesRequest: armotypes.UniqueValuesRequestV2{
+				PageSize: 1,
+				PageNum:  ptr.Int(2),
+				Fields: map[string]string{
+					"cveID": "",
+				},
+			},
+			expectedResponse: armotypes.UniqueValuesResponseV2{
+				Fields: map[string][]string{
+					"cveID": {"CVE-2023-1235"},
+				},
+				FieldsCount: map[string][]armotypes.UniqueValuesResponseFieldsCount{
+					"cveID": {
+						{
+							Field: "CVE-2023-1235",
+							Count: 1,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	testUniqueValues(suite, consts.UsersNotificationsVulnerabilitiesPath, docs, uniqueValues, ignoreTime, driftCompareFilter)
@@ -136,12 +209,29 @@ func (suite *MainTestSuite) TestUsersNotificationsVulnerabilities() {
 		},
 		{
 			testName:        "severity ",
-			expectedIndexes: []int{2, 3, 4},
+			expectedIndexes: []int{2, 3, 4, 5, 6, 7},
 			listRequest: armotypes.V2ListRequest{
 				OrderBy: "name:asc",
 				InnerFilters: []map[string]string{
 					{
 						"severity": "3|greater",
+					},
+				},
+			},
+		},
+		{
+			testName:        "cluster with exploitable filters",
+			expectedIndexes: []int{6, 7},
+			listRequest: armotypes.V2ListRequest{
+				OrderBy: "name:asc",
+				InnerFilters: []map[string]string{
+					{
+						"cluster":               "arn-aws-eks-eu-west-1-015253967648-cluster-ca-terraform-eks-dev-stage",
+						"cisaKevInfo.dateAdded": ".+|regex", //  "Known Exploited"
+					},
+					{
+						"cluster":       "arn-aws-eks-eu-west-1-015253967648-cluster-ca-terraform-eks-dev-stage",
+						"epssInfo.epss": "0.1|greater", // "High Likelihood"
 					},
 				},
 			},
