@@ -1,28 +1,28 @@
 [
   {
     "guid": "123e4567-e89b-12d3-a456-426614174001",
-    "provider": 0,
+    "provider": "aws",
     "clusterName": "arn-aws-eks-eu-west-1-221581667315-cluster-refael-dev-test",
     "repositories": ["devops", "kube-host-sensor"],
     "authID": "123"
   },
   {
     "guid": "b6d313a2-ef70-4962-a90f-da2dbbef906f",
-    "provider": 0,
+    "provider": "aws",
     "clusterName": "arn-aws-eks-eu-west-1-221581667315-cluster-refael-dev-test",
     "repositories": ["backend-conf-reloader"],
     "authID": "456"
   },
   {
     "guid": "2f632062-c883-48d0-ac33-830ecd6883f0",
-    "provider": 1,
+    "provider": "azure",
     "clusterName": "arn-aws-eks-eu-west-1-221581667315-cluster-refael-dev-test",
     "repositories": ["dashboard-backend", "kubecop"],
     "authID": "789"
   },
   {
     "guid": "41a6cf7b-7a8f-45a4-bd0f-87995d3065a4",
-    "provider": 1,
+    "provider": "azure",
     "clusterName": "arn-aws-eks-eu-west-1-221581667315-cluster-refael-dev-test",
     "repositories": ["notification-server", "armoui-developer"],
     "authID": "101"
