@@ -23,6 +23,7 @@ import (
 	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/armosec/armoapi-go/notifications"
 	"github.com/armosec/armosec-infra/kdr"
+	notificationsArmosecInfra "github.com/armosec/armosec-infra/notifications"
 	"github.com/armosec/armosec-infra/workflows"
 
 	rndStr "github.com/dchest/uniuri"
@@ -1174,7 +1175,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	//login as customer
 	suite.login(testCustomerGUID)
 	//get customer notification config - should be empty
-	notificationConfig := &notifications.NotificationsConfig{}
+	notificationConfig := &notificationsArmosecInfra.NotificationsConfig{}
 	configPath := consts.NotificationConfigPath + "/" + testCustomerGUID
 	testGetDoc(suite, configPath, notificationConfig, nil)
 
@@ -1190,7 +1191,7 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	notificationConfig.UnsubscribedUsers = make(map[string][]notifications.NotificationConfigIdentifier)
 	notificationConfig.UnsubscribedUsers["user1"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypeVulnerabilityNewFix}}
 	notificationConfig.UnsubscribedUsers["user2"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypePush}}
-	prevConfig := &notifications.NotificationsConfig{}
+	prevConfig := &notificationsArmosecInfra.NotificationsConfig{}
 	testPutDoc(suite, configPath, prevConfig, notificationConfig, nil)
 	//update notification config
 	prevConfig = Clone(notificationConfig)
@@ -1290,7 +1291,10 @@ func (suite *MainTestSuite) TestCustomerNotificationConfig() {
 	notificationConfig.UnsubscribedUsers["user11"] = []notifications.NotificationConfigIdentifier{{NotificationType: notifications.NotificationTypeWeekly}}
 
 	//update just one field in the configuration
-	notificationConfigWeekly := &notifications.NotificationsConfig{LatestWeeklyReport: &notifications.WeeklyReport{ClustersScannedThisWeek: 1}}
+	notificationConfigWeekly := &notificationsArmosecInfra.NotificationsConfig{
+		LatestWeeklyReport: &notifications.WeeklyReport{ClustersScannedThisWeek: 1},
+	}
+
 	prevConfig = Clone(notificationConfig)
 	notificationConfig.LatestWeeklyReport = &notifications.WeeklyReport{ClustersScannedThisWeek: 1}
 	//test partial update

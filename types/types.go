@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/armosec/armoapi-go/armotypes"
-	"github.com/armosec/armoapi-go/configservice"
 	"github.com/armosec/armoapi-go/notifications"
 	cloudposture "github.com/armosec/armosec-infra/cloudPosture"
+	"github.com/armosec/armosec-infra/configservice"
 	"github.com/armosec/armosec-infra/kdr"
 	"github.com/armosec/armosec-infra/workflows"
 
