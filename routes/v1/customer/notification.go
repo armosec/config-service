@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/armosec/armoapi-go/notifications"
+	notificationsArmosecInfra "github.com/armosec/armosec-infra/notifications"
 	"github.com/gin-gonic/gin"
 )
 
@@ -97,7 +98,7 @@ func notificationConfigResponseSender(c *gin.Context, customer *types.Customer, 
 			handlers.ResponseInternalServerError(c, "unexpected nill doc array response in PUT", nil)
 			return
 		}
-		notifications := []*notifications.NotificationsConfig{}
+		notifications := []*notificationsArmosecInfra.NotificationsConfig{}
 		for _, customer := range customers {
 			notifications = append(notifications, customer2NotificationConfig(customer))
 		}
@@ -111,18 +112,18 @@ func notificationConfigResponseSender(c *gin.Context, customer *types.Customer, 
 	c.JSON(http.StatusOK, customer2NotificationConfig(customer))
 }
 
-func customer2NotificationConfig(customer *types.Customer) *notifications.NotificationsConfig {
+func customer2NotificationConfig(customer *types.Customer) *notificationsArmosecInfra.NotificationsConfig {
 	if customer == nil {
 		return nil
 	}
 	if customer.NotificationsConfig == nil {
-		return &notifications.NotificationsConfig{}
+		return &notificationsArmosecInfra.NotificationsConfig{}
 	}
 	return customer.NotificationsConfig
 }
 
 func decodeNotificationConfig(c *gin.Context) ([]*types.Customer, error) {
-	var notificationConfig *notifications.NotificationsConfig
+	var notificationConfig *notificationsArmosecInfra.NotificationsConfig
 	//notificationConfig do not support bulk update - so we do not expect array
 	if err := c.ShouldBindJSON(&notificationConfig); err != nil {
 		handlers.ResponseFailedToBindJson(c, err)
