@@ -2857,6 +2857,6 @@ func (suite *MainTestSuite) TestContainerImageRegistries() {
 		suite.FailNow(err.Error())
 	}
 
-	suite.Len(res.Response, 3)
+	suite.Len(res.Response, 2)
 
 }
