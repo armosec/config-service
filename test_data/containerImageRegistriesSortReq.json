@@ -1,5 +1,10 @@
 {
     "pageSize": 3,
     "pageNum": 0,
-    "orderBy": "provider:desc"
+    "orderBy": "provider:desc",
+    "innerFilters": [
+        {
+            "provider": "azure"
+        }
+    ]
 }
