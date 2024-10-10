@@ -56,6 +56,8 @@ github.com/armosec/armoapi-go v0.0.459 h1:r2n+TRgcnbA7ZE0GOCR1fsTcvVRDEiCkIYWJl1
 github.com/armosec/armoapi-go v0.0.459/go.mod h1:q72hIm+gfvpDCdFcQ6bQu79w12WEpzX0TKTIksZfewk=
 github.com/armosec/armosec-infra v0.0.78 h1:fsH+QyXPICvEbwbQ7DF2QMNONOhKR1IeQDkrE12UE+I=
 github.com/armosec/armosec-infra v0.0.78/go.mod h1:NSA8VURYQtJqa21HLZ5HLTRZQjaQUj+elrf+yzc7JSk=
+github.com/armosec/armosec-infra v0.0.80-0.20241010101154-9b4f9266b29a h1:Kv4ukrTQSvipr3ps9SJjgZ7Rr3lfY1n/kyxp7AlOmNM=
+github.com/armosec/armosec-infra v0.0.80-0.20241010101154-9b4f9266b29a/go.mod h1:NSA8VURYQtJqa21HLZ5HLTRZQjaQUj+elrf+yzc7JSk=
 github.com/armosec/gojay v1.2.17 h1:VSkLBQzD1c2V+FMtlGFKqWXNsdNvIKygTKJI9ysY8eM=
 github.com/armosec/gojay v1.2.17/go.mod h1:vuvX3DlY0nbVrJ0qCklSS733AWMoQboq3cFyuQW9ybc=
 github.com/armosec/utils-go v0.0.57 h1:0RaqexK+t7HeKWfldBv2C1JiLLGuUx9FP0DGWDNRJpg=
