@@ -14,7 +14,7 @@ func AddRoutes(g *gin.Engine) {
 		NestedDocPath: "notifications_config.workflows",
 		ArrayPaths: []string{
 			"scope", "conditions", "notifications",
-			"notifications.teamsWebhookURLs", "notifications.slackChannels", "notifications.jiraTicketIdentifiers",
+			"notifications.teamsChannels", "notifications.slackChannels", "notifications.jiraTicketIdentifiers",
 		},
 		FieldsType: map[string]types.FieldType{
 			"creationTime": "date",
