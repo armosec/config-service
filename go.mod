@@ -5,7 +5,7 @@ go 1.22.4
 toolchain go1.22.5
 
 require (
-	github.com/armosec/armoapi-go v0.0.458
+	github.com/armosec/armoapi-go v0.0.459
 	github.com/armosec/armosec-infra v0.0.80-0.20241010122121-031ab3603edd
 	github.com/aws/smithy-go v1.20.2
 	github.com/chidiwilliams/flatbson v0.3.0
