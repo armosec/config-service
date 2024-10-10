@@ -11,6 +11,7 @@ import (
 
 func AddRoutes(g *gin.Engine) {
 	schemaInfo := types.SchemaInfo{
+		NestedDocPath: "notifications_config.workflows",
 		ArrayPaths: []string{
 			"scope", "conditions", "notifications",
 			"notifications.teamsWebhookURLs", "notifications.slackChannels", "notifications.jiraTicketIdentifiers",
@@ -22,15 +23,15 @@ func AddRoutes(g *gin.Engine) {
 	}
 
 	routerOptionsBuilder := handlers.NewRouterOptionsBuilder[*types.Workflow]().
+		WithServePut(false).
+		WithServeDelete(false).
+		WithServeGet(false).
+		WithServePost(false).
 		WithPath(consts.WorkflowPath).
-		WithDBCollection(consts.WorkflowCollection).
+		WithDBCollection(consts.CustomersCollection).
 		WithSchemaInfo(schemaInfo).
-		WithNameQuery(consts.PolicyNameParam).
-		WithDeleteByName(true).
-		WithValidatePostUniqueName(false).
-		WithValidatePutGUID(true).
-		WithValidatePostMandatoryName(true).
+		WithNameQuery(consts.NameField).
 		WithV2ListSearch(true)
-
+	// WithResponseSender(workflowsResponseSender)
 	handlers.AddRoutes(g, routerOptionsBuilder.Get()...)
 }

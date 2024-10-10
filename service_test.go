@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	wf "github.com/armosec/armosec-infra/workflows"
 	"github.com/aws/smithy-go/ptr"
 	"go.uber.org/zap"
 
@@ -2798,39 +2799,6 @@ func (suite *MainTestSuite) TestCloudAccount() {
 	testGetByName(suite, consts.CloudAccountPath, "name", accounts, accountCompareFilter, ignoreTime)
 }
 
-func (suite *MainTestSuite) TestWorkflows() {
-	// load workflows from json
-	workflowsObj, _ := loadJson[*types.Workflow](workflowsJson)
-
-	modifyDocFunc := func(doc *types.Workflow) *types.Workflow {
-		docCloned := Clone(doc)
-		return docCloned
-	}
-	testOpts := testOptions[*types.Workflow]{
-		mandatoryName: true,
-		renameAllowed: true,
-		uniqueName:    false,
-	}
-	ignore := cmp.FilterPath(func(p cmp.Path) bool {
-		return p.String() == "Workflow.PortalBase.GUID" || p.String() == "GUID" || p.String() == "CreationTime" ||
-			p.String() == "CreationDate" || p.String() == "Workflow.PortalBase.UpdatedTime" || p.String() == "UpdatedTime"
-	}, cmp.Ignore())
-	commonTestWithOptions(suite, consts.WorkflowPath, workflowsObj, modifyDocFunc, testOpts, ignore, ignoreTime)
-
-	// test sort and pagination
-	testBulkPostDocs(suite, consts.WorkflowPath, workflowsObj, ignore, ignoreTime)
-	time.Sleep(3 * time.Second)
-	w := suite.doRequest(http.MethodPost, consts.WorkflowPath+"/query", workflowsSortReq)
-	suite.Equal(http.StatusOK, w.Code)
-	res, err := decodeResponse[armotypes.V2ListResponseGeneric[[]*workflows.Workflow]](w)
-	if err != nil {
-		suite.FailNow(err.Error())
-	}
-
-	suite.Len(res.Response, 2)
-
-}
-
 func (suite *MainTestSuite) TestContainerImageRegistries() {
 	// load registries from json
 	containerImageRegistriesObj, _ := loadJson[*types.ContainerImageRegistry](containerImageRegistriesJson)
@@ -2853,6 +2821,55 @@ func (suite *MainTestSuite) TestContainerImageRegistries() {
 	w := suite.doRequest(http.MethodPost, consts.ContainerImageRegistriesPath+"/query", containerImageRegistriesSortReq)
 	suite.Equal(http.StatusOK, w.Code)
 	res, err := decodeResponse[armotypes.V2ListResponseGeneric[[]*armotypes.BaseContainerImageRegistry]](w)
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	suite.Len(res.Response, 2)
+
+}
+
+func (suite *MainTestSuite) TestCustomerNotificationConfigWorkflows() {
+	testCustomerGUID := "test-notification-customer-guid"
+	customer := &types.Customer{
+		PortalBase: armotypes.PortalBase{
+			Name: "customer-test-notification-config",
+			GUID: testCustomerGUID,
+			Attributes: map[string]interface{}{
+				"customer1-attr1": "customer1-attr1-value",
+				"customer1-attr2": "customer1-attr2-value",
+			},
+		},
+		Description:        "customer1 description",
+		Email:              "customer1@customers.org",
+		LicenseType:        "kubescape",
+		InitialLicenseType: "kubescape",
+	}
+
+	// load workflows from json
+	workflowsObj, _ := loadJson[*types.Workflow](workflowsJson)
+	workflowsArmo := make([]wf.Workflow, 0)
+	for _, workflow := range workflowsObj {
+		workflowsArmo = append(workflowsArmo, workflow.Workflow)
+	}
+
+	//create customer is public so - remove auth cookie
+	suite.authCookie = ""
+	notificationConfig := &notificationsArmosecInfra.NotificationsConfig{}
+	notificationConfig.Workflows = workflowsArmo
+	customer.NotificationsConfig = notificationConfig
+
+	//login as customer
+	suite.login(testCustomerGUID)
+
+	testCustomer := testPostDoc(suite, "/customer_tenant", customer, customerCompareFilter)
+	suite.NotEmpty(testCustomer.NotificationsConfig)
+
+	w := suite.doRequest(http.MethodPost, consts.WorkflowPath+"/"+testCustomerGUID+"/query", workflowsSortReq)
+
+	suite.Equal(http.StatusOK, w.Code)
+	res, err := decodeResponse[armotypes.V2ListResponseGeneric[[]workflows.Workflow]](w)
+
 	if err != nil {
 		suite.FailNow(err.Error())
 	}
