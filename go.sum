@@ -54,8 +54,8 @@ github.com/arbovm/levenshtein v0.0.0-20160628152529-48b4e1c0c4d0 h1:jfIu9sQUG6Ig
 github.com/arbovm/levenshtein v0.0.0-20160628152529-48b4e1c0c4d0/go.mod h1:t2tdKJDJF9BV14lnkjHmOQgcvEKgtqs5a1N3LNdJhGE=
 github.com/armosec/armoapi-go v0.0.462 h1:JfDZUziooECJTcDEGlUuMTfA9hSQyzB/pVyeLmGD4VE=
 github.com/armosec/armoapi-go v0.0.462/go.mod h1:TruqDSAPgfRBXCeM+Cgp6nN4UhJSbe7la+XDKV2pTsY=
-github.com/armosec/armosec-infra v0.0.92 h1:7l3G5NenQ7CBoWnDeYo2F3btGqFCMcIXneI74ioQty4=
-github.com/armosec/armosec-infra v0.0.92/go.mod h1:GitW1Jbv7oa8+cPVKuqKM2DxwkpAQrfcXMdzd3DrSVQ=
+github.com/armosec/armosec-infra v0.0.93 h1:9O76wcHn+sN9aRXTt7IuDemy01hbhYoM6RZ+xXVEW2c=
+github.com/armosec/armosec-infra v0.0.93/go.mod h1:GitW1Jbv7oa8+cPVKuqKM2DxwkpAQrfcXMdzd3DrSVQ=
 github.com/armosec/gojay v1.2.17 h1:VSkLBQzD1c2V+FMtlGFKqWXNsdNvIKygTKJI9ysY8eM=
 github.com/armosec/gojay v1.2.17/go.mod h1:vuvX3DlY0nbVrJ0qCklSS733AWMoQboq3cFyuQW9ybc=
 github.com/armosec/utils-go v0.0.57 h1:0RaqexK+t7HeKWfldBv2C1JiLLGuUx9FP0DGWDNRJpg=
